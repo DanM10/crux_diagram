@@ -26,7 +26,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | done | `0593311`; RED observed first (4 widget tests + geometry compile error; the lifted-finger test moved the square to (730, 930)), then 114/114 tests pass ×3, analyze clean (root + example) |
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | done | `8c1aa50`; RED (compile errors) observed first, then 139/139 tests pass, analyze clean (root + example); independent verifier PASS (L17); native review approved and acknowledged (L20) |
 | T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | done | `e3e34e6` (API), `255e4da` (rendering), `d642956` (interaction); RED observed first in each, then 189/189 tests pass ×3, analyze clean (root + example) |
-| T10 | S5 | Anchor snapping while moving and resizing, highlights | inline | pending | — |
+| T10 | S5 | Anchor snapping while moving and resizing, highlights | inline | done | `5ebb580`; RED observed first, then 202/202 tests pass ×3, analyze clean (root + example) |
 | T11 | S7 | README (GIF/screenshots, quick start, API), dartdoc for all public members, example app flow, dry run, `pana` | inline | pending | — |
 
 Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the model/geometry before it), so no parallel independent units exist.
@@ -117,4 +117,14 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
     - Labels can be dragged in any tool. Double-tap is detected manually with a `kDoubleTapTimeout` timer, so single taps keep firing immediately (an `onDoubleTap` recognizer would have delayed every existing tap).
   - **Acceptance criteria covered by tests:** AC 1–5 and 8 (with AC 6, 9 and 10 from T8).
   - **RDD:** each commit was assessed against `15d283c` as `medium`, `under_budget`, so slice 7 (T9) stays open. Risk: none. The changes are additive, and the shared select/tap paths are unchanged when no joints exist, pinned by the existing tests.
-- **Next**: T10 (anchor snapping SN-1 to SN-4).
+- **L22** (2026-11-12): T10 done (`5ebb580`, +440/−11).
+  - **Config:** `DrawingEditorConfig.anchorSnapThreshold` (dp, default 12, null disables). The editor converts it to canvas units with the live viewport, so the snap distance stays constant in dp at any zoom.
+  - **Pure helpers:** `nearestAnchorSnap` returns the nearest pair; ties go to the first moving anchor in spec order. `anchorIdForHandle` maps each handle to its anchor.
+  - **Move (SN-1):** proximity is detected at the raw (unsnapped) position. A snap overrides grid snapping on both axes (SN-3). AC 7 is covered at the controller and the widget level.
+  - **Resize (SN-2):** only the anchor under the dragged handle takes part. The snap applies only if the resize can put that anchor exactly on the target (within 1e-6); otherwise normal grid resizing applies. Under an aspect lock or a size limit it may not land, and a circle's corner handles have no anchor.
+  - **Rotation:** never anchor-snaps.
+  - **Highlight:** the internal `snapHighlight` holds the two anchor positions while the snap is active and clears at gesture end or cancel. The overlay draws rings for it, and it is never exported.
+  - **SN-4:** nothing is stored. Joints are unchanged, and the document round-trips.
+  - **Tests:** two expectations were strengthened before implementing. b's anchor was moved off the grid so the resize test cannot pass on grid snapping alone, and a nearby non-handle anchor was added to prove SN-2.
+  - **RDD:** `medium`, `under_budget`; slice 7 is now T9 plus T10. Risk: none (requested default-on behavior, unreleased package).
+- **Next**: T11 (README, dartdoc, example app flow, dry run, `pana`). The example app also unblocks the deferred emulator check (L15).
