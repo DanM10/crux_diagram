@@ -11,3 +11,5 @@ export 'src/model/shape_element.dart' show ShapeElement;
 export 'src/model/shape_type.dart' show ShapeType;
 export 'src/editor/drawing_editor_config.dart' show DrawingEditorConfig;
 export 'src/editor/drawing_editor_controller.dart' show DrawingEditorController;
+export 'src/editor/drawing_editor.dart' show DrawingEditor;
+export 'src/editor/drawing_editor_labels.dart' show DrawingEditorLabels;
