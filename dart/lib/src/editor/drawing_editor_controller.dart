@@ -3,17 +3,23 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 
 import '../export/jpeg_export.dart';
+import '../geometry/anchors.dart' as anchors show anchorsOf;
+import '../geometry/anchors.dart' show Anchor;
 import '../geometry/grid.dart';
+import '../geometry/joint_geometry.dart';
 import '../geometry/resize.dart';
 import '../geometry/rotation.dart';
 import '../geometry/transforms.dart';
 import '../model/drawing_document.dart';
 import '../model/id_generator.dart';
+import '../model/joint.dart';
+import '../model/joint_names.dart';
 import '../model/shape_element.dart';
 import '../model/shape_type.dart';
 import '../model/shape_type_defaults.dart';
 import 'document_history.dart';
 import 'drawing_editor_config.dart';
+import 'drawing_tool.dart';
 
 /// Holds the document being edited, the selection and the undo history.
 ///
@@ -24,14 +30,16 @@ class DrawingEditorController extends ChangeNotifier {
   /// Creates a controller editing [initial], or an empty document with
   /// [config]'s canvas size.
   ///
-  /// [idGenerator] produces ids for new shapes; the default combines a
-  /// timestamp with a counter.
+  /// [idGenerator] and [jointIdGenerator] produce ids for new shapes and
+  /// joints; the defaults combine a timestamp with a counter.
   DrawingEditorController({
     DrawingDocument? initial,
     this.config = const DrawingEditorConfig(),
     String Function()? idGenerator,
+    String Function()? jointIdGenerator,
   }) : _document = initial ?? DrawingDocument(canvasSize: config.canvasSize),
        _nextId = idGenerator ?? defaultIdGenerator(prefix: 's'),
+       _nextJointId = jointIdGenerator ?? defaultIdGenerator(prefix: 'j'),
        _history = DocumentHistory(limit: config.historyLimit) {
     _cleanBaseline = _document;
   }
@@ -43,10 +51,13 @@ class DrawingEditorController extends ChangeNotifier {
   final DrawingEditorConfig config;
 
   final String Function() _nextId;
+  final String Function() _nextJointId;
   final DocumentHistory _history;
   DrawingDocument _document;
   late DrawingDocument _cleanBaseline;
   String? _selectedId;
+  String? _selectedJointId;
+  DrawingTool _tool = DrawingTool.select;
 
   /// Document at the start of the running gesture, or null.
   DrawingDocument? _gestureStart;
@@ -54,8 +65,27 @@ class DrawingEditorController extends ChangeNotifier {
   /// The current document.
   DrawingDocument get document => _document;
 
-  /// Id of the selected shape, or null.
+  /// Id of the selected shape, or null. A shape and a joint are never
+  /// selected at the same time.
   String? get selectedId => _selectedId;
+
+  /// The selected joint, or null.
+  Joint? get selectedJoint => _jointById(_selectedJointId);
+
+  /// The active tool. Setting it notifies listeners.
+  DrawingTool get tool => _tool;
+
+  set tool(DrawingTool value) {
+    if (_tool == value) return;
+    _tool = value;
+    notifyListeners();
+  }
+
+  /// The anchors of the shape with [shapeId], in canvas coordinates.
+  ///
+  /// Throws [ArgumentError] when no such shape exists.
+  List<Anchor> anchorsOf(String shapeId) =>
+      anchors.anchorsOf(_shapeOrThrow(shapeId));
 
   /// Whether [undo] has an entry to restore.
   bool get canUndo => _history.canUndo;
@@ -85,8 +115,76 @@ class DrawingEditorController extends ChangeNotifier {
     _commit(_withShapes([..._document.shapes, shape]), select: shape.id);
   }
 
-  /// Deletes the selected shape.
+  /// Adds a joint on anchor [anchorId] of shape [shapeId] and selects it.
+  ///
+  /// [name] is trimmed and limited to [DrawingEditorConfig.jointNameMaxLength];
+  /// when omitted, the next auto name is used (`J1`, `J2`, ...). The label
+  /// starts at the default offset, pointing away from the shape center.
+  ///
+  /// Throws [ArgumentError] when the shape or anchor does not exist, the
+  /// anchor already has a joint, or [name] is blank.
+  Joint addJoint(String shapeId, String anchorId, {String? name}) {
+    final joint = _newJoint(shapeId, anchorId, name: name);
+    _commit(
+      _document.copyWith(joints: [..._document.joints, joint]),
+      selectJoint: joint.id,
+    );
+    return joint;
+  }
+
+  /// Renames the joint with [jointId] to [name], trimmed and limited to
+  /// [DrawingEditorConfig.jointNameMaxLength]. A blank [name] keeps the old
+  /// name.
+  ///
+  /// Throws [ArgumentError] when no such joint exists.
+  void renameJoint(String jointId, String name) {
+    final joint = _jointOrThrow(jointId);
+    final normalized = normalizeJointName(name, config.jointNameMaxLength);
+    if (normalized == null || normalized == joint.name) return;
+    _commit(_withJoint(joint.copyWith(name: normalized)));
+  }
+
+  /// Sets the label offset of the joint with [jointId], keeping the label
+  /// center inside the canvas.
+  ///
+  /// Throws [ArgumentError] when no such joint exists.
+  void moveJointLabel(String jointId, Offset labelOffset) {
+    final joint = _jointOrThrow(jointId);
+    final moved = joint.copyWith(
+      labelOffset: clampLabelOffset(
+        _anchorPosition(joint),
+        labelOffset,
+        _document.canvasSize,
+      ),
+    );
+    if (moved == joint) return;
+    _commit(_withJoint(moved));
+  }
+
+  /// Removes the joint with [jointId].
+  ///
+  /// Throws [ArgumentError] when no such joint exists.
+  void removeJoint(String jointId) {
+    _jointOrThrow(jointId);
+    _commit(
+      _document.copyWith(
+        joints: [
+          for (final j in _document.joints)
+            if (j.id != jointId) j,
+        ],
+      ),
+      selectJoint: _selectedJointId == jointId ? null : _keepSelection,
+    );
+  }
+
+  /// Deletes the selected joint, or else the selected shape together with
+  /// its joints.
   void deleteSelected() {
+    final joint = selectedJoint;
+    if (joint != null) {
+      removeJoint(joint.id);
+      return;
+    }
     final selected = _selected;
     if (selected == null) return;
     _commit(
@@ -202,11 +300,109 @@ class DrawingEditorController extends ChangeNotifier {
   }
 
   /// Applies a one-shot edit as a single history entry.
-  void _commit(DrawingDocument next, {Object? select = _keepSelection}) {
+  void _commit(
+    DrawingDocument next, {
+    Object? select = _keepSelection,
+    Object? selectJoint = _keepSelection,
+  }) {
     _history.record(_document);
     _document = next;
-    if (select != _keepSelection) _selectedId = select as String?;
+    _applySelection(select, selectJoint);
     notifyListeners();
+  }
+
+  /// Applies a shape and/or joint selection; selecting one clears the other.
+  void _applySelection(Object? select, Object? selectJoint) {
+    if (select != _keepSelection) {
+      _selectedId = select as String?;
+      if (_selectedId != null) _selectedJointId = null;
+    }
+    if (selectJoint != _keepSelection) {
+      _selectedJointId = selectJoint as String?;
+      if (_selectedJointId != null) _selectedId = null;
+    }
+  }
+
+  Joint _newJoint(String shapeId, String anchorId, {String? name}) {
+    final shape = _shapeOrThrow(shapeId);
+    final anchor = anchors
+        .anchorsOf(shape)
+        .where((a) => a.id == anchorId)
+        .firstOrNull;
+    if (anchor == null) {
+      throw ArgumentError.value(
+        anchorId,
+        'anchorId',
+        'Not an anchor of a ${shape.type.name}',
+      );
+    }
+    if (_document.joints.any(
+      (j) => j.shapeId == shapeId && j.anchorId == anchorId,
+    )) {
+      throw ArgumentError.value(
+        anchorId,
+        'anchorId',
+        'Shape "$shapeId" already has a joint on this anchor',
+      );
+    }
+    final String resolvedName;
+    if (name == null) {
+      resolvedName = nextJointName(
+        config.jointNamePrefix,
+        _document.joints.map((j) => j.name),
+      );
+    } else {
+      resolvedName =
+          normalizeJointName(name, config.jointNameMaxLength) ??
+          (throw ArgumentError.value(name, 'name', 'Must not be blank'));
+    }
+    return Joint(
+      id: _uniqueJointId(),
+      shapeId: shapeId,
+      anchorId: anchorId,
+      name: resolvedName,
+      labelOffset: defaultLabelOffset(shape.center, anchor.position),
+    );
+  }
+
+  ShapeElement _shapeOrThrow(String shapeId) {
+    for (final shape in _document.shapes) {
+      if (shape.id == shapeId) return shape;
+    }
+    throw ArgumentError.value(shapeId, 'shapeId', 'No such shape');
+  }
+
+  Joint? _jointById(String? jointId) {
+    if (jointId == null) return null;
+    for (final joint in _document.joints) {
+      if (joint.id == jointId) return joint;
+    }
+    return null;
+  }
+
+  Joint _jointOrThrow(String jointId) =>
+      _jointById(jointId) ??
+      (throw ArgumentError.value(jointId, 'jointId', 'No such joint'));
+
+  /// Canvas position of [joint]'s anchor in the current document.
+  Offset _anchorPosition(Joint joint) => anchors
+      .anchorsOf(_shapeOrThrow(joint.shapeId))
+      .firstWhere((a) => a.id == joint.anchorId)
+      .position;
+
+  DrawingDocument _withJoint(Joint updated) => _document.copyWith(
+    joints: [
+      for (final j in _document.joints) j.id == updated.id ? updated : j,
+    ],
+  );
+
+  String _uniqueJointId() {
+    final taken = {for (final j in _document.joints) j.id};
+    var id = _nextJointId();
+    while (taken.contains(id)) {
+      id = _nextJointId();
+    }
+    return id;
   }
 
   void _replaceSelected(ShapeElement updated) {
@@ -250,6 +446,7 @@ class DrawingEditorController extends ChangeNotifier {
 
   void _dropStaleSelection() {
     if (_selected == null) _selectedId = null;
+    if (selectedJoint == null) _selectedJointId = null;
   }
 
   void _cancelGestureSilently() {
@@ -270,9 +467,72 @@ extension DrawingEditorGestures on DrawingEditorController {
   ShapeElement? get selectedShape => _selected;
 
   /// Selects the shape with [id], or clears the selection with null.
+  /// Clears any joint selection.
   void select(String? id) {
-    if (_selectedId == id) return;
+    if (_selectedId == id && _selectedJointId == null) return;
     _selectedId = id;
+    _selectedJointId = null;
+    _notify();
+  }
+
+  /// Selects the joint with [id], or clears the selection with null.
+  /// Clears any shape selection.
+  void selectJoint(String? id) {
+    if (_selectedJointId == id && _selectedId == null) return;
+    _selectedJointId = id;
+    _selectedId = null;
+    _notify();
+  }
+
+  /// Starts creating a joint on [anchorId] of [shapeId] (spec 02, JT-2): the
+  /// joint appears with the next auto name and is selected, but nothing is
+  /// recorded until [confirmJointCreation].
+  ///
+  /// Throws [ArgumentError] like [DrawingEditorController.addJoint].
+  Joint beginJointCreation(String shapeId, String anchorId) {
+    final joint = _newJoint(shapeId, anchorId);
+    beginGesture();
+    _document = _document.copyWith(joints: [..._document.joints, joint]);
+    _selectedJointId = joint.id;
+    _selectedId = null;
+    _notify();
+    return joint;
+  }
+
+  /// Finishes [beginJointCreation] with [name] as one history entry. A blank
+  /// [name] cancels the creation (spec 02, NM-1).
+  void confirmJointCreation(String name) {
+    final joint = selectedJoint;
+    final normalized = normalizeJointName(name, config.jointNameMaxLength);
+    if (joint == null || normalized == null) {
+      cancelGesture();
+      _dropStaleSelection();
+      _notify();
+      return;
+    }
+    _document = _withJoint(joint.copyWith(name: normalized));
+    endGesture();
+    _notify();
+  }
+
+  /// Moves the selected joint's label by [delta] from its offset at gesture
+  /// start, keeping the label center inside the canvas (spec 02, AW-4).
+  void dragSelectedJointLabelBy(Offset delta) {
+    final start = _gestureStart;
+    final id = _selectedJointId;
+    if (start == null || id == null) return;
+    final startJoint = start.joints.where((j) => j.id == id).firstOrNull;
+    final current = _jointById(id);
+    if (startJoint == null || current == null) return;
+    _document = _withJoint(
+      current.copyWith(
+        labelOffset: clampLabelOffset(
+          _anchorPosition(current),
+          startJoint.labelOffset + delta,
+          _document.canvasSize,
+        ),
+      ),
+    );
     _notify();
   }
 

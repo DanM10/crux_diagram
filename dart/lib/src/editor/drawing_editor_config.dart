@@ -8,7 +8,8 @@ import '../model/drawing_document.dart';
 /// Behavior settings for a drawing editor.
 @immutable
 class DrawingEditorConfig {
-  /// Creates a configuration. Every value has a default from spec 01.
+  /// Creates a configuration. Every value has a default from spec 01 or
+  /// spec 02.
   const DrawingEditorConfig({
     this.canvasSize = DrawingDocument.defaultCanvasSize,
     this.gridSize = 10,
@@ -18,7 +19,9 @@ class DrawingEditorConfig {
     this.jpegQuality = 90,
     this.maxExportPixels = 16000000,
     this.historyLimit = 100,
-  });
+    this.jointNamePrefix = 'J',
+    this.jointNameMaxLength = 24,
+  }) : assert(jointNameMaxLength > 0);
 
   /// Canvas size for new documents, in canvas units. A document opened from
   /// JSON keeps its own canvas size.
@@ -45,4 +48,11 @@ class DrawingEditorConfig {
 
   /// Maximum number of undo entries kept.
   final int historyLimit;
+
+  /// Prefix of auto-generated joint names, such as `J` in `J1` (spec 02,
+  /// NM-3).
+  final String jointNamePrefix;
+
+  /// Longest joint name, in characters. Longer input is cut to this length.
+  final int jointNameMaxLength;
 }

@@ -16,4 +16,5 @@ export 'src/editor/drawing_editor_controller.dart' show DrawingEditorController;
 export 'src/editor/drawing_editor.dart' show DrawingEditor;
 export 'src/editor/drawing_editor_labels.dart' show DrawingEditorLabels;
 export 'src/editor/drawing_editor_page.dart' show DrawingEditorPage;
+export 'src/editor/drawing_tool.dart' show DrawingTool;
 export 'src/editor/drawing_result.dart' show DrawingResult;
