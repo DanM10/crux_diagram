@@ -306,4 +306,130 @@ void main() {
       expect(c.document.joints.single, joint);
     });
   });
+
+  group('anchor snapping (spec 02, SN-1 to SN-4)', () {
+    // Two 240 × 140 rectangles: `a` at (400, 300) has tr = (520, 230);
+    // `b` at (900, 600) has tl = (780, 530).
+    DrawingDocument twoRectangles() => DrawingDocument(
+      shapes: [
+        ShapeElement(
+          id: 'a',
+          type: ShapeType.rectangle,
+          center: const Offset(400, 300),
+          size: const Size(240, 140),
+        ),
+        ShapeElement(
+          id: 'b',
+          type: ShapeType.rectangle,
+          center: const Offset(900, 600),
+          size: const Size(240, 140),
+        ),
+      ],
+    );
+
+    Offset anchor(DrawingEditorController c, String shape, String id) =>
+        c.anchorsOf(shape).firstWhere((a) => a.id == id).position;
+
+    test('moving a shape near another vertex makes them coincide exactly, '
+        'over the grid (AC 7, SN-3)', () {
+      final c = _controller(initial: twoRectangles());
+      c
+        ..select('b')
+        ..beginGesture()
+        // Raw tl lands at (780 - 253, 530 - 297) = (527, 233): 7.6 units
+        // from a.tr (520, 230). The grid alone would give (530, 230).
+        ..moveSelectedBy(const Offset(-253, -297), anchorSnapDistance: 12);
+      expect(anchor(c, 'b', 'tl'), anchor(c, 'a', 'tr'));
+      expect(c.snapHighlight, [const Offset(520, 230), const Offset(520, 230)]);
+      c.endGesture();
+      expect(anchor(c, 'b', 'tl'), const Offset(520, 230));
+      expect(c.snapHighlight, isEmpty);
+    });
+
+    test('outside the threshold only the grid applies', () {
+      final c = _controller(initial: twoRectangles());
+      c
+        ..select('b')
+        ..beginGesture()
+        ..moveSelectedBy(const Offset(-233, -297), anchorSnapDistance: 12)
+        ..endGesture();
+      final center = c.document.shapes.last.center;
+      expect(center.dx % 10, 0);
+      expect(center.dy % 10, 0);
+      expect(c.snapHighlight, isEmpty);
+    });
+
+    test('a null snap distance disables anchor snapping', () {
+      final c = _controller(initial: twoRectangles());
+      c
+        ..select('b')
+        ..beginGesture()
+        ..moveSelectedBy(const Offset(-253, -297))
+        ..endGesture();
+      expect(anchor(c, 'b', 'tl'), isNot(anchor(c, 'a', 'tr')));
+    });
+
+    DrawingDocument withB(Offset center) => twoRectangles().copyWith(
+      shapes: [
+        twoRectangles().shapes.first,
+        twoRectangles().shapes.last.copyWith(center: center),
+      ],
+    );
+
+    test('resizing snaps the dragged handle anchor, over the grid (SN-2)', () {
+      // b at (905, 605): tl = (785, 535), which the grid alone cannot reach.
+      final c = _controller(initial: withB(const Offset(905, 605)));
+      c
+        ..select('a')
+        ..beginGesture()
+        ..resizeSelected(
+          ResizeHandle.bottomRight,
+          const Offset(781, 531),
+          anchorSnapDistance: 12,
+        );
+      expect(c.snapHighlight, hasLength(2));
+      c.endGesture();
+      expect(anchor(c, 'a', 'br'), const Offset(785, 535));
+      expect(anchor(c, 'a', 'tl'), const Offset(280, 230)); // opposite fixed
+    });
+
+    test('resizing ignores anchors other than the dragged handle (SN-2)', () {
+      // b at (645, 303): b.lc = (525, 303) is 5.8 units from a.rc (520, 300).
+      final c = _controller(initial: withB(const Offset(645, 303)));
+      c
+        ..select('a')
+        ..beginGesture()
+        ..resizeSelected(
+          ResizeHandle.left,
+          const Offset(250, 300),
+          anchorSnapDistance: 12,
+        );
+      expect(c.snapHighlight, isEmpty);
+      c.endGesture();
+      expect(anchor(c, 'a', 'rc'), const Offset(520, 300));
+    });
+
+    test('rotation never anchor-snaps', () {
+      final c = _controller(initial: twoRectangles());
+      c
+        ..select('b')
+        ..beginGesture()
+        ..rotateSelectedToward(const Offset(960, 300));
+      expect(c.snapHighlight, isEmpty);
+      c.endGesture();
+    });
+
+    test('snapping stores nothing and leaves joints unchanged (SN-4)', () {
+      final c = _controller(initial: twoRectangles());
+      final joint = c.addJoint('b', 'tl');
+      c
+        ..select('b')
+        ..beginGesture()
+        ..moveSelectedBy(const Offset(-253, -297), anchorSnapDistance: 12)
+        ..endGesture();
+      expect(c.document.joints.single, joint);
+      final decoded = DrawingDocument.fromJson(c.document.toJson());
+      expect(decoded, c.document);
+    });
+  });
 }

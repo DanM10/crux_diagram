@@ -23,6 +23,7 @@ class DrawingEditorConfig {
     this.jointNamePrefix = 'J',
     this.jointNameMaxLength = 24,
     this.jointStyle = const JointStyle(),
+    this.anchorSnapThreshold = 12,
   }) : assert(jointNameMaxLength > 0);
 
   /// Canvas size for new documents, in canvas units. A document opened from
@@ -60,4 +61,9 @@ class DrawingEditorConfig {
 
   /// Look of leader arrows and labels, on screen and in the export.
   final JointStyle jointStyle;
+
+  /// Screen distance in dp within which a moved or resized shape's anchor
+  /// snaps onto another shape's anchor (spec 02, SN-1 to SN-4); null
+  /// disables anchor snapping.
+  final double? anchorSnapThreshold;
 }

@@ -187,6 +187,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
                                 theme.colorScheme.primary,
                             showAnchors: _controller.tool == DrawingTool.joint,
                             selectedJoint: _controller.selectedJoint,
+                            snapPoints: _controller.snapHighlight,
                           ),
                         ),
                       ],
@@ -429,6 +430,13 @@ class _DrawingEditorState extends State<DrawingEditor> {
     ),
   );
 
+  /// The anchor snap threshold in canvas units at the current zoom, or null
+  /// when anchor snapping is disabled.
+  double? get _anchorSnapDistance {
+    final threshold = _controller.config.anchorSnapThreshold;
+    return threshold == null ? null : _viewport.canvasLength(threshold);
+  }
+
   void _onPointerDown(PointerDownEvent event) {
     _pointerDown = event.localPosition;
     _activePointers++;
@@ -492,11 +500,13 @@ class _DrawingEditorState extends State<DrawingEditor> {
       case _GestureMode.move:
         _controller.moveSelectedBy(
           (details.localFocalPoint - _startFocal) / _viewport.scale,
+          anchorSnapDistance: _anchorSnapDistance,
         );
       case _GestureMode.resize:
         _controller.resizeSelected(
           _handle!,
           _viewport.toCanvas(details.localFocalPoint),
+          anchorSnapDistance: _anchorSnapDistance,
         );
       case _GestureMode.rotate:
         _controller.rotateSelectedToward(

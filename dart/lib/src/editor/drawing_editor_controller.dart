@@ -4,7 +4,8 @@ import 'package:flutter/foundation.dart';
 
 import '../export/jpeg_export.dart';
 import '../geometry/anchors.dart' as anchors show anchorsOf;
-import '../geometry/anchors.dart' show Anchor;
+import '../geometry/anchor_snapping.dart';
+import '../geometry/anchors.dart' show Anchor, AnchorKind, anchorPositionOf;
 import '../geometry/grid.dart';
 import '../geometry/joint_geometry.dart';
 import '../geometry/resize.dart';
@@ -61,6 +62,9 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// Document at the start of the running gesture, or null.
   DrawingDocument? _gestureStart;
+
+  /// The two anchor positions of the active anchor snap, or empty.
+  List<Offset> _snapHighlight = const [];
 
   /// The current document.
   DrawingDocument get document => _document;
@@ -454,6 +458,7 @@ class DrawingEditorController extends ChangeNotifier {
   }
 
   void _cancelGestureSilently() {
+    _snapHighlight = const [];
     if (_gestureStart != null) {
       _document = _gestureStart!;
       _gestureStart = null;
@@ -545,41 +550,114 @@ extension DrawingEditorGestures on DrawingEditorController {
     _gestureStart ??= _document;
   }
 
+  /// The two anchor positions of the active anchor snap, for the highlight
+  /// (spec 02, SN-3); empty when no snap is active.
+  List<Offset> get snapHighlight => _snapHighlight;
+
   /// Moves the selected shape by [delta] from its position at gesture start,
   /// snapping the center to the grid (FR-9) and clamping it to the canvas
   /// (FR-10).
-  void moveSelectedBy(Offset delta) {
+  ///
+  /// With [anchorSnapDistance] (canvas units), an anchor of the shape that
+  /// comes that close to another shape's anchor snaps onto it instead of
+  /// the grid; only the nearest pair applies (spec 02, SN-1, SN-3).
+  void moveSelectedBy(Offset delta, {double? anchorSnapDistance}) {
     final start = _gestureShape;
     if (start == null) return;
-    var center = start.center + delta;
+    _snapHighlight = const [];
+    final raw = start.center + delta;
+    var center = raw;
+    final snap = anchorSnapDistance == null
+        ? null
+        : nearestAnchorSnap(
+            anchors.anchorsOf(start.copyWith(center: raw)),
+            _otherAnchors(start.id),
+            threshold: anchorSnapDistance,
+          );
     final grid = config.gridSize;
-    if (grid != null) center = snapPointToGrid(center, grid);
+    if (snap != null) {
+      center = raw + snap.delta;
+      _snapHighlight = [snap.to, snap.to];
+    } else if (grid != null) {
+      center = snapPointToGrid(center, grid);
+    }
     center = clampToCanvas(center, _document.canvasSize);
     _preview(start.copyWith(center: center));
   }
 
   /// Resizes the selected shape by dragging [handle] to [pointer]
   /// (FR-11 to FR-14).
-  void resizeSelected(ResizeHandle handle, Offset pointer) {
+  ///
+  /// With [anchorSnapDistance] (canvas units), only the anchor under
+  /// [handle] may snap onto another shape's anchor, taking priority over
+  /// the grid (spec 02, SN-2, SN-3).
+  void resizeSelected(
+    ResizeHandle handle,
+    Offset pointer, {
+    double? anchorSnapDistance,
+  }) {
     final start = _gestureShape;
     if (start == null) return;
+    _snapHighlight = const [];
     final grid = config.gridSize;
-    _preview(
-      resizeShape(
+    final limits = SizeLimits.forCanvas(_document.canvasSize, gridSize: grid);
+    if (anchorSnapDistance != null) {
+      final snapped = _snappedResize(
         start,
         handle,
         pointer,
-        limits: SizeLimits.forCanvas(_document.canvasSize, gridSize: grid),
-        gridSize: grid,
-      ),
+        limits,
+        anchorSnapDistance,
+      );
+      if (snapped != null) {
+        _preview(snapped);
+        return;
+      }
+    }
+    _preview(
+      resizeShape(start, handle, pointer, limits: limits, gridSize: grid),
     );
   }
+
+  /// The resize that puts [handle]'s anchor exactly on a nearby anchor of
+  /// another shape, or null when there is none or it cannot land exactly
+  /// (for example under an aspect lock or a size limit).
+  ShapeElement? _snappedResize(
+    ShapeElement start,
+    ResizeHandle handle,
+    Offset pointer,
+    SizeLimits limits,
+    double distance,
+  ) {
+    final anchorId = anchorIdForHandle(handle);
+    final free = resizeShape(start, handle, pointer, limits: limits);
+    final position = anchorPositionOf(free, anchorId);
+    if (position == null) return null;
+    final snap = nearestAnchorSnap(
+      [Anchor(id: anchorId, kind: AnchorKind.vertex, position: position)],
+      _otherAnchors(start.id),
+      threshold: distance,
+    );
+    if (snap == null) return null;
+    final snapped = resizeShape(start, handle, snap.to, limits: limits);
+    final landed = anchorPositionOf(snapped, anchorId);
+    if (landed == null || (landed - snap.to).distance > 1e-6) return null;
+    _snapHighlight = [snap.to, landed];
+    return snapped;
+  }
+
+  /// Anchors of every shape except [shapeId], in the current document.
+  List<Anchor> _otherAnchors(String shapeId) => [
+    for (final shape in _document.shapes)
+      if (shape.id != shapeId) ...anchors.anchorsOf(shape),
+  ];
 
   /// Rotates the selected shape so its rotation handle points at [pointer],
   /// with soft snapping (FR-15, FR-16).
   void rotateSelectedToward(Offset pointer) {
     final start = _gestureShape;
     if (start == null) return;
+    _snapHighlight = const [];
     final angle = softSnapAngle(
       rotationFromPointer(start.center, pointer),
       config.rotationSnapStep,
@@ -593,6 +671,10 @@ extension DrawingEditorGestures on DrawingEditorController {
     final start = _gestureStart;
     if (start == null) return;
     _gestureStart = null;
+    if (_snapHighlight.isNotEmpty) {
+      _snapHighlight = const [];
+      _notify();
+    }
     if (start != _document) {
       _history.record(start);
       _notify();

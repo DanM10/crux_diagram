@@ -643,4 +643,81 @@ void main() {
       expect(find.text('Nombre'), findsOneWidget);
     });
   });
+
+  group('anchor snapping (spec 02, AC 7)', () {
+    Future<_Harness> pumpTwo(
+      WidgetTester tester, {
+      DrawingEditorConfig config = const DrawingEditorConfig(),
+    }) async {
+      final controller = DrawingEditorController(
+        config: config,
+        initial: DrawingDocument(
+          shapes: [
+            ShapeElement(
+              id: 'a',
+              type: ShapeType.rectangle,
+              center: const Offset(400, 300),
+              size: const Size(240, 140),
+            ),
+            ShapeElement(
+              id: 'b',
+              type: ShapeType.rectangle,
+              center: const Offset(900, 600),
+              size: const Size(240, 140),
+            ),
+          ],
+        ),
+      );
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: DrawingEditor(controller: controller)),
+        ),
+      );
+      return _Harness(tester, controller);
+    }
+
+    Offset anchorOf(_Harness h, String shape, String id) =>
+        h.controller.anchorsOf(shape).firstWhere((a) => a.id == id).position;
+
+    testWidgets('dragging a vertex near another makes them coincide, with a '
+        'highlight while active', (tester) async {
+      final h = await pumpTwo(tester);
+      final scale = h.viewport.scale;
+      // b.tl (780, 530) to within about 4 dp of a.tr (520, 230).
+      final gesture = await tester.startGesture(
+        h.screenOf(const Offset(900, 600)),
+      );
+      for (var i = 1; i <= 10; i++) {
+        await gesture.moveTo(
+          h.screenOf(const Offset(900, 600)) +
+              Offset(-253 * scale, -297 * scale) * (i / 10),
+        );
+        await tester.pump();
+      }
+      final overlay = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .whereType<JointOverlayPainter>()
+          .single;
+      expect(overlay.snapPoints, hasLength(2));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(anchorOf(h, 'b', 'tl'), anchorOf(h, 'a', 'tr'));
+    });
+
+    testWidgets('a null anchorSnapThreshold disables it', (tester) async {
+      final h = await pumpTwo(
+        tester,
+        config: const DrawingEditorConfig(anchorSnapThreshold: null),
+      );
+      final scale = h.viewport.scale;
+      await tester.dragFrom(
+        h.screenOf(const Offset(900, 600)),
+        Offset(-253 * scale, -297 * scale),
+      );
+      await tester.pumpAndSettle();
+      expect(anchorOf(h, 'b', 'tl'), isNot(anchorOf(h, 'a', 'tr')));
+    });
+  });
 }

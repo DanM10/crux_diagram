@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../geometry/anchors.dart';
@@ -163,6 +164,7 @@ class JointOverlayPainter extends CustomPainter {
     required this.color,
     required this.showAnchors,
     required this.selectedJoint,
+    this.snapPoints = const [],
   });
 
   /// Current document.
@@ -183,6 +185,10 @@ class JointOverlayPainter extends CustomPainter {
   /// Joint to highlight, or null.
   final Joint? selectedJoint;
 
+  /// Anchor positions of the active anchor snap, highlighted while it lasts
+  /// (spec 02, SN-3).
+  final List<Offset> snapPoints;
+
   @override
   void paint(Canvas canvas, Size size) {
     final outline = Paint()
@@ -201,6 +207,19 @@ class JointOverlayPainter extends CustomPainter {
             ..drawCircle(center, anchorDotRadius, taken ? filled : empty)
             ..drawCircle(center, anchorDotRadius, outline);
         }
+      }
+    }
+    if (snapPoints.isNotEmpty) {
+      final snapRing = Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3;
+      for (final point in snapPoints) {
+        canvas.drawCircle(
+          viewport.toScreen(point),
+          anchorDotRadius + 6,
+          snapRing,
+        );
       }
     }
     final selected = selectedJoint;
@@ -233,7 +252,8 @@ class JointOverlayPainter extends CustomPainter {
       old.style != style ||
       old.color != color ||
       old.showAnchors != showAnchors ||
-      old.selectedJoint != selectedJoint;
+      old.selectedJoint != selectedJoint ||
+      !listEquals(old.snapPoints, snapPoints);
 }
 
 /// Layer 4: selection outline, handles, rotation handle and angle readout.
