@@ -262,7 +262,8 @@ class DrawingEditorConfig {
 class DrawingEditorLabels {
   // English defaults for: addSquare, addRectangle, addCircle, delete, duplicate,
   // rotate90, bringToFront, sendToBack, undo, redo, done, cancel,
-  // discardChangesTitle, discardChangesBody, discard, keepEditing
+  // discardChangesTitle, discardChangesBody, discard, keepEditing,
+  // exportFailed (snackbar when confirming fails because the export failed)
 }
 ```
 

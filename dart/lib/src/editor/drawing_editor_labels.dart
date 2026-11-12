@@ -24,6 +24,7 @@ class DrawingEditorLabels {
     this.discardChangesBody = 'Your drawing has unsaved changes.',
     this.discard = 'Discard',
     this.keepEditing = 'Keep editing',
+    this.exportFailed = 'The drawing could not be exported.',
   });
 
   /// Palette button that adds a square.
@@ -73,4 +74,7 @@ class DrawingEditorLabels {
 
   /// Dialog action that stays in the editor.
   final String keepEditing;
+
+  /// Message shown when confirming fails because the export failed.
+  final String exportFailed;
 }

@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import '../export/jpeg_export.dart';
 import '../geometry/grid.dart';
 import '../geometry/resize.dart';
 import '../geometry/rotation.dart';
@@ -165,6 +166,19 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// Encodes the current document as JSON.
   String toJson() => _document.toJson();
+
+  /// Renders the current document as JPEG at `canvasSize × pixelRatio`.
+  ///
+  /// [quality] defaults to [DrawingEditorConfig.jpegQuality]. Throws
+  /// [ArgumentError] when the image would exceed
+  /// [DrawingEditorConfig.maxExportPixels] or the arguments are out of range.
+  Future<Uint8List> exportJpeg({double pixelRatio = 1.0, int? quality}) =>
+      exportDocumentJpeg(
+        _document,
+        pixelRatio: pixelRatio,
+        quality: quality ?? config.jpegQuality,
+        maxPixels: config.maxExportPixels,
+      );
 
   ShapeElement? get _selected {
     final id = _selectedId;
