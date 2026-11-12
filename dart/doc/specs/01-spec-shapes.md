@@ -86,8 +86,8 @@ Priority: **Must** (required for the milestone) or **Should** (planned, may slip
 
 | ID | Priority | Requirement |
 |---|---|---|
-| FR-4 | Must | A palette shows one button per shape type. Tapping a button adds a shape with the default size at the canvas center, on top of the stack, and selects it. |
-| FR-5 | Must | If a shape of the same type already sits exactly at the target position, the new one is offset by 20 units diagonally (cascade) so it is not hidden. The offset repeats until the position is free, so repeated taps never stack two shapes exactly. If the next position would leave the canvas (FR-10), the cascade wraps back to the canvas center. |
+| FR-4 | Must | A palette shows one button per shape type. Tapping a button adds a shape with the default size at the canvas center, on top of the stack, and selects it. (Superseded in the editor by Spec 03 PL-1: the visible center.) |
+| FR-5 | Must | If a shape of the same type already sits exactly at the target position, the new one is offset by 20 units diagonally (cascade) so it is not hidden. The offset repeats until the position is free, so repeated taps never stack two shapes exactly. If the next position would leave the canvas (FR-10), the cascade wraps back to the canvas center. (Superseded by Spec 03 PL-2: the cascade steps the other way instead of wrapping.) |
 
 ### 5.3 Selecting
 
@@ -251,7 +251,7 @@ class DrawingEditorController extends ChangeNotifier {
 class DrawingEditorConfig {
   final Size canvasSize;              // default 1600 × 1200
   final double? gridSize;             // default 10; null disables grid and grid snapping
-  final bool showGrid;                // default true (ignored when gridSize is null)
+  final bool showGrid;                // default false since Spec 03 GD-2 (ignored when gridSize is null)
   final double rotationSnapStep;      // default 15° in radians; 0 disables
   final double rotationSnapTolerance; // default 5° in radians
   final int jpegQuality;              // default 90
