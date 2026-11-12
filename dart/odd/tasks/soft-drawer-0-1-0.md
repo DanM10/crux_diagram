@@ -23,7 +23,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | done | `1f62071`; RED (compile errors) observed first, then 83/83 tests pass, analyze clean |
 | T5 | S2 | Painting layers + embeddable `DrawingEditor` (canvas gestures, toolbar, handles, angle readout, `DrawingEditorLabels`) | inline | done | `183c4b5`; RED observed first, then 94/94 tests pass, analyze clean (root + example) |
 | T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard (`exportJpeg`), plus `DrawingResult` and `DrawingEditorPage` (done/cancel, discard dialog, `markClean` on confirm) | inline | done | `b71beca`; RED observed first, then 103/103 tests pass, analyze clean (root + example) |
-| T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | pending | — |
+| T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | done | `0593311`; RED observed first (4 widget tests + geometry compile error; the lifted-finger test moved the square to (730, 930)), then 114/114 tests pass ×3, analyze clean (root + example) |
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | pending | — |
 | T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | pending | — |
 | T10 | S5 | Anchor snapping while moving and resizing, highlights | inline | pending | — |
@@ -79,4 +79,11 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
   - **Coverage:** Spec 01 AC 8, 9 and 10 are covered by tests.
 
   Slice 5 is T6 (+500). T6 completes the Spec 01 Must scope, apart from FR-2, which is T7.
-- **Next**: T7 (pinch zoom and pan).
+- **L14** (2026-11-11): T7 done (`0593311`, +349/−8).
+  - **Zoom state:** internal `ViewportZoom` in `geometry/viewport.dart` (zoom 1×–4×, pan in dp). `pinch` keeps the content under the start focal under the current focal, so moving both fingers pans. `clamped` keeps a zoomed canvas covering the area and centers any axis it does not fill. At 1× the view is always the fitted, centered view.
+  - **Gestures:** two pointers start a pinch; one-finger behavior is unchanged and never pans. Bug found by a RED test and fixed: the scale recognizer calls `onEnd` and then `onStart` again when a finger lifts, and the remaining finger used to start a move from the stale pointer-down position. A `Listener` now counts pointers, and one-finger gestures stay off after a pinch until every finger lifts.
+  - **Handles:** handles are painted in screen space, and hit radii convert 24 dp through the live viewport, so both stay constant in dp at any zoom (tested at 4×).
+  - **Test notes:** `details.scale` is measured from gesture acceptance (after the touch slop), not from finger-down, so widget tests assert direction and bounds; the geometry unit tests pin the exact math. The widget harness now reads the live viewport from `ShapesPainter`.
+  - **RDD:** the assessment over `25ed9bd..0593311` first returned `high`/`unassessable` because of the untracked `.atl/` (not part of this change). With untracked files excluded it returns `medium`, `review_due: false`, `under_budget`. The commit stays pending in slice 6.
+  - Slice 6 opens with T7 (+357 assessed lines). Risk: none.
+- **Next**: T8 (anchors, `Joint` model, JSON v2 with v1 migration).
