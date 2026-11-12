@@ -21,8 +21,8 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T2 | S2, S6 | Model + JSON v1 codec (`ShapeElement`, `DrawingDocument`, `DrawingFormatException`, injectable ids, `toARGB32()`) | inline | done | `576a0a3`; RED (compile errors) observed first, then 25/25 tests pass, analyze clean |
 | T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | done | `8a0d254`; RED (compile errors) observed first, then 56/56 tests pass, analyze clean |
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | done | `1f62071`; RED (compile errors) observed first, then 83/83 tests pass, analyze clean |
-| T5 | S2 | Painting layers + editor widgets (`DrawingEditor`, `DrawingEditorPage`, toolbar, handles, discard dialog, `DrawingEditorLabels`) | inline | pending | — |
-| T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard | inline | pending | — |
+| T5 | S2 | Painting layers + embeddable `DrawingEditor` (canvas gestures, toolbar, handles, angle readout, `DrawingEditorLabels`) | inline | done | `183c4b5`; RED observed first, then 94/94 tests pass, analyze clean (root + example) |
+| T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard (`exportJpeg`), plus `DrawingResult` and `DrawingEditorPage` (done/cancel, discard dialog, `markClean` on confirm) | inline | pending | — |
 | T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | pending | — |
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | pending | — |
 | T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | pending | — |
@@ -60,4 +60,13 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
   - **Test fix:** one expectation was corrected before implementing. A height of 170 snaps to 180 (8.5 rounds up), not 160.
 
   Slice 3 is T4 alone (over 400 lines). Slice 4 opens with T5.
-- **Next**: T5 (painting layers + editor widgets).
+- **L12** (2026-11-11): T5 done (`183c4b5`, +870).
+  - **Public:** `DrawingEditor` and `DrawingEditorLabels`, which holds all 16 English defaults from Spec 01 §10.
+  - **Rendering:** three `RepaintBoundary` layers. The shape painting is a shared `paintShapes` function, so T6's export can reuse it.
+  - **Gestures:** one `onScale*` recognizer. A single finger moves, resizes or rotates; T7 adds the two-finger case.
+  - **Gesture start point:** the gesture now starts from the pointer-down position, captured with a `Listener`. The scale recognizer reports its start only after the touch slop, and the widget test caught moves landing about 40 canvas units short (roughly 18 dp at that scale).
+  - **Hit-test order:** rotation handle, then resize handles (nearest one within 24 dp), then shapes.
+  - **Re-scope:** `DrawingEditorPage`, `DrawingResult` and the discard dialog moved from T5 to T6, because the page's confirm action needs the JPEG export.
+
+  Slice 4 is T5 alone. Slice 5 opens with T6.
+- **Next**: T6 (export + page).
