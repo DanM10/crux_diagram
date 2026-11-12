@@ -27,7 +27,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | done | `8c1aa50`; RED (compile errors) observed first, then 139/139 tests pass, analyze clean (root + example); independent verifier PASS (L17); native review approved and acknowledged (L20) |
 | T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | done | `e3e34e6` (API), `255e4da` (rendering), `d642956` (interaction); RED observed first in each, then 189/189 tests pass ×3, analyze clean (root + example) |
 | T10 | S5 | Anchor snapping while moving and resizing, highlights | inline | done | `5ebb580`; RED observed first, then 202/202 tests pass ×3, analyze clean (root + example) |
-| T11 | S7 | README (GIF/screenshots, quick start, API), dartdoc for all public members, example app flow, dry run, `pana` | inline | pending | — |
+| T11 | S7 | README (GIF/screenshots, quick start, API), dartdoc for all public members, example app flow, dry run, `pana` | inline | partial | `7f60213`; README text, CHANGELOG 0.1.0, version 0.1.0, example demo app (2/2 tests ×3), dartdoc complete (lint-verified), dry run: no `odd/`, 1 warning (`repository`). Open items are user-gated (L23) |
 
 Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the model/geometry before it), so no parallel independent units exist.
 
@@ -127,4 +127,19 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
   - **SN-4:** nothing is stored. Joints are unchanged, and the document round-trips.
   - **Tests:** two expectations were strengthened before implementing. b's anchor was moved off the grid so the resize test cannot pass on grid snapping alone, and a nearby non-handle anchor was added to prove SN-2.
   - **RDD:** `medium`, `under_budget`; slice 7 is now T9 plus T10. Risk: none (requested default-on behavior, unreleased package).
-- **Next**: T11 (README, dartdoc, example app flow, dry run, `pana`). The example app also unblocks the deferred emulator check (L15).
+- **L23** (2026-11-12): T11 work unit `7f60213` (+272/−113).
+  - **Dartdoc:** the `public_member_api_docs` lint is enabled permanently. With it on, `lib/` had zero findings. A probe file proved the lint fires, and the probe was removed.
+  - **README:** features, quick start (`DrawingEditorPage`), embedding (`DrawingEditor` plus controller), localization, an editor actions table, the API summary, the JSON v2 format and limitations.
+  - **Release:** CHANGELOG has a 0.1.0 entry, replacing the unpublished 0.0.1 one, and `version` is 0.1.0. `example/pubspec.lock` changes only by that version.
+  - **Example app:** `ExampleApp` opens `DrawingEditorPage`, previews the exported JPEG and the JSON, and reopens the saved drawing (Spec 00 §10.3; shapes and joints are created inside the editor). Its 2 widget tests pass ×3, including an end-to-end run of Done → export → reopen.
+  - **Checks:** root 202/202 and example 2/2 pass; analyze is clean in both. `dart pub publish --dry-run` lists no `odd/` files, and its remaining warning is the missing `repository` field.
+  - **Open §9 items that need the user:**
+    1. A GIF or screenshots at the top of the README, which needs a running device.
+    2. `example/` running on Android, which needs an AVD, and on iOS, which needs macOS and cannot be checked on this Linux machine.
+    3. `pana .`, which needs `dart pub global activate pana` (a global tool install).
+    4. Checking that the package name is free on pub.dev right before publishing, which is a network query that sends the package name.
+    5. The `repository` field, which needs the remote URL.
+
+    No `platforms:` are declared, consistent with "declared only if actually tested".
+  - **RDD:** `medium`, `under_budget` (slice 7 is now T9, T10 and T11).
+- **Next**: resolve the user-gated §9 items (L23), then the slice PRs (`feature-branch-chain`) and publishing, which remain the user's decisions.
