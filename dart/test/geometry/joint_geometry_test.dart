@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/geometry/joint_geometry.dart';
 
 void _expectNear(Offset actual, Offset expected) {
@@ -69,6 +70,69 @@ void main() {
       expect(points[0], const Offset(100, 0));
       _expectNear(points[1], const Offset(88, -4));
       _expectNear(points[2], const Offset(88, 4));
+    });
+  });
+
+  group('distanceToSegment', () {
+    test('perpendicular inside the segment, endpoint outside it', () {
+      const a = Offset(0, 0);
+      const b = Offset(100, 0);
+      expect(distanceToSegment(const Offset(50, 7), a, b), 7);
+      expect(distanceToSegment(const Offset(103, 4), a, b), 5);
+      expect(distanceToSegment(const Offset(3, 4), a, a), 5);
+    });
+  });
+
+  group('pickAnchor (JT-2, JT-4)', () {
+    ShapeElement square(String id, Offset center) => ShapeElement(
+      id: id,
+      type: ShapeType.square,
+      center: center,
+      size: const Size(100, 100),
+    );
+
+    test('nearest anchor within the radius wins', () {
+      final shapes = [square('a', const Offset(100, 100))];
+      // tr of `a` is at (150, 50); tc at (100, 50).
+      expect(
+        pickAnchor(shapes, const Offset(140, 52), radius: 22, tieTolerance: 2),
+        (shapeId: 'a', anchorId: 'tr'),
+      );
+      expect(
+        pickAnchor(shapes, const Offset(120, 50), radius: 22, tieTolerance: 2),
+        (shapeId: 'a', anchorId: 'tc'),
+      );
+      expect(
+        pickAnchor(shapes, const Offset(125, 80), radius: 22, tieTolerance: 2),
+        isNull,
+      );
+    });
+
+    test('a clearly nearer anchor on a lower shape beats the top shape', () {
+      final shapes = [
+        square('bottom', const Offset(100, 100)), // br at (150, 150)
+        square('top', const Offset(210, 210)), // tl at (160, 160)
+      ];
+      expect(
+        pickAnchor(shapes, const Offset(151, 151), radius: 22, tieTolerance: 2),
+        (shapeId: 'bottom', anchorId: 'br'),
+      );
+    });
+
+    test('distances within the tie tolerance go to the topmost shape', () {
+      final shapes = [
+        square('bottom', const Offset(100, 100)), // br at (150, 150)
+        square('top', const Offset(201, 200)), // tl at (151, 150)
+      ];
+      expect(
+        pickAnchor(
+          shapes,
+          const Offset(150.4, 150),
+          radius: 22,
+          tieTolerance: 2,
+        ),
+        (shapeId: 'top', anchorId: 'tl'),
+      );
     });
   });
 }

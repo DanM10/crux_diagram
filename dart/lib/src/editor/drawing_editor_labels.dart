@@ -25,6 +25,11 @@ class DrawingEditorLabels {
     this.discard = 'Discard',
     this.keepEditing = 'Keep editing',
     this.exportFailed = 'The drawing could not be exported.',
+    this.jointTool = 'Joint tool',
+    this.renameJoint = 'Rename joint',
+    this.deleteJoint = 'Delete joint',
+    this.jointNameHint = 'Joint name',
+    this.ok = 'OK',
   });
 
   /// Palette button that adds a square.
@@ -77,4 +82,19 @@ class DrawingEditorLabels {
 
   /// Message shown when confirming fails because the export failed.
   final String exportFailed;
+
+  /// Tooltip of the Joint tool toggle.
+  final String jointTool;
+
+  /// Tooltip of the action that renames the selected joint.
+  final String renameJoint;
+
+  /// Tooltip of the action that deletes the selected joint.
+  final String deleteJoint;
+
+  /// Hint of the joint name field.
+  final String jointNameHint;
+
+  /// Confirm button of the joint name editor.
+  final String ok;
 }

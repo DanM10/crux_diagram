@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/id_generator.dart';
 import 'package:soft_drawer_service/src/painting/editor_painters.dart';
@@ -394,6 +395,252 @@ void main() {
       );
       await tester.pump();
       expect(painterOf<JointOverlayPainter>(tester).selectedJoint, joint);
+    });
+  });
+
+  group('joint interaction (spec 02, section 10)', () {
+    Future<String> addRectangle(_Harness h) async {
+      await h.tester.tap(find.byTooltip('Add rectangle'));
+      await h.tester.pump();
+      return h.controller.document.shapes.last.id;
+    }
+
+    Future<void> confirmName(WidgetTester tester, [String? text]) async {
+      if (text != null) await tester.enterText(find.byType(TextField), text);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+    }
+
+    // Rectangle 240 × 140 at (800, 600): tr = (920, 530), bl = (680, 670).
+    const tr = Offset(920, 530);
+    const bl = Offset(680, 670);
+
+    testWidgets('the Joint tool toggle switches tools and clears the shape '
+        'selection', (tester) async {
+      final h = await _pump(tester);
+      await addRectangle(h);
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      expect(h.controller.tool, DrawingTool.joint);
+      expect(h.controller.selectedId, isNull);
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      expect(h.controller.tool, DrawingTool.select);
+    });
+
+    testWidgets('tapping empty anchors creates J1 then J2 after confirming '
+        'the name editor (AC 1)', (tester) async {
+      final h = await _pump(tester);
+      await addRectangle(h);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+
+      await tester.tapAt(h.screenOf(tr) + const Offset(6, -4));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      expect(find.text('J1'), findsWidgets);
+      await confirmName(tester);
+      expect(h.controller.document.joints.single.name, 'J1');
+      expect(h.controller.document.joints.single.anchorId, 'tr');
+
+      await tester.tapAt(h.screenOf(bl));
+      await tester.pumpAndSettle();
+      await confirmName(tester);
+      expect(h.controller.document.joints.map((j) => j.name), ['J1', 'J2']);
+
+      // Creating and naming is one undo entry per joint.
+      h.controller.undo();
+      expect(h.controller.document.joints.map((j) => j.name), ['J1']);
+    });
+
+    testWidgets('confirming a custom name stores it trimmed', (tester) async {
+      final h = await _pump(tester);
+      await addRectangle(h);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      await confirmName(tester, '  Hinge ');
+      expect(h.controller.document.joints.single.name, 'Hinge');
+    });
+
+    testWidgets('cancelling or emptying the editor creates nothing (NM-1)', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await addRectangle(h);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      final before = h.controller.canUndo;
+
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(h.controller.document.joints, isEmpty);
+
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      await confirmName(tester, '   ');
+      expect(h.controller.document.joints, isEmpty);
+      expect(h.controller.canUndo, before);
+    });
+
+    testWidgets('tapping an anchor that has a joint selects it, no duplicate '
+        '(AC 2)', (tester) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller
+        ..selectJoint(null)
+        ..tool = DrawingTool.joint;
+      await tester.pump();
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing);
+      expect(h.controller.selectedJoint, joint);
+      expect(h.controller.document.joints, hasLength(1));
+    });
+
+    testWidgets('shape gestures are disabled in the Joint tool', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      await tester.dragFrom(
+        h.screenOf(const Offset(800, 600)),
+        const Offset(80, 60),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        h.controller.document.shapes.firstWhere((s) => s.id == id).center,
+        const Offset(800, 600),
+      );
+    });
+
+    testWidgets('dragging a label moves it in one undo entry, in any tool '
+        '(AC 5)', (tester) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      await tester.pump();
+      final label = h.screenOf(tr + joint.labelOffset);
+      await tester.dragFrom(label, const Offset(60, 0));
+      await tester.pumpAndSettle();
+      final moved = h.controller.document.joints.single.labelOffset;
+      expect(moved.dx, greaterThan(joint.labelOffset.dx + 60));
+      expect(moved.dy, closeTo(joint.labelOffset.dy, 1e-6));
+      expect(h.controller.selectedJoint?.id, joint.id);
+
+      h.controller.undo();
+      expect(
+        h.controller.document.joints.single.labelOffset,
+        joint.labelOffset,
+      );
+    });
+
+    testWidgets('double-tapping a label opens the rename editor (NM-2, AC 3)', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      await tester.pump();
+      final label = h.screenOf(tr + joint.labelOffset);
+      await tester.tapAt(label);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(label);
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsOneWidget);
+      await confirmName(tester, '  J7 ');
+      expect(h.controller.document.joints.single.name, 'J7');
+
+      await tester.tapAt(label);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(label);
+      await tester.pumpAndSettle();
+      await confirmName(tester, '');
+      expect(h.controller.document.joints.single.name, 'J7');
+    });
+
+    testWidgets('a single tap on a label selects the joint without delay', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller.select(id);
+      await tester.pump();
+      await tester.tapAt(h.screenOf(tr + joint.labelOffset));
+      await tester.pump();
+      expect(h.controller.selectedJoint, joint);
+      expect(find.byType(TextField), findsNothing);
+    });
+
+    testWidgets('Rename and Delete joint toolbar actions', (tester) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      h.controller.addJoint(id, 'tr');
+      await tester.pump();
+      expect(find.byTooltip('Rotate 90°'), findsNothing);
+
+      await tester.tap(find.byTooltip('Rename joint'));
+      await tester.pumpAndSettle();
+      await confirmName(tester, 'Pivot');
+      expect(h.controller.document.joints.single.name, 'Pivot');
+
+      await tester.tap(find.byTooltip('Delete joint'));
+      await tester.pump();
+      expect(h.controller.document.joints, isEmpty);
+      expect(h.controller.document.shapes, hasLength(1));
+      expect(find.byTooltip('Delete joint'), findsNothing);
+    });
+
+    testWidgets('moving a shape in the Select tool moves its joints', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller.select(id);
+      await tester.pump();
+      await tester.dragFrom(
+        h.screenOf(const Offset(800, 600)),
+        Offset(100 * h.viewport.scale, 0),
+      );
+      await tester.pumpAndSettle();
+      final anchor = h.controller.anchorsOf(id).firstWhere((a) => a.id == 'tr');
+      expect(anchor.position.dx, greaterThan(tr.dx + 50));
+      expect(
+        h.controller.document.joints.single.labelOffset,
+        joint.labelOffset,
+      );
+    });
+
+    testWidgets('custom labels replace the joint strings', (tester) async {
+      final h = await _pump(
+        tester,
+        labels: const DrawingEditorLabels(
+          jointTool: 'Herramienta de unión',
+          renameJoint: 'Renombrar',
+          deleteJoint: 'Borrar unión',
+          jointNameHint: 'Nombre',
+          ok: 'Aceptar',
+        ),
+      );
+      final id = await addRectangle(h);
+      expect(find.byTooltip('Herramienta de unión'), findsOneWidget);
+      h.controller.addJoint(id, 'tr');
+      await tester.pump();
+      expect(find.byTooltip('Borrar unión'), findsOneWidget);
+      await tester.tap(find.byTooltip('Renombrar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Aceptar'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pump();
+      expect(find.text('Nombre'), findsOneWidget);
     });
   });
 }

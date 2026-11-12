@@ -72,12 +72,15 @@ class DrawingEditorController extends ChangeNotifier {
   /// The selected joint, or null.
   Joint? get selectedJoint => _jointById(_selectedJointId);
 
-  /// The active tool. Setting it notifies listeners.
+  /// The active tool. Setting it notifies listeners; switching to
+  /// [DrawingTool.joint] clears the shape selection, since shapes cannot be
+  /// moved, resized or rotated with it (spec 02, JT-1).
   DrawingTool get tool => _tool;
 
   set tool(DrawingTool value) {
     if (_tool == value) return;
     _tool = value;
+    if (value == DrawingTool.joint) _selectedId = null;
     notifyListeners();
   }
 
