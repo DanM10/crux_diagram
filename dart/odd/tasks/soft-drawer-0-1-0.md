@@ -17,7 +17,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 
 | ID | Specs | Task | Route | Status | Evidence |
 |---|---|---|---|---|---|
-| T1 | S1 | Package skeleton (`flutter create --template=package .`), `example/`, `.pubignore`, `analysis_options.yaml`, LICENSE (MIT), CHANGELOG stub | inline | pending | — |
+| T1 | S1 | Package skeleton (`flutter create --template=package .`), `example/`, `.pubignore`, `analysis_options.yaml`, LICENSE (MIT), CHANGELOG stub | inline | done | `37d812b`; analyze clean (root + example), tests pass, dry run lists no `odd/` |
 | T2 | S2, S6 | Model + JSON v1 codec (`ShapeElement`, `DrawingDocument`, `DrawingFormatException`, injectable ids, `toARGB32()`) | inline | pending | — |
 | T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | pending | — |
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | pending | — |
@@ -37,4 +37,5 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
 - **L2** (2026-11-11, user, choosing to refine the package specs): "2"
 - **L3** (2026-11-11, user): "I like, but remember this is in another repo, cause i plan to upload to pub.dev, use the directory /home/dgarrido/Projects/ to place the new folder which contains the repo and write the specs"
 - **L4** (2026-11-11): Repository initialized at `~/Projects/soft_drawer_service` (branch `main`, nothing committed). Specs copied from the drawer draft into `doc/specs/` and updated with the accepted decisions: FR-2 Must for 0.1.0; transparent default fill; strict decoding kept; duplicate names allowed; labels travel with shapes; no shared joints in 0.1.0. Gaps fixed: FR-5 cascade repeats until free, `isDirty` defined against a clean baseline with `markClean()`, injectable id generator, `Color.toARGB32()` (verified: `Color.value` is `@Deprecated` in the local Flutter 3.44.4 SDK).
-- **Next**: T1 (package skeleton) when implementation is authorized.
+- **L5** (2026-11-11): Baseline specs committed on `main` (`f09c304`). Branch `feat/soft-drawer-0-1-0` created. T1 done (`37d812b`): package + `example/` scaffolded, `image: ^4.12.0` added, MIT LICENSE, `.pubignore` mirrors `.gitignore` plus `odd/`, Flutter constraint `>=3.44.0`. Checks: `flutter analyze` clean in root and `example/`; `flutter test` passes in both; `dart pub publish --dry-run` lists no `odd/` files, and its only warning is the missing `repository` field (exit 65), which is expected until a remote exists. The Engram mirror is pending (the tool call was declined).
+- **Next**: T2, model + JSON v1 codec, test-first.
