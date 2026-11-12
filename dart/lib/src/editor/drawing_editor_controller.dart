@@ -189,8 +189,17 @@ class DrawingEditorController extends ChangeNotifier {
     return null;
   }
 
-  DrawingDocument _withShapes(List<ShapeElement> shapes) =>
-      DrawingDocument(canvasSize: _document.canvasSize, shapes: shapes);
+  /// The document with [shapes], keeping the joints whose shape survives.
+  DrawingDocument _withShapes(List<ShapeElement> shapes) {
+    final ids = {for (final shape in shapes) shape.id};
+    return _document.copyWith(
+      shapes: shapes,
+      joints: [
+        for (final joint in _document.joints)
+          if (ids.contains(joint.shapeId)) joint,
+      ],
+    );
+  }
 
   /// Applies a one-shot edit as a single history entry.
   void _commit(DrawingDocument next, {Object? select = _keepSelection}) {

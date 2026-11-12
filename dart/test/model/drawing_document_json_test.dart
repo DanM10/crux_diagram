@@ -21,6 +21,21 @@ Map<String, Object?> _validJson() => {
   ],
 };
 
+/// The Spec 02 section 8 example.
+Map<String, Object?> _validV2Json() => {
+  ..._validJson(),
+  'schemaVersion': 2,
+  'joints': [
+    {
+      'id': 'j_01',
+      'shapeId': 's_01',
+      'anchorId': 'tr',
+      'name': 'J1',
+      'labelOffset': {'dx': 70, 'dy': -50},
+    },
+  ],
+};
+
 Matcher _formatError(String messagePart) => throwsA(
   isA<DrawingFormatException>().having(
     (e) => e.message,
@@ -33,9 +48,10 @@ void main() {
   group('DrawingDocument defaults', () {
     test('empty document has a 1600 × 1200 canvas and no shapes', () {
       final document = DrawingDocument();
-      expect(document.schemaVersion, 1);
+      expect(document.schemaVersion, 2);
       expect(document.canvasSize, const Size(1600, 1200));
       expect(document.shapes, isEmpty);
+      expect(document.joints, isEmpty);
     });
 
     test('shapes list is unmodifiable', () {
@@ -68,7 +84,7 @@ void main() {
       );
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
       expect(encoded, {
-        'schemaVersion': 1,
+        'schemaVersion': 2,
         'canvas': {'width': 1600.0, 'height': 1200.0},
         'shapes': [
           {
@@ -82,6 +98,7 @@ void main() {
             'strokeWidth': 2.0,
           },
         ],
+        'joints': <Object?>[],
       });
     });
   });
@@ -157,7 +174,7 @@ void main() {
     test('newer schemaVersion', () {
       expect(
         () =>
-            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 2)),
+            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 3)),
         _formatError('schemaVersion'),
       );
     });
@@ -245,6 +262,258 @@ void main() {
           }),
         ),
         _formatError('s_01'),
+      );
+    });
+  });
+
+  group('schemaVersion 2 (spec 02, section 8)', () {
+    test('decodes the spec example with its joint', () {
+      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      expect(document.joints, [
+        const Joint(
+          id: 'j_01',
+          shapeId: 's_01',
+          anchorId: 'tr',
+          name: 'J1',
+          labelOffset: Offset(70, -50),
+        ),
+      ]);
+    });
+
+    test('encodes joints in the spec format', () {
+      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
+      expect(encoded['schemaVersion'], 2);
+      expect(encoded['joints'], [
+        {
+          'id': 'j_01',
+          'shapeId': 's_01',
+          'anchorId': 'tr',
+          'name': 'J1',
+          'labelOffset': {'dx': 70.0, 'dy': -50.0},
+        },
+      ]);
+    });
+
+    test('round trip keeps every joint and its order', () {
+      final document = DrawingDocument(
+        shapes: [
+          ShapeElement(
+            id: 'a',
+            type: ShapeType.rectangle,
+            center: const Offset(400, 300),
+            size: const Size(240, 140),
+          ),
+          ShapeElement(
+            id: 'b',
+            type: ShapeType.circle,
+            center: const Offset(900, 600),
+            size: const Size(120, 120),
+          ),
+        ],
+        joints: const [
+          Joint(
+            id: 'j2',
+            shapeId: 'b',
+            anchorId: 'lc',
+            name: 'J2',
+            labelOffset: Offset(-64, 0),
+          ),
+          Joint(
+            id: 'j1',
+            shapeId: 'a',
+            anchorId: 'tr',
+            name: 'Pivot A',
+            labelOffset: Offset(45.5, -45.5),
+          ),
+          Joint(
+            id: 'j3',
+            shapeId: 'a',
+            anchorId: 'bc',
+            name: 'J1',
+            labelOffset: Offset(0, 64),
+          ),
+        ],
+      );
+      final decoded = DrawingDocument.fromJson(document.toJson());
+      expect(decoded, document);
+      expect(decoded.joints.map((j) => j.id), ['j2', 'j1', 'j3']);
+    });
+
+    test('a version 1 document opens with no joints and saves as 2 (AC 9)', () {
+      final document = DrawingDocument.fromJson(jsonEncode(_validJson()));
+      expect(document.shapes, hasLength(1));
+      expect(document.joints, isEmpty);
+      final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
+      expect(saved['schemaVersion'], 2);
+      expect(saved['joints'], isEmpty);
+    });
+
+    test('a version 1 document ignores a stray joints field', () {
+      final json = _validJson()..['joints'] = 'not a list';
+      expect(DrawingDocument.fromJson(jsonEncode(json)).joints, isEmpty);
+    });
+
+    test('joints and shapes lists are unmodifiable', () {
+      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      expect(() => document.joints.clear(), throwsUnsupportedError);
+    });
+  });
+
+  group('schemaVersion 2 decoding errors', () {
+    String encodeWith(void Function(Map<String, Object?> json) edit) {
+      final json = _validV2Json();
+      edit(json);
+      return jsonEncode(json);
+    }
+
+    Map<String, Object?> jointOf(Map<String, Object?> json) =>
+        (json['joints'] as List).single as Map<String, Object?>;
+
+    test('missing joints list', () {
+      expect(
+        () => DrawingDocument.fromJson(encodeWith((j) => j.remove('joints'))),
+        _formatError('joints'),
+      );
+    });
+
+    test('joints is not a list', () {
+      expect(
+        () => DrawingDocument.fromJson(encodeWith((j) => j['joints'] = {})),
+        _formatError('joints'),
+      );
+    });
+
+    test('joint pointing to a missing shape (AC 10)', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) => jointOf(j)['shapeId'] = 'ghost'),
+        ),
+        _formatError('ghost'),
+      );
+    });
+
+    test('anchor id invalid for the shape type', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) => jointOf(j)['anchorId'] = 'zz'),
+        ),
+        _formatError('zz'),
+      );
+      // `tl` exists on rectangles but not on circles.
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) {
+            (j['shapes'] as List).single as Map<String, Object?>
+              ..['type'] = 'circle'
+              ..['size'] = {'width': 120, 'height': 120};
+            jointOf(j)['anchorId'] = 'tl';
+          }),
+        ),
+        _formatError('tl'),
+      );
+    });
+
+    test('two joints on the same shape anchor', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) {
+            final joint = jointOf(j);
+            j['joints'] = [
+              joint,
+              {...joint, 'id': 'j_02', 'name': 'J2'},
+            ];
+          }),
+        ),
+        _formatError('tr'),
+      );
+    });
+
+    test('duplicate joint ids', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) {
+            final joint = jointOf(j);
+            j['joints'] = [
+              joint,
+              {...joint, 'anchorId': 'bl'},
+            ];
+          }),
+        ),
+        _formatError('j_01'),
+      );
+    });
+
+    test('empty or blank name', () {
+      for (final name in ['', '   ']) {
+        expect(
+          () => DrawingDocument.fromJson(
+            encodeWith((j) => jointOf(j)['name'] = name),
+          ),
+          _formatError('name'),
+          reason: '"$name"',
+        );
+      }
+    });
+
+    test('missing or malformed joint fields', () {
+      for (final field in [
+        'id',
+        'shapeId',
+        'anchorId',
+        'name',
+        'labelOffset',
+      ]) {
+        expect(
+          () => DrawingDocument.fromJson(
+            encodeWith((j) => jointOf(j).remove(field)),
+          ),
+          _formatError(field),
+          reason: field,
+        );
+      }
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) => jointOf(j)['labelOffset'] = {'dx': 'a', 'dy': 0}),
+        ),
+        _formatError('dx'),
+      );
+      expect(
+        () =>
+            DrawingDocument.fromJson(encodeWith((j) => jointOf(j)['name'] = 7)),
+        _formatError('name'),
+      );
+    });
+  });
+
+  group('Joint value semantics', () {
+    const joint = Joint(
+      id: 'j',
+      shapeId: 's',
+      anchorId: 'tl',
+      name: 'J1',
+      labelOffset: Offset(1, 2),
+    );
+
+    test('equal fields are equal and share a hash code', () {
+      const same = Joint(
+        id: 'j',
+        shapeId: 's',
+        anchorId: 'tl',
+        name: 'J1',
+        labelOffset: Offset(1, 2),
+      );
+      expect(same, joint);
+      expect(same.hashCode, joint.hashCode);
+    });
+
+    test('copyWith changes only the given fields', () {
+      final renamed = joint.copyWith(name: 'J9');
+      expect(renamed.name, 'J9');
+      expect(renamed.copyWith(name: 'J1'), joint);
+      expect(
+        joint.copyWith(labelOffset: const Offset(5, 5)).labelOffset,
+        const Offset(5, 5),
       );
     });
   });

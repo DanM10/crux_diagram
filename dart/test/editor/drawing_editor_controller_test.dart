@@ -357,4 +357,77 @@ void main() {
       expect(calls, 4);
     });
   });
+
+  group('joints in a loaded document', () {
+    DrawingDocument withJoints() => DrawingDocument(
+      shapes: [
+        ShapeElement(
+          id: 'a',
+          type: ShapeType.rectangle,
+          center: const Offset(400, 300),
+          size: const Size(240, 140),
+        ),
+        ShapeElement(
+          id: 'b',
+          type: ShapeType.circle,
+          center: const Offset(900, 600),
+          size: const Size(120, 120),
+        ),
+      ],
+      joints: const [
+        Joint(
+          id: 'ja',
+          shapeId: 'a',
+          anchorId: 'tr',
+          name: 'J1',
+          labelOffset: Offset(50, -50),
+        ),
+        Joint(
+          id: 'jb',
+          shapeId: 'b',
+          anchorId: 'lc',
+          name: 'J2',
+          labelOffset: Offset(-64, 0),
+        ),
+      ],
+    );
+
+    test('editing shapes keeps every joint unchanged', () {
+      final c = _controller(initial: withJoints());
+      final joints = c.document.joints;
+      c.addShape(ShapeType.square);
+      c
+        ..select('a')
+        ..beginGesture()
+        ..moveSelectedBy(const Offset(100, 50))
+        ..endGesture();
+      c.rotateSelectedBy(math.pi / 2);
+      c.duplicateSelected();
+      c.bringToFront();
+      expect(c.document.joints, joints);
+      expect(
+        c.document.shapes.firstWhere((s) => s.id == 'a').center,
+        isNot(const Offset(400, 300)),
+      );
+    });
+
+    test(
+      'deleting a shape removes only its joints; one undo restores both',
+      () {
+        final c = _controller(initial: withJoints());
+        c
+          ..select('a')
+          ..deleteSelected();
+        expect(c.document.shapes.map((s) => s.id), ['b']);
+        expect(c.document.joints.map((j) => j.id), ['jb']);
+        // The document still re-opens (no orphan joints).
+        expect(DrawingDocument.fromJson(c.document.toJson()), c.document);
+
+        c.undo();
+        expect(c.document, withJoints());
+        c.redo();
+        expect(c.document.joints.map((j) => j.id), ['jb']);
+      },
+    );
+  });
 }

@@ -1,18 +1,22 @@
 import 'dart:convert';
 import 'dart:ui';
 
+import '../geometry/anchors.dart';
 import 'drawing_document.dart';
 import 'drawing_format_exception.dart';
+import 'joint.dart';
 import 'shape_element.dart';
 import 'shape_type.dart';
 import 'shape_type_defaults.dart';
 
-/// Encodes [document] as a JSON string (spec 01, section 9).
+/// Encodes [document] as a JSON string, always as the current schema
+/// version (spec 02, section 8).
 String encodeDrawingDocument(DrawingDocument document) {
   return jsonEncode({
     'schemaVersion': DrawingDocument.currentSchemaVersion,
     'canvas': _sizeToJson(document.canvasSize),
     'shapes': [for (final shape in document.shapes) _shapeToJson(shape)],
+    'joints': [for (final joint in document.joints) _jointToJson(joint)],
   });
 }
 
@@ -53,8 +57,87 @@ DrawingDocument decodeDrawingDocument(String source) {
     }
     shapes.add(shape);
   }
-  return DrawingDocument(canvasSize: canvasSize, shapes: shapes);
+
+  // Version 1 has no joints; any `joints` field there is ignored like other
+  // unknown fields.
+  final joints = version >= 2 ? _jointsFromJson(json, shapes) : <Joint>[];
+  return DrawingDocument(
+    canvasSize: canvasSize,
+    shapes: shapes,
+    joints: joints,
+  );
 }
+
+List<Joint> _jointsFromJson(
+  Map<String, Object?> json,
+  List<ShapeElement> shapes,
+) {
+  final rawJoints = _required(json, 'joints', 'document');
+  if (rawJoints is! List) {
+    throw const DrawingFormatException('document.joints must be a list.');
+  }
+  final shapesById = {for (final shape in shapes) shape.id: shape};
+  final ids = <String>{};
+  final usedAnchors = <(String, String)>{};
+  final joints = <Joint>[];
+  for (var i = 0; i < rawJoints.length; i++) {
+    final path = 'joints[$i]';
+    final joint = _jointFromJson(rawJoints[i], path);
+    final shape = shapesById[joint.shapeId];
+    if (shape == null) {
+      throw DrawingFormatException(
+        '$path.shapeId: no shape with id "${joint.shapeId}".',
+      );
+    }
+    if (!anchorIdsFor(shape.type).contains(joint.anchorId)) {
+      throw DrawingFormatException(
+        '$path.anchorId: "${joint.anchorId}" is not an anchor of a '
+        '${shape.type.name}.',
+      );
+    }
+    if (!usedAnchors.add((joint.shapeId, joint.anchorId))) {
+      throw DrawingFormatException(
+        '$path: shape "${joint.shapeId}" already has a joint on anchor '
+        '"${joint.anchorId}".',
+      );
+    }
+    if (!ids.add(joint.id)) {
+      throw DrawingFormatException('$path: duplicate joint id "${joint.id}".');
+    }
+    joints.add(joint);
+  }
+  return joints;
+}
+
+Joint _jointFromJson(Object? raw, String path) {
+  final json = _object(raw, path);
+  final name = _string(json, 'name', path);
+  if (name.trim().isEmpty) {
+    throw DrawingFormatException('$path.name must not be blank.');
+  }
+  final offsetJson = _object(
+    _required(json, 'labelOffset', path),
+    '$path.labelOffset',
+  );
+  return Joint(
+    id: _string(json, 'id', path),
+    shapeId: _string(json, 'shapeId', path),
+    anchorId: _string(json, 'anchorId', path),
+    name: name,
+    labelOffset: Offset(
+      _double(offsetJson, 'dx', '$path.labelOffset'),
+      _double(offsetJson, 'dy', '$path.labelOffset'),
+    ),
+  );
+}
+
+Map<String, Object?> _jointToJson(Joint joint) => {
+  'id': joint.id,
+  'shapeId': joint.shapeId,
+  'anchorId': joint.anchorId,
+  'name': joint.name,
+  'labelOffset': {'dx': joint.labelOffset.dx, 'dy': joint.labelOffset.dy},
+};
 
 Map<String, Object?> _shapeToJson(ShapeElement shape) => {
   'id': shape.id,
@@ -128,6 +211,16 @@ Object? _required(Map<String, Object?> json, String key, String path) {
     throw DrawingFormatException('$path: missing required field "$key".');
   }
   return json[key];
+}
+
+/// A required string field; `name` may be blank here and is checked by
+/// the caller, every other field must be non-empty.
+String _string(Map<String, Object?> json, String key, String path) {
+  final value = _required(json, key, path);
+  if (value is! String || (key != 'name' && value.isEmpty)) {
+    throw DrawingFormatException('$path.$key must be a non-empty string.');
+  }
+  return value;
 }
 
 double _double(Map<String, Object?> json, String key, String path) {

@@ -3,28 +3,40 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 
 import 'drawing_json_codec.dart';
+import 'joint.dart';
 import 'shape_element.dart';
 
-/// An immutable drawing: a canvas size plus shapes in z-order.
+/// An immutable drawing: a canvas size, shapes in z-order and the joints
+/// attached to them.
 ///
 /// Serializes to and from JSON with [toJson] and [DrawingDocument.fromJson].
 @immutable
 class DrawingDocument {
   /// Creates a document. [shapes] are ordered back to front.
+  ///
+  /// Every joint should refer to an existing shape and a valid anchor, with
+  /// at most one joint per shape anchor. [DrawingEditorController] and
+  /// [DrawingDocument.fromJson] enforce this; the constructor does not.
   DrawingDocument({
     this.canvasSize = defaultCanvasSize,
     List<ShapeElement> shapes = const [],
-  }) : shapes = List.unmodifiable(shapes);
+    List<Joint> joints = const [],
+  }) : shapes = List.unmodifiable(shapes),
+       joints = List.unmodifiable(joints);
 
   /// Decodes a document from a JSON string.
   ///
+  /// Accepts schema versions 1 and 2; a version 1 document has no joints.
+  ///
   /// Throws [DrawingFormatException] when the input is malformed, misses a
-  /// required field, uses an unknown shape type or a newer schema version.
+  /// required field, uses an unknown shape type or a newer schema version,
+  /// or has a joint whose shape or anchor does not exist or that repeats a
+  /// shape anchor.
   factory DrawingDocument.fromJson(String source) =>
       decodeDrawingDocument(source);
 
   /// The schema version written by [toJson] and the newest one accepted.
-  static const int currentSchemaVersion = 1;
+  static const int currentSchemaVersion = 2;
 
   /// Default canvas size in logical units (4:3).
   static const Size defaultCanvasSize = Size(1600, 1200);
@@ -38,6 +50,20 @@ class DrawingDocument {
   /// Shapes in z-order; index 0 is the back. Unmodifiable.
   final List<ShapeElement> shapes;
 
+  /// Joints in creation order. Unmodifiable.
+  final List<Joint> joints;
+
+  /// Returns a copy with the given fields replaced.
+  DrawingDocument copyWith({
+    Size? canvasSize,
+    List<ShapeElement>? shapes,
+    List<Joint>? joints,
+  }) => DrawingDocument(
+    canvasSize: canvasSize ?? this.canvasSize,
+    shapes: shapes ?? this.shapes,
+    joints: joints ?? this.joints,
+  );
+
   /// Encodes this document as a JSON string.
   String toJson() => encodeDrawingDocument(this);
 
@@ -46,8 +72,10 @@ class DrawingDocument {
       identical(this, other) ||
       other is DrawingDocument &&
           other.canvasSize == canvasSize &&
-          listEquals(other.shapes, shapes);
+          listEquals(other.shapes, shapes) &&
+          listEquals(other.joints, joints);
 
   @override
-  int get hashCode => Object.hash(canvasSize, Object.hashAll(shapes));
+  int get hashCode =>
+      Object.hash(canvasSize, Object.hashAll(shapes), Object.hashAll(joints));
 }
