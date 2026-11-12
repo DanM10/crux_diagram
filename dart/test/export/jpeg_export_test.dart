@@ -103,4 +103,80 @@ void main() {
       throwsArgumentError,
     );
   });
+
+  group('joints in the export (spec 02, AC 8)', () {
+    DrawingDocument withJoint() => _documentWithRectangle().copyWith(
+      joints: const [
+        Joint(
+          id: 'j',
+          shapeId: 'r',
+          anchorId: 'tr',
+          name: 'J1',
+          labelOffset: Offset(120, -120),
+        ),
+      ],
+    );
+
+    Future<img.Image> render(DrawingDocument document) async => img.decodeJpg(
+      await exportDocumentJpeg(
+        document,
+        pixelRatio: 1,
+        quality: 95,
+        maxPixels: 16000000,
+      ),
+    )!;
+
+    num darkest(img.Image image, Rect area) {
+      num result = 255;
+      for (var y = area.top.toInt(); y < area.bottom; y++) {
+        for (var x = area.left.toInt(); x < area.right; x++) {
+          result = result < _luminance(image, x, y)
+              ? result
+              : _luminance(image, x, y);
+        }
+      }
+      return result;
+    }
+
+    test('draws the label and the leader arrow', () async {
+      {
+        final plain = await render(_documentWithRectangle());
+        final joined = await render(withJoint());
+        // Label centered at (920 + 120, 530 - 120) = (1040, 410).
+        final label = Rect.fromCenter(
+          center: const Offset(1040, 410),
+          width: 40,
+          height: 24,
+        );
+        expect(darkest(plain, label), greaterThan(245));
+        expect(darkest(joined, label), lessThan(100));
+        // Midway along the leader, between label and anchor (920, 530).
+        final leader = Rect.fromCenter(
+          center: const Offset(980, 470),
+          width: 6,
+          height: 6,
+        );
+        expect(darkest(plain, leader), greaterThan(245));
+        expect(darkest(joined, leader), lessThan(150));
+      }
+    });
+
+    test('adds no anchor dots: pixels away from the joint are '
+        'identical', () async {
+      {
+        final plain = await render(_documentWithRectangle());
+        final joined = await render(withJoint());
+        // Around the bl anchor (680, 670), far from the joint at tr.
+        for (var y = 650; y < 690; y++) {
+          for (var x = 660; x < 700; x++) {
+            expect(
+              joined.getPixel(x, y),
+              plain.getPixel(x, y),
+              reason: '($x, $y)',
+            );
+          }
+        }
+      }
+    });
+  });
 }

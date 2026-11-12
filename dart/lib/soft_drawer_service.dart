@@ -17,4 +17,5 @@ export 'src/editor/drawing_editor.dart' show DrawingEditor;
 export 'src/editor/drawing_editor_labels.dart' show DrawingEditorLabels;
 export 'src/editor/drawing_editor_page.dart' show DrawingEditorPage;
 export 'src/editor/drawing_tool.dart' show DrawingTool;
+export 'src/painting/joint_style.dart' show JointStyle, LeaderStyle;
 export 'src/editor/drawing_result.dart' show DrawingResult;

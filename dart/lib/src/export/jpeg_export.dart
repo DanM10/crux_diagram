@@ -5,13 +5,16 @@ import 'dart:ui' as ui;
 import 'package:image/image.dart' as img;
 
 import '../model/drawing_document.dart';
+import '../painting/joint_painting.dart';
+import '../painting/joint_style.dart';
 import '../painting/shape_painting.dart';
 
-/// Renders [document]'s shapes over a white background and encodes them as
-/// JPEG (spec 01, section 8).
+/// Renders [document]'s shapes and joints over a white background and
+/// encodes them as JPEG (spec 01, section 8; spec 02, section 7).
 ///
-/// The image is `canvasSize × pixelRatio` pixels. No grid, handles or
-/// selection are drawn. Encoding runs in a separate isolate.
+/// The image is `canvasSize × pixelRatio` pixels. Leader arrows and labels
+/// use [jointStyle]; no grid, handles, selection, anchor dots or snap
+/// highlights are drawn. Encoding runs in a separate isolate.
 ///
 /// Throws [ArgumentError] when [pixelRatio] is not positive, [quality] is
 /// outside 1 to 100, or the image would exceed [maxPixels] (checked before
@@ -21,6 +24,7 @@ Future<Uint8List> exportDocumentJpeg(
   required double pixelRatio,
   required int quality,
   required int maxPixels,
+  JointStyle jointStyle = const JointStyle(),
 }) async {
   if (pixelRatio <= 0) {
     throw ArgumentError.value(pixelRatio, 'pixelRatio', 'Must be positive.');
@@ -48,6 +52,7 @@ Future<Uint8List> exportDocumentJpeg(
       ui.Paint()..color = const ui.Color(0xFFFFFFFF),
     );
   paintShapes(canvas, document.shapes);
+  paintJoints(canvas, document, jointStyle);
   final picture = recorder.endRecording();
   final ui.Image image;
   try {

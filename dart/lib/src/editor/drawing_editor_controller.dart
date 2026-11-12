@@ -276,6 +276,7 @@ class DrawingEditorController extends ChangeNotifier {
         pixelRatio: pixelRatio,
         quality: quality ?? config.jpegQuality,
         maxPixels: config.maxExportPixels,
+        jointStyle: config.jointStyle,
       );
 
   ShapeElement? get _selected {

@@ -22,3 +22,33 @@ Offset clampLabelOffset(Offset anchor, Offset offset, Size canvasSize) {
   );
   return clamped - anchor;
 }
+
+/// Where a leader line from [labelRect]'s center toward [anchor] leaves the
+/// rectangle (spec 02, AW-3), or null when [anchor] lies inside it.
+Offset? leaderLineStart(Rect labelRect, Offset anchor) {
+  if (labelRect.contains(anchor)) return null;
+  final center = labelRect.center;
+  final direction = anchor - center;
+  final tx = direction.dx == 0
+      ? double.infinity
+      : labelRect.width / 2 / direction.dx.abs();
+  final ty = direction.dy == 0
+      ? double.infinity
+      : labelRect.height / 2 / direction.dy.abs();
+  return center + direction * (tx < ty ? tx : ty);
+}
+
+/// The filled arrowhead triangle for a line from [from] to [tip]: the tip,
+/// then the two base corners, [length] back from the tip and [width] apart.
+List<Offset> arrowheadPoints({
+  required Offset from,
+  required Offset tip,
+  required double length,
+  required double width,
+}) {
+  final line = tip - from;
+  final direction = line / line.distance;
+  final base = tip - direction * length;
+  final normal = Offset(direction.dy, -direction.dx) * (width / 2);
+  return [tip, base + normal, base - normal];
+}

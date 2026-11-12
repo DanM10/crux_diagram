@@ -11,6 +11,7 @@ import '../model/shape_type.dart';
 import '../painting/editor_painters.dart';
 import 'drawing_editor_controller.dart';
 import 'drawing_editor_labels.dart';
+import 'drawing_tool.dart';
 
 enum _GestureMode { none, move, resize, rotate, pinch }
 
@@ -128,12 +129,38 @@ class _DrawingEditorState extends State<DrawingEditor> {
                   ),
                   RepaintBoundary(
                     child: CustomPaint(
-                      painter: SelectionPainter(
-                        shape: _controller.selectedShape,
+                      painter: JointsPainter(
+                        document: document,
                         viewport: _viewport,
-                        color: theme.colorScheme.primary,
-                        showAngle: _mode == _GestureMode.rotate,
+                        style: config.jointStyle,
                       ),
+                    ),
+                  ),
+                  RepaintBoundary(
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        CustomPaint(
+                          painter: SelectionPainter(
+                            shape: _controller.selectedShape,
+                            viewport: _viewport,
+                            color: theme.colorScheme.primary,
+                            showAngle: _mode == _GestureMode.rotate,
+                          ),
+                        ),
+                        CustomPaint(
+                          painter: JointOverlayPainter(
+                            document: document,
+                            viewport: _viewport,
+                            style: config.jointStyle,
+                            color:
+                                config.jointStyle.selectionColor ??
+                                theme.colorScheme.primary,
+                            showAnchors: _controller.tool == DrawingTool.joint,
+                            selectedJoint: _controller.selectedJoint,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

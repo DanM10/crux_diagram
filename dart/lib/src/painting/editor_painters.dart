@@ -2,11 +2,15 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../geometry/anchors.dart';
 import '../geometry/resize.dart';
 import '../geometry/transforms.dart';
 import '../geometry/viewport.dart';
 import '../model/drawing_document.dart';
+import '../model/joint.dart';
 import '../model/shape_element.dart';
+import 'joint_painting.dart';
+import 'joint_style.dart';
 import 'shape_painting.dart';
 
 /// Visual radius of resize handles, in dp.
@@ -109,7 +113,130 @@ class ShapesPainter extends CustomPainter {
       !identical(old.document, document) || old.viewport != viewport;
 }
 
-/// Layer 3: selection outline, handles, rotation handle and angle readout.
+/// Visual radius of anchor dots in the Joint tool, in dp (spec 02, JT-1).
+const double anchorDotRadius = 5;
+
+/// Layer 3: the document's joints, above every shape (spec 02, AW-6).
+class JointsPainter extends CustomPainter {
+  /// Creates the joints painter.
+  JointsPainter({
+    required this.document,
+    required this.viewport,
+    required this.style,
+  });
+
+  /// Document whose joints are painted.
+  final DrawingDocument document;
+
+  /// Current viewport.
+  final CanvasViewport viewport;
+
+  /// Arrow and label style.
+  final JointStyle style;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (document.joints.isEmpty) return;
+    canvas
+      ..save()
+      ..translate(viewport.origin.dx, viewport.origin.dy)
+      ..scale(viewport.scale);
+    paintJoints(canvas, document, style);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(JointsPainter old) =>
+      !identical(old.document, document) ||
+      old.viewport != viewport ||
+      old.style != style;
+}
+
+/// Layer 4 (with the selection): anchor dots while the Joint tool is active
+/// and the selected joint's highlight (spec 02, JT-1, AW-7). Never exported.
+class JointOverlayPainter extends CustomPainter {
+  /// Creates the joint overlay painter.
+  JointOverlayPainter({
+    required this.document,
+    required this.viewport,
+    required this.style,
+    required this.color,
+    required this.showAnchors,
+    required this.selectedJoint,
+  });
+
+  /// Current document.
+  final DrawingDocument document;
+
+  /// Current viewport.
+  final CanvasViewport viewport;
+
+  /// Joint style, for the label rectangle of the highlight.
+  final JointStyle style;
+
+  /// Highlight and anchor dot color.
+  final Color color;
+
+  /// Whether to draw every shape's anchors (Joint tool).
+  final bool showAnchors;
+
+  /// Joint to highlight, or null.
+  final Joint? selectedJoint;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final outline = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+    if (showAnchors) {
+      final filled = Paint()..color = color;
+      final empty = Paint()..color = Colors.white;
+      final used = {for (final j in document.joints) (j.shapeId, j.anchorId)};
+      for (final shape in document.shapes) {
+        for (final anchor in anchorsOf(shape)) {
+          final center = viewport.toScreen(anchor.position);
+          final taken = used.contains((shape.id, anchor.id));
+          canvas
+            ..drawCircle(center, anchorDotRadius, taken ? filled : empty)
+            ..drawCircle(center, anchorDotRadius, outline);
+        }
+      }
+    }
+    final selected = selectedJoint;
+    if (selected == null) return;
+    for (final placement in placeJoints(document, style)) {
+      if (placement.joint.id == selected.id) {
+        final rect = Rect.fromPoints(
+          viewport.toScreen(placement.labelRect.topLeft),
+          viewport.toScreen(placement.labelRect.bottomRight),
+        );
+        canvas
+          ..drawRRect(
+            RRect.fromRectAndRadius(rect, const Radius.circular(4)),
+            outline,
+          )
+          ..drawCircle(
+            viewport.toScreen(placement.anchor),
+            anchorDotRadius + 4,
+            outline,
+          );
+      }
+      placement.dispose();
+    }
+  }
+
+  @override
+  bool shouldRepaint(JointOverlayPainter old) =>
+      !identical(old.document, document) ||
+      old.viewport != viewport ||
+      old.style != style ||
+      old.color != color ||
+      old.showAnchors != showAnchors ||
+      old.selectedJoint != selectedJoint;
+}
+
+/// Layer 4: selection outline, handles, rotation handle and angle readout.
 class SelectionPainter extends CustomPainter {
   /// Creates the selection painter.
   SelectionPainter({

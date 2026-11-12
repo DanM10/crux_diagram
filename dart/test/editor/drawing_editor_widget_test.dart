@@ -347,4 +347,53 @@ void main() {
       expect(shape.center, isNot(const Offset(800, 600)));
     });
   });
+
+  group('joint layers (spec 02, section 7)', () {
+    T painterOf<T>(WidgetTester tester) => tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<T>()
+        .single;
+
+    testWidgets('joints get their own layer above shapes, below overlays', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      final shapeId = h.controller.selectedId!;
+      h.controller.addJoint(shapeId, 'tr');
+      await tester.pump();
+
+      final painters = tester
+          .widgetList<CustomPaint>(find.byType(CustomPaint))
+          .map((paint) => paint.painter)
+          .toList();
+      final shapes = painters.indexWhere((p) => p is ShapesPainter);
+      final joints = painters.indexWhere((p) => p is JointsPainter);
+      final overlay = painters.indexWhere((p) => p is JointOverlayPainter);
+      expect(shapes, lessThan(joints));
+      expect(joints, lessThan(overlay));
+      expect(painterOf<JointsPainter>(tester).document.joints, hasLength(1));
+    });
+
+    testWidgets('anchor dots show only with the Joint tool; the selected '
+        'joint is highlighted', (tester) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      expect(painterOf<JointOverlayPainter>(tester).showAnchors, isFalse);
+
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      expect(painterOf<JointOverlayPainter>(tester).showAnchors, isTrue);
+
+      final joint = h.controller.addJoint(
+        h.controller.selectedId ?? 's_1',
+        'tr',
+      );
+      await tester.pump();
+      expect(painterOf<JointOverlayPainter>(tester).selectedJoint, joint);
+    });
+  });
 }

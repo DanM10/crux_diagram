@@ -4,6 +4,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 
 import '../model/drawing_document.dart';
+import '../painting/joint_style.dart';
 
 /// Behavior settings for a drawing editor.
 @immutable
@@ -21,6 +22,7 @@ class DrawingEditorConfig {
     this.historyLimit = 100,
     this.jointNamePrefix = 'J',
     this.jointNameMaxLength = 24,
+    this.jointStyle = const JointStyle(),
   }) : assert(jointNameMaxLength > 0);
 
   /// Canvas size for new documents, in canvas units. A document opened from
@@ -55,4 +57,7 @@ class DrawingEditorConfig {
 
   /// Longest joint name, in characters. Longer input is cut to this length.
   final int jointNameMaxLength;
+
+  /// Look of leader arrows and labels, on screen and in the export.
+  final JointStyle jointStyle;
 }

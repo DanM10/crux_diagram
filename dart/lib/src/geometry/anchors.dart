@@ -131,3 +131,18 @@ List<Anchor> anchorsOf(ShapeElement shape) => [
       ),
     ),
 ];
+
+/// Canvas position of anchor [anchorId] on [shape], or null when the shape
+/// type has no such anchor.
+Offset? anchorPositionOf(ShapeElement shape, String anchorId) {
+  for (final spec in _specsFor(shape.type)) {
+    if (spec.id == anchorId) {
+      return worldFromLocal(
+        shape.center,
+        shape.rotation,
+        spec.local(shape.size),
+      );
+    }
+  }
+  return null;
+}
