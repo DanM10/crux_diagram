@@ -25,7 +25,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard (`exportJpeg`), plus `DrawingResult` and `DrawingEditorPage` (done/cancel, discard dialog, `markClean` on confirm) | inline | done | `b71beca`; RED observed first, then 103/103 tests pass, analyze clean (root + example) |
 | T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | done | `0593311`; RED observed first (4 widget tests + geometry compile error; the lifted-finger test moved the square to (730, 930)), then 114/114 tests pass ×3, analyze clean (root + example) |
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | done | `8c1aa50`; RED (compile errors) observed first, then 139/139 tests pass, analyze clean (root + example); independent verifier PASS (L17); native review approved and acknowledged (L20) |
-| T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | pending | — |
+| T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | done | `e3e34e6` (API), `255e4da` (rendering), `d642956` (interaction); RED observed first in each, then 189/189 tests pass ×3, analyze clean (root + example) |
 | T10 | S5 | Anchor snapping while moving and resizing, highlights | inline | pending | — |
 | T11 | S7 | README (GIF/screenshots, quick start, API), dartdoc for all public members, example app flow, dry run, `pana` | inline | pending | — |
 
@@ -100,4 +100,21 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
 - **L18** (2026-11-11): Correction: `.atl/` is not published. Pub leaves out dot-prefixed paths (verified with `dart pub publish --dry-run`), so `.pubignore` needs no entry.
 - **L19** (2026-11-11, user): "add atl, then continue". `.atl/` was added to the global git ignore (`~/.config/git/ignore`, which git reads by default because `core.excludesFile` is unset). The working tree is now clean.
 - **L20** (2026-11-11): Native review of `49101dd..15d283c` (T8 plus its passive docs commit), lenses risk and reliability. The user granted consent. Result: approved, no blockers, and acknowledged (lineage `review-a386aa4880c86f15`). One informational finding (reliability, WARNING): `DrawingDocument`'s constructor does not enforce joint invariants. This is intended and documented; T9's `addJoint` and its controller API must enforce them. The reviewed boundary is now `15d283c`. Slice 6 holds T7 and T8.
-- **Next**: T9.
+- **L21** (2026-11-12): T9 done in three work units (+1836/−22 in total).
+  - **T9a `e3e34e6`, controller:**
+    - `DrawingTool` (public), plus `tool`, `selectedJoint`, `anchorsOf`, `addJoint`, `renameJoint`, `moveJointLabel` and `removeJoint`. The constructor gains an optional `jointIdGenerator`; config gains `jointNamePrefix` and `jointNameMaxLength`.
+    - Selecting a shape clears the joint selection and vice versa. `deleteSelected` removes the selected joint first (DL-1). Switching to the Joint tool clears the shape selection (JT-1).
+    - Names are trimmed and cut to the limit by grapheme. NM-3 auto-naming uses `RegExp.escape(prefix)` and `BigInt` suffixes.
+    - API decision: `addJoint` with a blank name throws `ArgumentError`, while `renameJoint` with a blank name keeps the old name (AC 3). Over-length names are cut, not rejected, in both, matching the editor field's limit.
+    - Creating a joint is previewed through the gesture machinery (`beginJointCreation`/`confirmJointCreation`), so creating and naming is one undo entry and a blank name cancels it (DL-3, NM-1). A label drag is one entry.
+  - **T9b `255e4da`, rendering:**
+    - `JointStyle` and `LeaderStyle` (public), set through `DrawingEditorConfig.jointStyle`. `selectionColor` is nullable because the spec's default "theme primary" cannot be const; null uses the theme.
+    - The shared `paintJoints` draws upright labels, leader lines that leave the padded label rectangle (AW-3) and filled arrowheads. The editor paints them in their own layer above shapes (AW-6), and an overlay draws anchor dots (filled when taken) and the selected-joint highlight (AW-7).
+    - The export passes `jointStyle`; the AC 8 test checks the label and leader pixels, and that pixels far from the joint are byte-identical, so no anchor dots are drawn.
+  - **T9c `d642956`, interaction:**
+    - Joint tool toggle, plus Rename and Delete joint actions. The new labels `jointTool`, `renameJoint`, `deleteJoint`, `jointNameHint` and `ok` default to "Joint tool", "Rename joint", "Delete joint", "Joint name" and "OK".
+    - Hit priority is handles, then labels and arrows, then anchors (Joint tool only, 22 dp, `pickAnchor` with a 2 dp topmost tie per JT-4), then shapes.
+    - Labels can be dragged in any tool. Double-tap is detected manually with a `kDoubleTapTimeout` timer, so single taps keep firing immediately (an `onDoubleTap` recognizer would have delayed every existing tap).
+  - **Acceptance criteria covered by tests:** AC 1–5 and 8 (with AC 6, 9 and 10 from T8).
+  - **RDD:** each commit was assessed against `15d283c` as `medium`, `under_budget`, so slice 7 (T9) stays open. Risk: none. The changes are additive, and the shared select/tap paths are unchanged when no joints exist, pinned by the existing tests.
+- **Next**: T10 (anchor snapping SN-1 to SN-4).
