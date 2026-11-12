@@ -18,7 +18,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | ID | Specs | Task | Route | Status | Evidence |
 |---|---|---|---|---|---|
 | T1 | S1 | Package skeleton (`flutter create --template=package .`), `example/`, `.pubignore`, `analysis_options.yaml`, LICENSE (MIT), CHANGELOG stub | inline | done | `37d812b`; analyze clean (root + example), tests pass, dry run lists no `odd/` |
-| T2 | S2, S6 | Model + JSON v1 codec (`ShapeElement`, `DrawingDocument`, `DrawingFormatException`, injectable ids, `toARGB32()`) | inline | pending | — |
+| T2 | S2, S6 | Model + JSON v1 codec (`ShapeElement`, `DrawingDocument`, `DrawingFormatException`, injectable ids, `toARGB32()`) | inline | done | `576a0a3`; RED (compile errors) observed first, then 25/25 tests pass, analyze clean |
 | T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | pending | — |
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | pending | — |
 | T5 | S2 | Painting layers + editor widgets (`DrawingEditor`, `DrawingEditorPage`, toolbar, handles, discard dialog, `DrawingEditorLabels`) | inline | pending | — |
@@ -38,4 +38,10 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
 - **L3** (2026-11-11, user): "I like, but remember this is in another repo, cause i plan to upload to pub.dev, use the directory /home/dgarrido/Projects/ to place the new folder which contains the repo and write the specs"
 - **L4** (2026-11-11): Repository initialized at `~/Projects/soft_drawer_service` (branch `main`, nothing committed). Specs copied from the drawer draft into `doc/specs/` and updated with the accepted decisions: FR-2 Must for 0.1.0; transparent default fill; strict decoding kept; duplicate names allowed; labels travel with shapes; no shared joints in 0.1.0. Gaps fixed: FR-5 cascade repeats until free, `isDirty` defined against a clean baseline with `markClean()`, injectable id generator, `Color.toARGB32()` (verified: `Color.value` is `@Deprecated` in the local Flutter 3.44.4 SDK).
 - **L5** (2026-11-11): Baseline specs committed on `main` (`f09c304`). Branch `feat/soft-drawer-0-1-0` created. T1 done (`37d812b`): package + `example/` scaffolded, `image: ^4.12.0` added, MIT LICENSE, `.pubignore` mirrors `.gitignore` plus `odd/`, Flutter constraint `>=3.44.0`. Checks: `flutter analyze` clean in root and `example/`; `flutter test` passes in both; `dart pub publish --dry-run` lists no `odd/` files, and its only warning is the missing `repository` field (exit 65), which is expected until a remote exists. The Engram mirror is pending (the tool call was declined).
-- **Next**: T2, model + JSON v1 codec, test-first.
+- **L6** (2026-11-11, user): "go"
+- **L7** (2026-11-11): T2 done (`576a0a3`, +761/−9, tests included). The public exports are `DrawingDocument`, `DrawingFormatException`, `ShapeElement` and `ShapeType`. Per-type defaults (`defaultSize`, `locksAspectRatio`), the id generators and `normalizeAngle` stay internal under `src/`. `DrawingDocument.fromJson(String)` and `toJson()` work with JSON strings, which satisfies Spec 01 AC 7. The strict decoder also rejects a few inputs beyond the spec's explicit list: non-positive sizes, a square or circle with width ≠ height, negative stroke widths, colors outside 32-bit ARGB, and duplicate shape ids. All of them fall under "malformed input" (FR-23). The running authored count (about 770 lines) now exceeds the 400-line delivery budget, so the chain strategy has to be chosen before the next commit.
+- **L8** (2026-11-11, user): "feature-branch-chain"
+- **L9** (2026-11-11): Chain strategy cached as `feature-branch-chain`. Each slice becomes a PR into `feat/soft-drawer-0-1-0`, and that branch merges into `main` at 0.1.0. Slice boundaries:
+  - **Slice 1:** `37d812b`..`576a0a3` (T1 skeleton, T2 model + JSON).
+  - **Slice 2:** opens with T3.
+- **Next**: T3 (geometry).
