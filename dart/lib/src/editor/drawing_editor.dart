@@ -12,7 +12,7 @@ import '../painting/editor_painters.dart';
 import 'drawing_editor_controller.dart';
 import 'drawing_editor_labels.dart';
 
-enum _GestureMode { none, move, resize, rotate }
+enum _GestureMode { none, move, resize, rotate, pinch }
 
 /// Embeddable drawing editor: canvas, shape palette and selection toolbar.
 ///
@@ -49,6 +49,18 @@ class _DrawingEditorState extends State<DrawingEditor> {
   ResizeHandle? _handle;
   Offset _startFocal = Offset.zero;
 
+  /// Pinch zoom and pan over the fitted viewport (FR-2).
+  ViewportZoom _zoom = const ViewportZoom();
+  ViewportZoom _pinchStartZoom = const ViewportZoom();
+  Size _areaSize = Size.zero;
+
+  /// Pointers currently down on the canvas.
+  int _activePointers = 0;
+
+  /// Set once two fingers touch; one-finger gestures stay disabled until
+  /// every finger lifts, so the finger left after a pinch edits nothing.
+  bool _multiTouch = false;
+
   /// Where the most recent pointer went down. The scale recognizer reports
   /// its start only after the touch slop, so gestures start from here.
   Offset? _pointerDown;
@@ -74,13 +86,16 @@ class _DrawingEditorState extends State<DrawingEditor> {
     final document = _controller.document;
     return LayoutBuilder(
       builder: (context, constraints) {
-        _viewport = CanvasViewport.fit(
-          document.canvasSize,
-          constraints.biggest,
+        _areaSize = constraints.biggest;
+        _zoom = _zoom.clamped(document.canvasSize, _areaSize);
+        _viewport = _zoom.apply(
+          CanvasViewport.fit(document.canvasSize, _areaSize),
         );
         return ClipRect(
           child: Listener(
-            onPointerDown: (event) => _pointerDown = event.localPosition,
+            onPointerDown: _onPointerDown,
+            onPointerUp: (_) => _onPointerGone(),
+            onPointerCancel: (_) => _onPointerGone(),
             child: GestureDetector(
               key: DrawingEditor.canvasKey,
               behavior: HitTestBehavior.opaque,
@@ -236,8 +251,26 @@ class _DrawingEditorState extends State<DrawingEditor> {
     _controller.select(topmostShapeAt(_controller.document.shapes, point)?.id);
   }
 
+  void _onPointerDown(PointerDownEvent event) {
+    _pointerDown = event.localPosition;
+    _activePointers++;
+    if (_activePointers > 1) _multiTouch = true;
+  }
+
+  void _onPointerGone() {
+    _activePointers = math.max(0, _activePointers - 1);
+    if (_activePointers == 0) _multiTouch = false;
+  }
+
   void _onScaleStart(ScaleStartDetails details) {
-    if (details.pointerCount != 1) return;
+    if (details.pointerCount >= 2) {
+      _multiTouch = true;
+      _startFocal = details.localFocalPoint;
+      _pinchStartZoom = _zoom;
+      _mode = _GestureMode.pinch;
+      return;
+    }
+    if (_multiTouch) return;
     _startFocal = _pointerDown ?? details.localFocalPoint;
     final point = _viewport.toCanvas(_startFocal);
     final handleHit = _handleAt(point);
@@ -258,6 +291,16 @@ class _DrawingEditorState extends State<DrawingEditor> {
     switch (_mode) {
       case _GestureMode.none:
         return;
+      case _GestureMode.pinch:
+        setState(() {
+          _zoom = _pinchStartZoom
+              .pinch(
+                startFocal: _startFocal,
+                focal: details.localFocalPoint,
+                scale: details.scale,
+              )
+              .clamped(_controller.document.canvasSize, _areaSize);
+        });
       case _GestureMode.move:
         _controller.moveSelectedBy(
           (details.localFocalPoint - _startFocal) / _viewport.scale,
@@ -276,6 +319,10 @@ class _DrawingEditorState extends State<DrawingEditor> {
 
   void _onScaleEnd() {
     if (_mode == _GestureMode.none) return;
+    if (_mode == _GestureMode.pinch) {
+      _mode = _GestureMode.none;
+      return;
+    }
     _controller.endGesture();
     setState(() {
       _mode = _GestureMode.none;

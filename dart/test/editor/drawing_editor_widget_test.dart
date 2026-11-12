@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/id_generator.dart';
+import 'package:soft_drawer_service/src/painting/editor_painters.dart';
 
 class _Harness {
   _Harness(this.tester, this.controller);
@@ -10,11 +11,59 @@ class _Harness {
   final WidgetTester tester;
   final DrawingEditorController controller;
 
+  /// The editor's live viewport (zoom and pan included), in global
+  /// coordinates.
   CanvasViewport get viewport {
     final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
-    final fit = CanvasViewport.fit(controller.document.canvasSize, rect.size);
-    return CanvasViewport(scale: fit.scale, origin: rect.topLeft + fit.origin);
+    final local = tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<ShapesPainter>()
+        .single
+        .viewport;
+    return CanvasViewport(
+      scale: local.scale,
+      origin: rect.topLeft + local.origin,
+    );
   }
+
+  double get fitScale {
+    final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+    return CanvasViewport.fit(controller.document.canvasSize, rect.size).scale;
+  }
+
+  Offset get canvasCenter =>
+      tester.getCenter(find.byKey(DrawingEditor.canvasKey));
+
+  /// Two-finger gesture: each finger moves from `center ± fromHalf` to
+  /// `center + shift ± toHalf` (horizontal span) in steps.
+  Future<void> pinch({
+    required Offset center,
+    required double fromHalf,
+    required double toHalf,
+    Offset shift = Offset.zero,
+    bool release = true,
+    int steps = 10,
+  }) async {
+    final a = await tester.startGesture(center - Offset(fromHalf, 0));
+    final b = await tester.startGesture(center + Offset(fromHalf, 0));
+    for (var i = 1; i <= steps; i++) {
+      final t = i / steps;
+      final half = fromHalf + (toHalf - fromHalf) * t;
+      final c = center + shift * t;
+      await a.moveTo(c - Offset(half, 0));
+      await b.moveTo(c + Offset(half, 0));
+      await tester.pump();
+    }
+    lastPinch = (a, b);
+    if (release) {
+      await a.up();
+      await b.up();
+      await tester.pump();
+    }
+  }
+
+  (TestGesture, TestGesture)? lastPinch;
 
   Offset screenOf(Offset canvasPoint) => viewport.toScreen(canvasPoint);
 }
@@ -194,5 +243,108 @@ void main() {
     expect(find.byTooltip('Agregar cuadrado'), findsOneWidget);
     expect(find.byTooltip('Deshacer'), findsOneWidget);
     expect(find.byTooltip('Add square'), findsNothing);
+  });
+
+  group('pinch zoom and pan (FR-2, AC 14)', () {
+    testWidgets('pinch zoom stays within 1x to 4x and does not edit', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await h.pinch(center: h.canvasCenter, fromHalf: 30, toHalf: 300);
+      expect(h.viewport.scale, closeTo(h.fitScale * 4, 1e-9));
+
+      await h.pinch(center: h.canvasCenter, fromHalf: 300, toHalf: 20);
+      expect(h.viewport.scale, closeTo(h.fitScale, 1e-9));
+      expect(h.controller.isDirty, isFalse);
+      expect(h.controller.canUndo, isFalse);
+    });
+
+    testWidgets('two-finger drag pans a zoomed canvas', (tester) async {
+      final h = await _pump(tester);
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 80);
+      final before = h.viewport;
+      expect(before.scale, greaterThan(h.fitScale * 1.2));
+
+      await h.pinch(
+        center: h.canvasCenter,
+        fromHalf: 60,
+        toHalf: 60,
+        shift: const Offset(-90, -60),
+        steps: 60,
+      );
+      final after = h.viewport;
+      // Fingers move one event apart, so the span wobbles slightly.
+      expect(after.scale, closeTo(before.scale, before.scale * 0.03));
+      expect(after.origin.dx, lessThan(before.origin.dx - 40));
+      expect(after.origin.dy, lessThan(before.origin.dy - 25));
+    });
+
+    testWidgets('one-finger drag on empty canvas never pans, even zoomed', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await h.pinch(center: h.canvasCenter, fromHalf: 30, toHalf: 90);
+      final before = h.viewport;
+      await tester.dragFrom(h.canvasCenter, const Offset(-120, -80));
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+      expect(h.controller.canUndo, isFalse);
+    });
+
+    testWidgets('lifting one finger after a pinch starts no one-finger edit', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      final square = h.controller.document.shapes.single;
+      // Both fingers start inside the square; pinching in stays at 1x.
+      final center = h.screenOf(square.center);
+      await h.pinch(center: center, fromHalf: 20, toHalf: 10, release: false);
+      final (a, b) = h.lastPinch!;
+      await b.up();
+      await tester.pump();
+      for (var i = 0; i < 5; i++) {
+        await a.moveBy(const Offset(0, 30));
+        await tester.pump();
+      }
+      await a.up();
+      await tester.pumpAndSettle();
+      expect(h.controller.document.shapes.single.center, square.center);
+      expect(h.controller.canUndo, isTrue); // only the add
+      h.controller.undo();
+      expect(h.controller.canUndo, isFalse);
+    });
+
+    testWidgets('editing works through the zoomed viewport with dp handles', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      await h.pinch(
+        center: h.screenOf(const Offset(800, 600)),
+        fromHalf: 30,
+        toHalf: 300,
+      );
+      expect(h.viewport.scale, closeTo(h.fitScale * 4, 1e-9));
+
+      // Tapping the interior at 4x keeps the rectangle selected.
+      await tester.tapAt(h.screenOf(const Offset(830, 610)));
+      await tester.pump();
+      expect(h.controller.selectedId, isNotNull);
+
+      // 20 dp off the bottom-right corner is inside the 24 dp touch radius
+      // (only 20 / (4 x fit) canvas units at this zoom).
+      final corner = h.screenOf(const Offset(920, 670));
+      await tester.dragFrom(
+        corner + const Offset(14, 14),
+        const Offset(-60, 0),
+      );
+      await tester.pumpAndSettle();
+      final shape = h.controller.document.shapes.single;
+      expect(shape.size.width, lessThan(240));
+      expect(shape.center, isNot(const Offset(800, 600)));
+    });
   });
 }
