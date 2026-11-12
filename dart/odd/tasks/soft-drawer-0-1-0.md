@@ -19,7 +19,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 |---|---|---|---|---|---|
 | T1 | S1 | Package skeleton (`flutter create --template=package .`), `example/`, `.pubignore`, `analysis_options.yaml`, LICENSE (MIT), CHANGELOG stub | inline | done | `37d812b`; analyze clean (root + example), tests pass, dry run lists no `odd/` |
 | T2 | S2, S6 | Model + JSON v1 codec (`ShapeElement`, `DrawingDocument`, `DrawingFormatException`, injectable ids, `toARGB32()`) | inline | done | `576a0a3`; RED (compile errors) observed first, then 25/25 tests pass, analyze clean |
-| T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | pending | — |
+| T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | done | `8a0d254`; RED (compile errors) observed first, then 56/56 tests pass, analyze clean |
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | pending | — |
 | T5 | S2 | Painting layers + editor widgets (`DrawingEditor`, `DrawingEditorPage`, toolbar, handles, discard dialog, `DrawingEditorLabels`) | inline | pending | — |
 | T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard | inline | pending | — |
@@ -44,4 +44,11 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
 - **L9** (2026-11-11): Chain strategy cached as `feature-branch-chain`. Each slice becomes a PR into `feat/soft-drawer-0-1-0`, and that branch merges into `main` at 0.1.0. Slice boundaries:
   - **Slice 1:** `37d812b`..`576a0a3` (T1 skeleton, T2 model + JSON).
   - **Slice 2:** opens with T3.
-- **Next**: T3 (geometry).
+- **L10** (2026-11-11): T3 done (`8a0d254`, +634). Covers:
+  - Spec 01 §6: transforms, hit testing and the resize algorithm.
+  - Rotation from the pointer, and soft snapping that lands on exact quarter-turn values (AC 5).
+  - Grid snapping and `SizeLimits.forCanvas` (FR-13).
+  - A 2000-case randomized property test: the point opposite the dragged handle moves less than 1e-6, with and without the grid.
+
+  `resizeShape` asserts that squares and circles only use corner handles. Slice 2 is T3 alone (it is over 400 lines on its own). Slice 3 opens with T4.
+- **Next**: T4 (controller + history).
