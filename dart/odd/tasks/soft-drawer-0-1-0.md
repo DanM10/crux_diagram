@@ -22,7 +22,7 @@ Delivery strategy: `ask-on-risk` (forecast is well above 400 authored lines, so 
 | T3 | S2 | Geometry pure functions: transforms, hit testing, resize algorithm, rotation + soft snap, grid snapping | inline | done | `8a0d254`; RED (compile errors) observed first, then 56/56 tests pass, analyze clean |
 | T4 | S2, S6 | Controller + history (`DrawingEditorController`, cascade FR-5, `isDirty`/`markClean`, undo/redo one entry per gesture) | inline | done | `1f62071`; RED (compile errors) observed first, then 83/83 tests pass, analyze clean |
 | T5 | S2 | Painting layers + embeddable `DrawingEditor` (canvas gestures, toolbar, handles, angle readout, `DrawingEditorLabels`) | inline | done | `183c4b5`; RED observed first, then 94/94 tests pass, analyze clean (root + example) |
-| T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard (`exportJpeg`), plus `DrawingResult` and `DrawingEditorPage` (done/cancel, discard dialog, `markClean` on confirm) | inline | pending | — |
+| T6 | S2 | JPEG export in an isolate with `maxExportPixels` guard (`exportJpeg`), plus `DrawingResult` and `DrawingEditorPage` (done/cancel, discard dialog, `markClean` on confirm) | inline | done | `b71beca`; RED observed first, then 103/103 tests pass, analyze clean (root + example) |
 | T7 | S3 | Pinch zoom and pan, dp-constant handle and hit radii | inline | pending | — |
 | T8 | S4, S6 | Anchors + `Joint` model + JSON v2 with v1 migration and strict decoding | inline | pending | — |
 | T9 | S4 | Joint tool, naming editor, leader arrows and labels, cascade delete, joint undo/redo, export includes joints | inline | pending | — |
@@ -69,4 +69,14 @@ Route evidence: no Writer trigger yet. Tasks are sequential (each depends on the
   - **Re-scope:** `DrawingEditorPage`, `DrawingResult` and the discard dialog moved from T5 to T6, because the page's confirm action needs the JPEG export.
 
   Slice 4 is T5 alone. Slice 5 opens with T6.
-- **Next**: T6 (export + page).
+- **L13** (2026-11-11): T6 done (`b71beca`, +500).
+  - **Export:** `exportDocumentJpeg` rejects a non-positive `pixelRatio`, a quality outside 1–100, and any image above `maxPixels`. All three throw `ArgumentError` before rendering. It then renders with the shared `paintShapes` over white and encodes with `image` 4.12.0 in `Isolate.run`.
+  - **Controller:** `controller.exportJpeg` uses the config defaults.
+  - **Page:**
+    - `DrawingEditorPage` pops `DrawingResult(jpeg, json)` on Done, and calls `markClean` before popping.
+    - Cancel and system back both go through `PopScope`, which shows the discard dialog only when the document is dirty.
+    - If the export fails, a snackbar shows the new label `exportFailed`. It was added to Spec 01 §10 because the spec forbids hardcoded user-visible strings.
+  - **Coverage:** Spec 01 AC 8, 9 and 10 are covered by tests.
+
+  Slice 5 is T6 (+500). T6 completes the Spec 01 Must scope, apart from FR-2, which is T7.
+- **Next**: T7 (pinch zoom and pan).
