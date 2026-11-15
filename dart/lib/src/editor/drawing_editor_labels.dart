@@ -30,7 +30,28 @@ class DrawingEditorLabels {
     this.deleteJoint = 'Delete joint',
     this.jointNameHint = 'Joint name',
     this.ok = 'OK',
+    this.squareShort = 'Square',
+    this.rectangleShort = 'Rect',
+    this.circleShort = 'Circle',
+    this.jointShort = 'Joint',
+    this.gridShort = 'Grid',
+    this.undoShort = 'Undo',
+    this.redoShort = 'Redo',
+    this.rotateShort = 'Rotate',
+    this.duplicateShort = 'Copy',
+    this.frontShort = 'Front',
+    this.backShort = 'Back',
+    this.deleteShort = 'Delete',
+    this.renameShort = 'Rename',
+    this.showGrid = 'Show grid',
+    this.hideGrid = 'Hide grid',
+    this.fitToScreen = 'Fit to screen',
+    this.jointModeHint = 'Tap a corner or edge point to add a joint',
+    this.exitJointMode = 'Done adding joints',
+    this.zoomPercent = _defaultZoomPercent,
   });
+
+  static String _defaultZoomPercent(int percent) => '$percent%';
 
   /// Palette button that adds a square.
   final String addSquare;
@@ -97,4 +118,63 @@ class DrawingEditorLabels {
 
   /// Confirm button of the joint name editor.
   final String ok;
+
+  /// Short label of the add-square button.
+  final String squareShort;
+
+  /// Short label of the add-rectangle button.
+  final String rectangleShort;
+
+  /// Short label of the add-circle button.
+  final String circleShort;
+
+  /// Short label of the Joint tool toggle.
+  final String jointShort;
+
+  /// Short label of the grid toggle.
+  final String gridShort;
+
+  /// Short label of the undo button.
+  final String undoShort;
+
+  /// Short label of the redo button.
+  final String redoShort;
+
+  /// Short label of the rotate-90° button.
+  final String rotateShort;
+
+  /// Short label of the duplicate button.
+  final String duplicateShort;
+
+  /// Short label of the bring-to-front button.
+  final String frontShort;
+
+  /// Short label of the send-to-back button.
+  final String backShort;
+
+  /// Short label of the delete buttons.
+  final String deleteShort;
+
+  /// Short label of the rename-joint button.
+  final String renameShort;
+
+  /// Tooltip of the grid toggle while the grid is hidden.
+  final String showGrid;
+
+  /// Tooltip of the grid toggle while the grid is shown.
+  final String hideGrid;
+
+  /// Button that returns the view to zoom 1× with no pan.
+  final String fitToScreen;
+
+  /// Hint shown while the Joint tool is active.
+  final String jointModeHint;
+
+  /// Button of the joint hint that switches back to the select tool.
+  final String exitJointMode;
+
+  /// Formats the zoom readout from a whole percentage, such as `250%`.
+  ///
+  /// Pass a static or top-level function to keep the labels `const`.
+  final String Function(int percent) zoomPercent;
 }

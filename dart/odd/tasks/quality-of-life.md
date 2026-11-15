@@ -1,0 +1,35 @@
+# quality-of-life
+
+Objective: implement `doc/specs/03-spec-quality-of-life.md` for 0.1.0, before the first publish. Branch: `feat/quality-of-life` (off `feat/soft-drawer-0-1-0` at `ffddf9f`).
+Delivery strategy: `feature-branch-chain` (inherited from soft-drawer-0-1-0). Test runner: `flutter test`; static checks: `flutter analyze` (root + example).
+
+## Specs
+
+The spec file is the verbatim source; every requirement ID below refers to it.
+
+- **S1** — Controller and API (§6): `addShape(type, {Offset? center})` (PL-3), the reversing cascade (PL-2), `gridVisible` (GD-9), `gridMajorEvery` validation (GD-6), `showGrid` default `false` (GD-2), snapping independent of visibility (GD-3), new `DrawingEditorConfig` fields and `DrawingEditorLabels` fields.
+- **S2** — Grid rendering: GD-4, GD-5, §5 grid styling, §8 `BackgroundPainter.shouldRepaint`. AC 10.
+- **S3** — Toolbar: TB-1 to TB-4, LB-1 to LB-5, grid toggle GD-1, GD-7, GD-8. AC 1, 2, 3, 9, 11.
+- **S4** — Joint hint bar JM-1 to JM-3 and visible-center placement PL-1. AC 4, 5.
+- **S5** — Zoom aids ZM-1 to ZM-7. AC 6, 7.
+- **S6** — Haptics HP-1 to HP-4. AC 8.
+- **S7** — Docs: README and CHANGELOG reflect Spec 03 (including the `showGrid` default change); every new public member has dartdoc.
+
+## Tasks
+
+| ID | Specs | Task | Route | Status | Evidence |
+|---|---|---|---|---|---|
+| T1 | S1 | Controller/config/labels API, cascade, grid visibility state | inline | pending | |
+| T2 | S2 | Background painter grid levels and repaint rule | inline | pending | |
+| T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | pending | |
+| T4 | S4 | Joint hint bar, palette at visible center | inline | pending | |
+| T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | pending | |
+| T6 | S6 | Snap-target haptics | inline | pending | |
+| T7 | S7 | README, CHANGELOG | inline | pending | |
+
+Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_editor.dart`, so there are no disjoint parallel units.
+
+## Log
+
+- **L1** (2026-11-15, user, verbatim): "ok, T11 its not for today, lets start the spec 03, open a new branch, but before make a plan and explain me" — then "go ahead" after the plan.
+- **L2** (2026-11-15): Branch `feat/quality-of-life` created off `feat/soft-drawer-0-1-0` (`ffddf9f`); `main` does not hold the package code yet. Risk note: the `showGrid` default change is requested and the package is unpublished, so it is not a contract break.

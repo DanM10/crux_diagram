@@ -90,25 +90,6 @@ void main() {
       expect(c.document.shapes.last.center, const Offset(820, 620));
     });
 
-    test(
-      'the cascade wraps back to the center when it would leave the canvas',
-      () {
-        final c = _controller(
-          config: const DrawingEditorConfig(canvasSize: Size(100, 100)),
-        );
-        for (var i = 0; i < 4; i++) {
-          c.addShape(ShapeType.square);
-        }
-        // Centers 50, 70, 90 fit; 110 would leave the canvas.
-        expect(c.document.shapes.map((s) => s.center), const [
-          Offset(50, 50),
-          Offset(70, 70),
-          Offset(90, 90),
-          Offset(50, 50),
-        ]);
-      },
-    );
-
     test('generated ids never collide with ids already in the document', () {
       final c = _controller(
         initial: DrawingDocument(

@@ -41,7 +41,15 @@ class DrawingEditorController extends ChangeNotifier {
   }) : _document = initial ?? DrawingDocument(canvasSize: config.canvasSize),
        _nextId = idGenerator ?? defaultIdGenerator(prefix: 's'),
        _nextJointId = jointIdGenerator ?? defaultIdGenerator(prefix: 'j'),
-       _history = DocumentHistory(limit: config.historyLimit) {
+       _history = DocumentHistory(limit: config.historyLimit),
+       _gridVisible = config.showGrid && config.gridSize != null {
+    if (config.gridMajorEvery < 2) {
+      throw ArgumentError.value(
+        config.gridMajorEvery,
+        'config.gridMajorEvery',
+        'Must be at least 2',
+      );
+    }
     _cleanBaseline = _document;
   }
 
@@ -68,6 +76,24 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// The current document.
   DrawingDocument get document => _document;
+
+  bool _gridVisible;
+
+  /// Whether the guide grid is drawn. It starts at
+  /// [DrawingEditorConfig.showGrid] and is always `false` when
+  /// [DrawingEditorConfig.gridSize] is null; setting it then has no effect.
+  ///
+  /// This is view state: it is not persisted, adds no undo entry and does
+  /// not mark the document dirty. Grid snapping happens whether or not the
+  /// grid is visible. The setter notifies listeners, so a host app that
+  /// autosaves on every notification also fires on this view-only change.
+  bool get gridVisible => _gridVisible;
+
+  set gridVisible(bool value) {
+    if (config.gridSize == null || _gridVisible == value) return;
+    _gridVisible = value;
+    notifyListeners();
+  }
 
   /// Id of the selected shape, or null. A shape and a joint are never
   /// selected at the same time.
@@ -110,13 +136,18 @@ class DrawingEditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds a shape of [type] with its default size at the canvas center (or
-  /// the next free cascade position), on top of the stack, and selects it.
-  void addShape(ShapeType type) {
+  /// Adds a shape of [type] with its default size at [center] (default: the
+  /// canvas center), on top of the stack, and selects it.
+  ///
+  /// The center is snapped to the grid when [DrawingEditorConfig.gridSize]
+  /// is set. When a shape of the same type already sits there, the shape
+  /// cascades by [cascadeOffset] down-right, or up-left once the next step
+  /// would leave the canvas (spec 03, PL-2).
+  void addShape(ShapeType type, {Offset? center}) {
     final shape = ShapeElement(
       id: _uniqueId(),
       type: type,
-      center: _cascadePosition(type),
+      center: _cascadePosition(type, center),
       size: type.defaultSize,
     );
     _commit(_withShapes([..._document.shapes, shape]), select: shape.id);
@@ -430,22 +461,30 @@ class DrawingEditorController extends ChangeNotifier {
     return id;
   }
 
-  /// FR-5: the canvas center, or the first diagonal cascade step not taken
-  /// by a shape of the same type; wraps back to the center when the next
-  /// step would leave the canvas.
-  Offset _cascadePosition(ShapeType type) {
+  /// Spec 03, PL-2: the start position (grid-snapped), or the first
+  /// diagonal step from it not taken by a shape of the same type. Steps go
+  /// +[cascadeOffset] until the next one would leave the canvas, then
+  /// -[cascadeOffset] from the start; when both are exhausted, the start.
+  Offset _cascadePosition(ShapeType type, Offset? center) {
     final canvas = _document.canvasSize;
-    final start = canvas.center(Offset.zero);
+    final grid = config.gridSize;
+    var start = center ?? canvas.center(Offset.zero);
+    if (grid != null) start = snapPointToGrid(start, grid);
     bool taken(Offset position) =>
         _document.shapes.any((s) => s.type == type && s.center == position);
-    var position = start;
-    while (taken(position)) {
-      position += const Offset(cascadeOffset, cascadeOffset);
-      if (position.dx > canvas.width || position.dy > canvas.height) {
-        return start;
+    bool inside(Offset p) =>
+        p.dx >= 0 && p.dy >= 0 && p.dx <= canvas.width && p.dy <= canvas.height;
+    for (final step in const [
+      Offset(cascadeOffset, cascadeOffset),
+      Offset(-cascadeOffset, -cascadeOffset),
+    ]) {
+      var position = start;
+      while (inside(position)) {
+        if (!taken(position)) return position;
+        position += step;
       }
     }
-    return position;
+    return start;
   }
 
   /// Lets the same-library gesture extension notify listeners, since
