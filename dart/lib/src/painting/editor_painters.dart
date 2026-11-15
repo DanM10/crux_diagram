@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 
 import '../geometry/anchors.dart';
+import '../geometry/grid.dart';
 import '../geometry/resize.dart';
 import '../geometry/transforms.dart';
 import '../geometry/viewport.dart';
@@ -42,6 +43,7 @@ class BackgroundPainter extends CustomPainter {
     required this.canvasSize,
     required this.gridSize,
     required this.gridColor,
+    this.gridMajorEvery = 5,
   });
 
   /// Current viewport.
@@ -53,8 +55,11 @@ class BackgroundPainter extends CustomPainter {
   /// Grid spacing in canvas units, or null for no grid.
   final double? gridSize;
 
-  /// Grid line color.
+  /// Minor grid line color; major lines use it at full opacity.
   final Color gridColor;
+
+  /// Minor cells per major cell (spec 03, GD-6).
+  final int gridMajorEvery;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -65,15 +70,34 @@ class BackgroundPainter extends CustomPainter {
     final bounds = Offset.zero & canvasSize;
     canvas.drawRect(bounds, Paint()..color = Colors.white);
     final grid = gridSize;
-    if (grid != null && grid * viewport.scale >= 4) {
-      final line = Paint()
+    if (grid != null) {
+      // A 1 dp hairline at every zoom (spec 03, section 5).
+      final width = 1 / viewport.scale;
+      final minor = Paint()
         ..color = gridColor
-        ..strokeWidth = 1 / viewport.scale;
-      for (var x = 0.0; x <= canvasSize.width; x += grid) {
-        canvas.drawLine(Offset(x, 0), Offset(x, canvasSize.height), line);
+        ..strokeWidth = width;
+      final major = Paint()
+        ..color = gridColor.withValues(alpha: 1)
+        ..strokeWidth = width;
+      List<GridLine> along(double extent) => gridLinesAlong(
+        extent,
+        gridSize: grid,
+        majorEvery: gridMajorEvery,
+        scale: viewport.scale,
+      );
+      for (final x in along(canvasSize.width)) {
+        canvas.drawLine(
+          Offset(x.at, 0),
+          Offset(x.at, canvasSize.height),
+          x.major ? major : minor,
+        );
       }
-      for (var y = 0.0; y <= canvasSize.height; y += grid) {
-        canvas.drawLine(Offset(0, y), Offset(canvasSize.width, y), line);
+      for (final y in along(canvasSize.height)) {
+        canvas.drawLine(
+          Offset(0, y.at),
+          Offset(canvasSize.width, y.at),
+          y.major ? major : minor,
+        );
       }
     }
     canvas.restore();
@@ -84,6 +108,7 @@ class BackgroundPainter extends CustomPainter {
       old.viewport != viewport ||
       old.canvasSize != canvasSize ||
       old.gridSize != gridSize ||
+      old.gridMajorEvery != gridMajorEvery ||
       old.gridColor != gridColor;
 }
 

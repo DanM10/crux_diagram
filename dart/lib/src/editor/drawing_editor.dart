@@ -141,7 +141,10 @@ class _DrawingEditorState extends State<DrawingEditor> {
                       painter: BackgroundPainter(
                         viewport: _viewport,
                         canvasSize: document.canvasSize,
-                        gridSize: _controller.gridVisible ? config.gridSize : null,
+                        gridSize: _controller.gridVisible
+                            ? config.gridSize
+                            : null,
+                        gridMajorEvery: config.gridMajorEvery,
                         gridColor: theme.colorScheme.outlineVariant.withValues(
                           alpha: 0.5,
                         ),

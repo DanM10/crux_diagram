@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 
 /// What [DrawingEditorPage] returns when the user confirms.
