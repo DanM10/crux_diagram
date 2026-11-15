@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart';
 
 import '../model/drawing_document.dart';
 import '../painting/joint_style.dart';
-import 'drawing_editor_controller.dart';
 
 /// Behavior settings for a drawing editor.
 @immutable
@@ -40,13 +39,13 @@ class DrawingEditorConfig {
 
   /// Whether the grid overlay is drawn when the editor opens. The grid
   /// toggle changes it at runtime (see
-  /// [DrawingEditorController.gridVisible]); snapping does not depend on it.
+  /// `DrawingEditorController.gridVisible`); snapping does not depend on it.
   /// Ignored when [gridSize] is null. Defaults to `false` (spec 03, GD-2).
   final bool showGrid;
 
   /// How many minor grid cells make one major cell; major lines are drawn
   /// stronger and stay visible when minor lines are too dense. Must be at
-  /// least 2: [DrawingEditorController] throws [ArgumentError] otherwise.
+  /// least 2: `DrawingEditorController` throws [ArgumentError] otherwise.
   final int gridMajorEvery;
 
   /// Rotation soft-snap step in radians; 0 disables snapping.

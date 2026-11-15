@@ -17,13 +17,23 @@ const double _labelPadding = 8;
 /// Size of toolbar icons, in dp.
 const double _iconSize = 24;
 
+/// Vertical padding around a toolbar icon, in dp.
+const double _iconVerticalPadding = 4;
+
+/// Gap between a toolbar icon and its label, in dp.
+const double _labelGap = 2;
+
+/// Extra vertical room in a toolbar row beyond the button content, in dp,
+/// so the ink splash does not touch the row edges.
+const double _rowVerticalSlack = 8;
+
 /// The editor toolbar: the selection bar above the create bar
 /// (spec 03, section 4.1).
 ///
 /// The create bar never changes for a given configuration. The selection
 /// bar keeps its height when it is empty, so selecting never moves a
 /// button or resizes the canvas.
-class EditorToolbar extends StatelessWidget {
+class EditorToolbar extends StatefulWidget {
   /// Creates the toolbar for [controller].
   const EditorToolbar({
     super.key,
@@ -54,11 +64,60 @@ class EditorToolbar extends StatelessWidget {
   final ValueChanged<String> onRenameJoint;
 
   @override
+  State<EditorToolbar> createState() => _EditorToolbarState();
+}
+
+class _EditorToolbarState extends State<EditorToolbar> {
+  // Label measurements only change with the style, text scale and
+  // direction, not with the controller notifications that rebuild the
+  // toolbar on every gesture frame; they are cached per that key.
+  (TextStyle?, TextScaler, TextDirection)? _metricsKey;
+  final Map<String, double> _labelWidths = {};
+  double? _labelHeight;
+
+  @override
+  void initState() {
+    super.initState();
+    PaintingBinding.instance.systemFonts.addListener(_onFontsChanged);
+  }
+
+  @override
+  void dispose() {
+    PaintingBinding.instance.systemFonts.removeListener(_onFontsChanged);
+    super.dispose();
+  }
+
+  /// Newly available fonts change label metrics; measure again.
+  void _onFontsChanged() => setState(() => _metricsKey = null);
+
+  Size _measure(String text, TextStyle? style, TextScaler scaler) {
+    final painter = TextPainter(
+      text: TextSpan(text: text, style: style),
+      textScaler: scaler,
+      textDirection: _metricsKey!.$3,
+      maxLines: 1,
+    )..layout();
+    final size = painter.size;
+    painter.dispose();
+    return size;
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
+    final labels = widget.labels;
+    final onAddShape = widget.onAddShape;
+    final onRenameJoint = widget.onRenameJoint;
     final theme = Theme.of(context);
     final showLabels = controller.config.showToolbarLabels;
     final labelStyle = theme.textTheme.labelSmall;
     final textScaler = MediaQuery.textScalerOf(context);
+    final key = (labelStyle, textScaler, Directionality.of(context));
+    if (key != _metricsKey) {
+      _metricsKey = key;
+      _labelWidths.clear();
+      _labelHeight = null;
+    }
 
     ToolbarButton button(
       IconData icon,
@@ -176,17 +235,10 @@ class EditorToolbar extends StatelessWidget {
       ],
     ];
 
-    double textWidth(String text) {
-      final painter = TextPainter(
-        text: TextSpan(text: text, style: labelStyle),
-        textScaler: textScaler,
-        textDirection: Directionality.of(context),
-        maxLines: 1,
-      )..layout();
-      final width = painter.width;
-      painter.dispose();
-      return width;
-    }
+    double textWidth(String text) => _labelWidths.putIfAbsent(
+      text,
+      () => _measure(text, labelStyle, textScaler).width,
+    );
 
     double minWidth(List<ToolbarButton> buttons) => showLabels
         ? buttons.fold(
@@ -196,16 +248,16 @@ class EditorToolbar extends StatelessWidget {
         : _minButtonExtent;
 
     final labelHeight = showLabels
-        ? (TextPainter(
-            text: TextSpan(text: 'Ag', style: labelStyle),
-            textScaler: textScaler,
-            textDirection: Directionality.of(context),
-            maxLines: 1,
-          )..layout()).height
+        ? _labelHeight ??= _measure('Ag', labelStyle, textScaler).height
         : 0.0;
+    // Mirrors the content of [ToolbarButton]: the padded icon, then the
+    // label under it.
     final rowHeight = math.max(
       _minButtonExtent,
-      _iconSize + 16 + (showLabels ? labelHeight + 2 : 0),
+      _iconSize +
+          2 * _iconVerticalPadding +
+          _rowVerticalSlack +
+          (showLabels ? _labelGap + labelHeight : 0),
     );
 
     return Material(
@@ -216,7 +268,7 @@ class EditorToolbar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              key: selectionBarKey,
+              key: EditorToolbar.selectionBarKey,
               height: rowHeight,
               child: _ToolbarRow(
                 buttons: selection,
@@ -224,7 +276,7 @@ class EditorToolbar extends StatelessWidget {
               ),
             ),
             SizedBox(
-              key: createBarKey,
+              key: EditorToolbar.createBarKey,
               height: rowHeight,
               child: _ToolbarRow(
                 buttons: create,
@@ -341,13 +393,13 @@ class ToolbarButton extends StatelessWidget {
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
-                        vertical: 4,
+                        vertical: _iconVerticalPadding,
                       ),
                       child: Icon(icon, size: _iconSize, color: color),
                     ),
                   ),
                   if (showLabel) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: _labelGap),
                     ExcludeSemantics(
                       child: Text(
                         label,
