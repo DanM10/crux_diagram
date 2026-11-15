@@ -1,4 +1,5 @@
-import 'package:flutter/gestures.dart' show HitTestResult;
+import 'package:flutter/gestures.dart'
+    show HitTestResult, kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
@@ -819,4 +820,191 @@ void main() {
       );
     });
   });
+
+  group('zoom aids (spec 03, ZM-1 to ZM-7, AC 6, AC 7)', () {
+    double zoomOf(_Harness h) => h.viewport.scale / h.fitScale;
+
+    Future<void> doubleTapAt(WidgetTester tester, Offset point) async {
+      await tester.tapAt(point);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(point);
+      await tester.pump();
+    }
+
+    testWidgets('fit button and readout show only above 1x; fit restores', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      expect(find.text('Fit to screen'), findsNothing);
+
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 100);
+      final zoom = zoomOf(h);
+      expect(zoom, greaterThan(1.5));
+      expect(find.text('Fit to screen'), findsOneWidget);
+      expect(find.text('${(zoom * 100).round()}%'), findsOneWidget);
+
+      await tester.tap(find.text('Fit to screen'));
+      await tester.pumpAndSettle();
+      final fitted = CanvasViewport.fit(
+        h.controller.document.canvasSize,
+        tester.getSize(find.byKey(DrawingEditor.canvasKey)),
+      );
+      final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+      expect(h.viewport.scale, closeTo(fitted.scale, 1e-9));
+      expect(
+        (h.viewport.origin - (rect.topLeft + fitted.origin)).distance,
+        lessThan(1e-6),
+      );
+      expect(find.text('Fit to screen'), findsNothing);
+      expect(h.controller.canUndo, isFalse);
+      expect(h.controller.isDirty, isFalse);
+    });
+
+    testWidgets('the readout uses labels.zoomPercent', (tester) async {
+      final h = await _pump(
+        tester,
+        labels: const DrawingEditorLabels(zoomPercent: _spacedPercent),
+      );
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 100);
+      expect(find.text('${(zoomOf(h) * 100).round()} %'), findsOneWidget);
+    });
+
+    testWidgets('taps on the zoom controls never reach the canvas', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 100);
+      final canvas = tester.renderObject(find.byKey(DrawingEditor.canvasKey));
+      for (final finder in [
+        find.text('Fit to screen'),
+        find.text('${(zoomOf(h) * 100).round()}%'),
+      ]) {
+        final result = HitTestResult();
+        tester.binding.hitTestInView(
+          result,
+          tester.getCenter(finder),
+          tester.view.viewId,
+        );
+        expect(result.path.map((e) => e.target), isNot(contains(canvas)));
+      }
+    });
+
+    testWidgets('double-tap on empty canvas zooms to 2x there, then back', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final point = h.canvasCenter + const Offset(60, 40);
+      final under = h.viewport.toCanvas(point);
+
+      await doubleTapAt(tester, point);
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(2, 1e-9));
+      expect((h.viewport.toScreen(under) - point).distance, lessThan(1e-6));
+      expect(h.controller.canUndo, isFalse);
+      expect(h.controller.isDirty, isFalse);
+
+      await doubleTapAt(tester, point);
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(1, 1e-9));
+    });
+
+    testWidgets('the first tap clears the selection at once', (tester) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      expect(h.controller.selectedId, isNotNull);
+      await tester.tapAt(h.screenOf(const Offset(100, 100)));
+      await tester.pump();
+      expect(h.controller.selectedId, isNull);
+      expect(zoomOf(h), closeTo(1, 1e-9));
+    });
+
+    testWidgets('the letterbox outside the canvas counts as empty canvas', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+      expect(h.viewport.origin.dx, greaterThan(rect.left + 20));
+      await doubleTapAt(tester, Offset(rect.left + 10, rect.center.dy));
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), greaterThan(1.9));
+    });
+
+    testWidgets('double-taps on shapes, too slow, too far or in the joint '
+        'tool do not zoom', (tester) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      await doubleTapAt(tester, h.screenOf(const Offset(800, 600)));
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(1, 1e-9), reason: 'on a shape');
+
+      final empty = h.screenOf(const Offset(200, 200));
+      await tester.tapAt(empty);
+      await tester.pump(kDoubleTapTimeout + const Duration(milliseconds: 20));
+      await tester.tapAt(empty);
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(1, 1e-9), reason: 'too slow');
+
+      await tester.pump(kDoubleTapTimeout * 2);
+      await tester.tapAt(empty);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(empty + const Offset(kDoubleTapSlop + 5, 0));
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(1, 1e-9), reason: 'too far');
+
+      await tester.pump(kDoubleTapTimeout * 2);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      await doubleTapAt(tester, empty);
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(1, 1e-9), reason: 'joint tool');
+    });
+
+    testWidgets('no onDoubleTap recognizer is registered', (tester) async {
+      await _pump(tester);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is GestureDetector && w.onDoubleTap != null,
+        ),
+        findsNothing,
+      );
+    });
+
+    testWidgets('zoom changes animate 200 ms; a finger down stops them', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final point = h.canvasCenter;
+      await doubleTapAt(tester, point);
+      await tester.pump(const Duration(milliseconds: 100));
+      final mid = zoomOf(h);
+      expect(mid, greaterThan(1.05));
+      expect(mid, lessThan(1.95));
+
+      final finger = await tester.startGesture(
+        h.canvasCenter + const Offset(-150, 0),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(zoomOf(h), closeTo(mid, 1e-9));
+      await finger.up();
+      await tester.pumpAndSettle();
+      expect(zoomOf(h), closeTo(mid, 1e-9));
+    });
+
+    testWidgets('with disableAnimations the change applies at once', (
+      tester,
+    ) async {
+      tester.platformDispatcher.accessibilityFeaturesTestValue =
+          const FakeAccessibilityFeatures(disableAnimations: true);
+      addTearDown(
+        tester.platformDispatcher.clearAccessibilityFeaturesTestValue,
+      );
+      final h = await _pump(tester);
+      await doubleTapAt(tester, h.canvasCenter);
+      expect(zoomOf(h), closeTo(2, 1e-9));
+    });
+  });
 }
+
+String _spacedPercent(int percent) => '$percent %';

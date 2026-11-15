@@ -23,7 +23,7 @@ The spec file is the verbatim source; every requirement ID below refers to it.
 | T2 | S2 | Background painter grid levels and repaint rule | inline | done | RED (compile errors) observed first, then 222/222 pass, analyze clean |
 | T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | done | RED observed first (13/13 new tests failed against the old toolbar), then 235/235 pass ×3, analyze clean (root + example) |
 | T4 | S4 | Joint hint bar, palette at visible center | inline | done | RED observed first (compile error + 4 widget tests), then 243/243 pass ×3, analyze clean |
-| T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | pending | |
+| T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | done | RED observed first (7/10 new tests failed; 3 describe existing behavior), then 253/253 pass ×3, analyze clean (root + example) |
 | T6 | S6 | Snap-target haptics | inline | pending | |
 | T7 | S7 | README, CHANGELOG | inline | pending | |
 
@@ -37,3 +37,4 @@ Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_edit
 - **L4** (2026-11-15): T2: the line choice is a pure function `gridLinesAlong` (lib/src/geometry/grid.dart) so the 8 dp threshold and the tolerance are unit-tested on both sides; the painter only draws its result.
 - **L5** (2026-11-15): T3: toolbar moved to `lib/src/editor/editor_toolbar.dart` (`EditorToolbar`, `ToolbarButton`, not exported). Test findings: (a) the default test font draws glyphs 1 em wide, so the 360 dp label test loads the SDK's Roboto (`$FLUTTER_ROOT/bin/cache/artifacts/material_fonts`) to measure like a device; (b) the existing pinch-pan test zoomed only about 1.37×, and with the taller toolbar (drawing area 800×484) the pan clamp stopped it, so it now zooms about 3.5×. Pan behavior is unchanged; the old test passes on the base code.
 - **L6** (2026-11-15): T4: `CanvasViewport.visibleCenter` (pure, clamped). The canvas build is now `Stack[canvas layers, overlays]` so the hint bar (and T5's zoom controls) sit above the canvas `Listener`; a hit-test probe proves taps on the hint never reach the canvas render object.
+- **L7** (2026-11-15): T5: double-tap is tracked by hand (`_emptyTapPosition` + timer, `kDoubleTapTimeout`/`kDoubleTapSlop`) like joint labels, so no `onDoubleTap` recognizer delays single taps. Bug caught by the suite: a `late final` AnimationController was first created in `dispose()` (deactivated ticker lookup); it is now created in `initState`.

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart' show kDoubleTapTimeout;
+import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 
 import '../geometry/hit_testing.dart';
@@ -60,7 +60,17 @@ class DrawingEditor extends StatefulWidget {
   State<DrawingEditor> createState() => _DrawingEditorState();
 }
 
-class _DrawingEditorState extends State<DrawingEditor> {
+/// Zoom above which the view counts as zoomed in (spec 03, ZM-1).
+const double _zoomedInThreshold = 1.005;
+
+/// Zoom that a double-tap on empty canvas zooms to (spec 03, ZM-3).
+const double _doubleTapZoom = 2;
+
+/// Duration of fit-to-screen and double-tap zoom changes (spec 03, ZM-7).
+const Duration _zoomAnimationDuration = Duration(milliseconds: 200);
+
+class _DrawingEditorState extends State<DrawingEditor>
+    with SingleTickerProviderStateMixin {
   CanvasViewport _viewport = const CanvasViewport(
     scale: 1,
     origin: Offset.zero,
@@ -87,9 +97,31 @@ class _DrawingEditorState extends State<DrawingEditor> {
   String? _tappedJointId;
   Timer? _doubleTapTimer;
 
+  /// Where the last tap on empty canvas landed; a second one within
+  /// [kDoubleTapTimeout] and [kDoubleTapSlop] toggles zoom (spec 03, ZM-4).
+  /// Single taps are not delayed.
+  Offset? _emptyTapPosition;
+  Timer? _emptyTapTimer;
+
+  /// Animates zoom changes from fit to screen and double-tap (ZM-7).
+  late final AnimationController _zoomAnimation;
+  ViewportZoom _zoomFrom = const ViewportZoom();
+  ViewportZoom _zoomTo = const ViewportZoom();
+
+  @override
+  void initState() {
+    super.initState();
+    _zoomAnimation = AnimationController(
+      vsync: this,
+      duration: _zoomAnimationDuration,
+    )..addListener(_onZoomAnimationTick);
+  }
+
   @override
   void dispose() {
     _doubleTapTimer?.cancel();
+    _emptyTapTimer?.cancel();
+    _zoomAnimation.dispose();
     super.dispose();
   }
 
@@ -148,6 +180,16 @@ class _DrawingEditorState extends State<DrawingEditor> {
                 child: _JointHintBar(
                   labels: widget.labels,
                   onExit: () => _controller.tool = DrawingTool.select,
+                ),
+              ),
+            if (_zoom.zoom > _zoomedInThreshold)
+              PositionedDirectional(
+                end: 16,
+                bottom: 16,
+                child: _ZoomControls(
+                  labels: widget.labels,
+                  percent: (_zoom.zoom * 100).round(),
+                  onFit: () => _animateZoomTo(const ViewportZoom()),
                 ),
               ),
           ],
@@ -317,6 +359,7 @@ class _DrawingEditorState extends State<DrawingEditor> {
         radius: _viewport.canvasLength(_anchorTouchRadius),
         tieTolerance: _viewport.canvasLength(_anchorTieTolerance),
       );
+      _emptyTapPosition = null;
       if (hit == null) {
         _controller.select(null);
         return;
@@ -331,7 +374,61 @@ class _DrawingEditorState extends State<DrawingEditor> {
       }
       return;
     }
-    _controller.select(topmostShapeAt(document.shapes, point)?.id);
+    final shape = topmostShapeAt(document.shapes, point);
+    _controller.select(shape?.id);
+    if (shape == null) {
+      _onEmptyCanvasTap(localPosition);
+    } else {
+      _emptyTapPosition = null;
+    }
+  }
+
+  /// Spec 03, ZM-3, ZM-4: the first tap has already acted; a second tap on
+  /// empty canvas close in time and space toggles zoom.
+  void _onEmptyCanvasTap(Offset localPosition) {
+    _emptyTapTimer?.cancel();
+    final previous = _emptyTapPosition;
+    if (previous != null &&
+        (localPosition - previous).distance <= kDoubleTapSlop) {
+      _emptyTapPosition = null;
+      _animateZoomTo(
+        _zoom.zoom > _zoomedInThreshold
+            ? const ViewportZoom()
+            : _zoom.pinch(
+                startFocal: localPosition,
+                focal: localPosition,
+                scale: _doubleTapZoom / _zoom.zoom,
+              ),
+      );
+      return;
+    }
+    _emptyTapPosition = localPosition;
+    _emptyTapTimer = Timer(kDoubleTapTimeout, () => _emptyTapPosition = null);
+  }
+
+  /// Moves the view to [target] (clamped) over [_zoomAnimationDuration],
+  /// or at once when the platform asks for reduced motion (ZM-7). View
+  /// changes never touch the document or history (ZM-5).
+  void _animateZoomTo(ViewportZoom target) {
+    final canvasSize = _controller.document.canvasSize;
+    _zoomTo = target.clamped(canvasSize, _areaSize);
+    _zoomAnimation.stop();
+    if (MediaQuery.disableAnimationsOf(context)) {
+      setState(() => _zoom = _zoomTo);
+      return;
+    }
+    _zoomFrom = _zoom;
+    _zoomAnimation.forward(from: 0);
+  }
+
+  void _onZoomAnimationTick() {
+    final t = Curves.easeOut.transform(_zoomAnimation.value);
+    setState(() {
+      _zoom = ViewportZoom(
+        zoom: _zoomFrom.zoom + (_zoomTo.zoom - _zoomFrom.zoom) * t,
+        pan: Offset.lerp(_zoomFrom.pan, _zoomTo.pan, t)!,
+      );
+    });
   }
 
   void _onJointTap(String jointId) {
@@ -385,6 +482,8 @@ class _DrawingEditorState extends State<DrawingEditor> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    // A finger on the canvas stops a running zoom animation where it is.
+    _zoomAnimation.stop();
     _pointerDown = event.localPosition;
     _activePointers++;
     if (_activePointers > 1) _multiTouch = true;
@@ -573,6 +672,47 @@ class _JointHintBar extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Fit-to-screen button and zoom readout, shown while zoomed in
+/// (spec 03, ZM-1, ZM-2).
+class _ZoomControls extends StatelessWidget {
+  const _ZoomControls({
+    required this.labels,
+    required this.percent,
+    required this.onFit,
+  });
+
+  final DrawingEditorLabels labels;
+  final int percent;
+  final VoidCallback onFit;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Material(
+          color: theme.colorScheme.surfaceContainerHigh,
+          shape: const StadiumBorder(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: Text(
+              labels.zoomPercent(percent),
+              style: theme.textTheme.labelMedium,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton.tonalIcon(
+          onPressed: onFit,
+          icon: const Icon(Icons.fit_screen),
+          label: Text(labels.fitToScreen),
+        ),
+      ],
     );
   }
 }
