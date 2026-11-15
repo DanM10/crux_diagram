@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
+import 'package:soft_drawer_service/src/editor/editor_toolbar.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/id_generator.dart';
 import 'package:soft_drawer_service/src/painting/editor_painters.dart';
@@ -209,10 +210,10 @@ void main() {
     tester,
   ) async {
     final h = await _pump(tester);
-    IconButton button(String tooltip) => tester.widget<IconButton>(
+    ToolbarButton button(String tooltip) => tester.widget<ToolbarButton>(
       find.ancestor(
         of: find.byTooltip(tooltip),
-        matching: find.byType(IconButton),
+        matching: find.byType(ToolbarButton),
       ),
     );
     expect(button('Undo').onPressed, isNull);
@@ -262,9 +263,11 @@ void main() {
 
     testWidgets('two-finger drag pans a zoomed canvas', (tester) async {
       final h = await _pump(tester);
-      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 80);
+      // Zoom far enough that the canvas overhangs the area by more than the
+      // pan, so the pan clamp (canvas covers the area) does not stop it.
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 140);
       final before = h.viewport;
-      expect(before.scale, greaterThan(h.fitScale * 1.2));
+      expect(before.scale, greaterThan(h.fitScale * 2));
 
       await h.pinch(
         center: h.canvasCenter,

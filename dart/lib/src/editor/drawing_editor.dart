@@ -10,12 +10,12 @@ import '../geometry/resize.dart';
 import '../geometry/transforms.dart';
 import '../geometry/viewport.dart';
 import '../model/shape_element.dart';
-import '../model/shape_type.dart';
 import '../painting/editor_painters.dart';
 import '../painting/joint_painting.dart';
 import 'drawing_editor_controller.dart';
 import 'drawing_editor_labels.dart';
 import 'drawing_tool.dart';
+import 'editor_toolbar.dart';
 
 enum _GestureMode { none, move, resize, rotate, pinch, labelDrag }
 
@@ -104,7 +104,12 @@ class _DrawingEditorState extends State<DrawingEditor> {
       builder: (context, _) => Column(
         children: [
           Expanded(child: _buildCanvas(context)),
-          _buildToolbar(context),
+          EditorToolbar(
+            controller: _controller,
+            labels: widget.labels,
+            onAddShape: (type) => _controller.addShape(type),
+            onRenameJoint: _renameJoint,
+          ),
         ],
       ),
     );
@@ -202,98 +207,6 @@ class _DrawingEditorState extends State<DrawingEditor> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildToolbar(BuildContext context) {
-    final labels = widget.labels;
-    final hasSelection = _controller.selectedShape != null;
-    final selectedJoint = _controller.selectedJoint;
-    final jointTool = _controller.tool == DrawingTool.joint;
-    Widget action(IconData icon, String label, VoidCallback? onPressed) =>
-        IconButton(icon: Icon(icon), tooltip: label, onPressed: onPressed);
-    return Material(
-      elevation: 4,
-      child: SafeArea(
-        top: false,
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          children: [
-            action(
-              Icons.crop_square,
-              labels.addSquare,
-              () => _controller.addShape(ShapeType.square),
-            ),
-            action(
-              Icons.rectangle_outlined,
-              labels.addRectangle,
-              () => _controller.addShape(ShapeType.rectangle),
-            ),
-            action(
-              Icons.circle_outlined,
-              labels.addCircle,
-              () => _controller.addShape(ShapeType.circle),
-            ),
-            IconButton(
-              icon: const Icon(Icons.adjust),
-              tooltip: labels.jointTool,
-              isSelected: jointTool,
-              onPressed: () => _controller.tool = jointTool
-                  ? DrawingTool.select
-                  : DrawingTool.joint,
-            ),
-            if (selectedJoint != null) ...[
-              action(
-                Icons.edit_outlined,
-                labels.renameJoint,
-                () => _renameJoint(selectedJoint.id),
-              ),
-              action(
-                Icons.delete_outline,
-                labels.deleteJoint,
-                () => _controller.removeJoint(selectedJoint.id),
-              ),
-            ],
-            if (hasSelection) ...[
-              action(
-                Icons.rotate_right,
-                labels.rotate90,
-                () => _controller.rotateSelectedBy(math.pi / 2),
-              ),
-              action(
-                Icons.copy_outlined,
-                labels.duplicate,
-                _controller.duplicateSelected,
-              ),
-              action(
-                Icons.flip_to_front,
-                labels.bringToFront,
-                _controller.bringToFront,
-              ),
-              action(
-                Icons.flip_to_back,
-                labels.sendToBack,
-                _controller.sendToBack,
-              ),
-              action(
-                Icons.delete_outline,
-                labels.delete,
-                _controller.deleteSelected,
-              ),
-            ],
-            action(
-              Icons.undo,
-              labels.undo,
-              _controller.canUndo ? _controller.undo : null,
-            ),
-            action(
-              Icons.redo,
-              labels.redo,
-              _controller.canRedo ? _controller.redo : null,
-            ),
-          ],
-        ),
-      ),
     );
   }
 

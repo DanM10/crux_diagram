@@ -21,7 +21,7 @@ The spec file is the verbatim source; every requirement ID below refers to it.
 |---|---|---|---|---|---|
 | T1 | S1 | Controller/config/labels API, cascade, grid visibility state | inline | done | `c3c2b99`; RED (compile errors) observed first, then 216/216 pass, analyze clean (root + example); review assess: medium, under_budget |
 | T2 | S2 | Background painter grid levels and repaint rule | inline | done | RED (compile errors) observed first, then 222/222 pass, analyze clean |
-| T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | pending | |
+| T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | done | RED observed first (13/13 new tests failed against the old toolbar), then 235/235 pass ×3, analyze clean (root + example) |
 | T4 | S4 | Joint hint bar, palette at visible center | inline | pending | |
 | T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | pending | |
 | T6 | S6 | Snap-target haptics | inline | pending | |
@@ -35,3 +35,4 @@ Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_edit
 - **L2** (2026-11-15): Branch `feat/quality-of-life` created off `feat/soft-drawer-0-1-0` (`ffddf9f`); `main` does not hold the package code yet. Risk note: the `showGrid` default change is requested and the package is unpublished, so it is not a contract break.
 - **L3** (2026-11-15): T1 `c3c2b99` (+416/−38). The FR-5 wrap test was removed because PL-2 replaces that rule; the reversing cascade test covers it. The editor now reads `controller.gridVisible` instead of `config.showGrid`.
 - **L4** (2026-11-15): T2: the line choice is a pure function `gridLinesAlong` (lib/src/geometry/grid.dart) so the 8 dp threshold and the tolerance are unit-tested on both sides; the painter only draws its result.
+- **L5** (2026-11-15): T3: toolbar moved to `lib/src/editor/editor_toolbar.dart` (`EditorToolbar`, `ToolbarButton`, not exported). Test findings: (a) the default test font draws glyphs 1 em wide, so the 360 dp label test loads the SDK's Roboto (`$FLUTTER_ROOT/bin/cache/artifacts/material_fonts`) to measure like a device; (b) the existing pinch-pan test zoomed only about 1.37×, and with the taller toolbar (drawing area 800×484) the pan clamp stopped it, so it now zooms about 3.5×. Pan behavior is unchanged; the old test passes on the base code.
