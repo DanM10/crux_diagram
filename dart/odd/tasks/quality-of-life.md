@@ -20,12 +20,12 @@ The spec file is the verbatim source; every requirement ID below refers to it.
 | ID | Specs | Task | Route | Status | Evidence |
 |---|---|---|---|---|---|
 | T1 | S1 | Controller/config/labels API, cascade, grid visibility state | inline | done | `c3c2b99`; RED (compile errors) observed first, then 216/216 pass, analyze clean (root + example); review assess: medium, under_budget |
-| T2 | S2 | Background painter grid levels and repaint rule | inline | done | RED (compile errors) observed first, then 222/222 pass, analyze clean |
-| T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | done | RED observed first (13/13 new tests failed against the old toolbar), then 235/235 pass ×3, analyze clean (root + example) |
-| T4 | S4 | Joint hint bar, palette at visible center | inline | done | RED observed first (compile error + 4 widget tests), then 243/243 pass ×3, analyze clean |
-| T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | done | RED observed first (7/10 new tests failed; 3 describe existing behavior), then 253/253 pass ×3, analyze clean (root + example) |
-| T6 | S6 | Snap-target haptics | inline | done | RED observed first (compile errors + 2 widget tests; the 2 'plays none' tests passed trivially before haptics existed), then 262/262 pass ×3, analyze clean (root + example) |
-| T7 | S7 | README, CHANGELOG | inline | done | Passive docs (no runnable RED); structural readback, analyze clean (public_member_api_docs lint covers new members), publish dry run unchanged |
+| T2 | S2 | Background painter grid levels and repaint rule | inline | done | `5b57853`; RED (compile errors) observed first, then 222/222 pass, analyze clean |
+| T3 | S3 | Two-row toolbar, labels, semantics, scrolling, grid toggle, joint icon | inline | done | `8ad6a4a`; RED observed first (13/13 new tests failed against the old toolbar), then 235/235 pass ×3, analyze clean (root + example) |
+| T4 | S4 | Joint hint bar, palette at visible center | inline | done | `da73fd2`; RED observed first (compile error + 4 widget tests), then 243/243 pass ×3, analyze clean |
+| T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | done | `003ec5d`; RED observed first (7/10 new tests failed; 3 describe existing behavior), then 253/253 pass ×3, analyze clean (root + example) |
+| T6 | S6 | Snap-target haptics | inline | done | `7c7bda1`; RED observed first (compile errors + 2 widget tests; the 2 'plays none' tests passed trivially before haptics existed), then 262/262 pass ×3, analyze clean (root + example) |
+| T7 | S7 | README, CHANGELOG | inline | done | `ae1eb56`; Passive docs (no runnable RED); structural readback, analyze clean (public_member_api_docs lint covers new members), publish dry run unchanged |
 
 Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_editor.dart`, so there are no disjoint parallel units.
 
