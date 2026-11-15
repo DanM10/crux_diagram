@@ -9,13 +9,20 @@ import 'resize.dart';
 @immutable
 class AnchorSnap {
   /// Creates a snap.
-  const AnchorSnap({required this.from, required this.to});
+  const AnchorSnap({
+    required this.from,
+    required this.to,
+    required this.targetIndex,
+  });
 
   /// Position of the moving shape's anchor before snapping.
   final Offset from;
 
   /// Position of the other shape's anchor.
   final Offset to;
+
+  /// Index of the snapped-to anchor in the targets list.
+  final int targetIndex;
 
   /// Translation that makes the two anchors coincide.
   Offset get delta => to - from;
@@ -32,10 +39,11 @@ AnchorSnap? nearestAnchorSnap(
   AnchorSnap? best;
   var bestDistance = double.infinity;
   for (final from in moving) {
-    for (final to in targets) {
+    for (var i = 0; i < targets.length; i++) {
+      final to = targets[i];
       final distance = (to.position - from.position).distance;
       if (distance <= threshold && distance < bestDistance) {
-        best = AnchorSnap(from: from.position, to: to.position);
+        best = AnchorSnap(from: from.position, to: to.position, targetIndex: i);
         bestDistance = distance;
       }
     }

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../export/jpeg_export.dart';
 import '../geometry/anchors.dart' as anchors show anchorsOf;
 import '../geometry/anchor_snapping.dart';
+import '../geometry/angles.dart';
 import '../geometry/anchors.dart' show Anchor, AnchorKind, anchorPositionOf;
 import '../geometry/grid.dart';
 import '../geometry/joint_geometry.dart';
@@ -73,6 +74,10 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// The two anchor positions of the active anchor snap, or empty.
   List<Offset> _snapHighlight = const [];
+
+  /// Identity of the engaged rotation or anchor snap, or null
+  /// (spec 03, HP-2).
+  Object? _snapTarget;
 
   /// The current document.
   DrawingDocument get document => _document;
@@ -498,6 +503,7 @@ class DrawingEditorController extends ChangeNotifier {
 
   void _cancelGestureSilently() {
     _snapHighlight = const [];
+    _snapTarget = null;
     if (_gestureStart != null) {
       _document = _gestureStart!;
       _gestureStart = null;
@@ -593,6 +599,12 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// (spec 02, SN-3); empty when no snap is active.
   List<Offset> get snapHighlight => _snapHighlight;
 
+  /// Identity of the engaged snap during a gesture, or null: the snapped
+  /// angle for rotation, or the (target shape id, target anchor id) pair
+  /// for anchor snapping. Grid snapping is never a target. The editor
+  /// plays a haptic when it changes (spec 03, HP-1 to HP-3).
+  Object? get snapTarget => _snapTarget;
+
   /// Moves the selected shape by [delta] from its position at gesture start,
   /// snapping the center to the grid (FR-9) and clamping it to the canvas
   /// (FR-10).
@@ -604,15 +616,16 @@ extension DrawingEditorGestures on DrawingEditorController {
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
+    _snapTarget = null;
     final raw = start.center + delta;
     var center = raw;
+    final others = _otherAnchors(start.id);
     final snap = anchorSnapDistance == null
         ? null
-        : nearestAnchorSnap(
-            anchors.anchorsOf(start.copyWith(center: raw)),
-            _otherAnchors(start.id),
-            threshold: anchorSnapDistance,
-          );
+        : nearestAnchorSnap(anchors.anchorsOf(start.copyWith(center: raw)), [
+            for (final other in others) other.anchor,
+          ], threshold: anchorSnapDistance);
+    _snapTarget = snap == null ? null : others[snap.targetIndex].key;
     final grid = config.gridSize;
     if (snap != null) {
       center = raw + snap.delta;
@@ -638,6 +651,7 @@ extension DrawingEditorGestures on DrawingEditorController {
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
+    _snapTarget = null;
     final grid = config.gridSize;
     final limits = SizeLimits.forCanvas(_document.canvasSize, gridSize: grid);
     if (anchorSnapDistance != null) {
@@ -669,12 +683,13 @@ extension DrawingEditorGestures on DrawingEditorController {
     double distance,
   ) {
     final anchorId = anchorIdForHandle(handle);
+    final others = _otherAnchors(start.id);
     final free = resizeShape(start, handle, pointer, limits: limits);
     final position = anchorPositionOf(free, anchorId);
     if (position == null) return null;
     final snap = nearestAnchorSnap(
       [Anchor(id: anchorId, kind: AnchorKind.vertex, position: position)],
-      _otherAnchors(start.id),
+      [for (final other in others) other.anchor],
       threshold: distance,
     );
     if (snap == null) return null;
@@ -682,14 +697,19 @@ extension DrawingEditorGestures on DrawingEditorController {
     final landed = anchorPositionOf(snapped, anchorId);
     if (landed == null || (landed - snap.to).distance > 1e-6) return null;
     _snapHighlight = [snap.to, landed];
+    _snapTarget = others[snap.targetIndex].key;
     return snapped;
   }
 
-  /// Anchors of every shape except [shapeId], in the current document.
-  List<Anchor> _otherAnchors(String shapeId) => [
-    for (final shape in _document.shapes)
-      if (shape.id != shapeId) ...anchors.anchorsOf(shape),
-  ];
+  /// Anchors of every shape except [shapeId], in the current document,
+  /// each with its (shape id, anchor id) key.
+  List<({Anchor anchor, (String, String) key})> _otherAnchors(String shapeId) =>
+      [
+        for (final shape in _document.shapes)
+          if (shape.id != shapeId)
+            for (final anchor in anchors.anchorsOf(shape))
+              (anchor: anchor, key: (shape.id, anchor.id)),
+      ];
 
   /// Rotates the selected shape so its rotation handle points at [pointer],
   /// with soft snapping (FR-15, FR-16).
@@ -697,11 +717,21 @@ extension DrawingEditorGestures on DrawingEditorController {
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
+    _snapTarget = null;
+    final raw = normalizeAngle(rotationFromPointer(start.center, pointer));
     final angle = softSnapAngle(
-      rotationFromPointer(start.center, pointer),
+      raw,
       config.rotationSnapStep,
       config.rotationSnapTolerance,
     );
+    // Same condition as softSnapAngle; the snapped angle identifies the
+    // engaged snap (spec 03, HP-2).
+    final step = config.rotationSnapStep;
+    final snapped =
+        step > 0 &&
+        (raw - (raw / step).round() * step).abs() <=
+            config.rotationSnapTolerance;
+    _snapTarget = snapped ? angle : null;
     _preview(start.copyWith(rotation: angle));
   }
 
@@ -710,6 +740,7 @@ extension DrawingEditorGestures on DrawingEditorController {
     final start = _gestureStart;
     if (start == null) return;
     _gestureStart = null;
+    _snapTarget = null;
     if (_snapHighlight.isNotEmpty) {
       _snapHighlight = const [];
       _notify();

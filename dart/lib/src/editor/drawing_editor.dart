@@ -3,6 +3,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show HapticFeedback;
 
 import '../geometry/hit_testing.dart';
 import '../geometry/joint_geometry.dart';
@@ -18,6 +19,7 @@ import 'drawing_editor_labels.dart';
 import 'drawing_editor_config.dart';
 import 'drawing_tool.dart';
 import 'editor_toolbar.dart';
+import 'snap_haptics.dart';
 
 enum _GestureMode { none, move, resize, rotate, pinch, labelDrag }
 
@@ -105,6 +107,10 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   /// Animates zoom changes from fit to screen and double-tap (ZM-7).
   late final AnimationController _zoomAnimation;
+
+  /// Decides when a snap haptic plays (spec 03, HP-1, HP-2).
+  final SnapHapticTracker _snapHaptics = SnapHapticTracker();
+
   ViewportZoom _zoomFrom = const ViewportZoom();
   ViewportZoom _zoomTo = const ViewportZoom();
 
@@ -521,6 +527,7 @@ class _DrawingEditorState extends State<DrawingEditor>
       _controller.select(shape.id);
       _mode = _GestureMode.move;
     }
+    _snapHaptics.reset();
     _controller.beginGesture();
     setState(() {});
   }
@@ -548,16 +555,28 @@ class _DrawingEditorState extends State<DrawingEditor>
           (details.localFocalPoint - _startFocal) / _viewport.scale,
           anchorSnapDistance: _anchorSnapDistance,
         );
+        _playSnapHaptic();
       case _GestureMode.resize:
         _controller.resizeSelected(
           _handle!,
           _viewport.toCanvas(details.localFocalPoint),
           anchorSnapDistance: _anchorSnapDistance,
         );
+        _playSnapHaptic();
       case _GestureMode.rotate:
         _controller.rotateSelectedToward(
           _viewport.toCanvas(details.localFocalPoint),
         );
+        _playSnapHaptic();
+    }
+  }
+
+  /// Plays a selection click when a rotation or anchor snap engages on a
+  /// new target; grid snapping is never a target (spec 03, HP-1 to HP-4).
+  void _playSnapHaptic() {
+    final play = _snapHaptics.update(_controller.snapTarget);
+    if (play && _controller.config.hapticFeedback) {
+      HapticFeedback.selectionClick();
     }
   }
 

@@ -1,6 +1,9 @@
+import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart'
     show HitTestResult, kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
@@ -1003,6 +1006,114 @@ void main() {
       final h = await _pump(tester);
       await doubleTapAt(tester, h.canvasCenter);
       expect(zoomOf(h), closeTo(2, 1e-9));
+    });
+  });
+
+  group('haptics (spec 03, HP-1 to HP-4, AC 8)', () {
+    List<String> clicks(WidgetTester tester) {
+      final calls = <String>[];
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'HapticFeedback.vibrate' &&
+              call.arguments == 'HapticFeedbackType.selectionClick') {
+            calls.add(call.arguments as String);
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      return calls;
+    }
+
+    Future<void> rotateThrough15(_Harness h) async {
+      final shape = h.controller.selectedShape!;
+      final handle = h.viewport.toScreen(
+        rotationHandlePosition(shape, h.viewport),
+      );
+      final center = h.viewport.toScreen(shape.center);
+      final radius = (handle - center).distance;
+      final gesture = await h.tester.startGesture(handle);
+      for (var degrees = 0; degrees <= 26; degrees++) {
+        final r = degrees * math.pi / 180 - math.pi / 2;
+        await gesture.moveTo(
+          center + Offset(math.cos(r), math.sin(r)) * radius,
+        );
+        await h.tester.pump();
+      }
+      await gesture.up();
+      await h.tester.pump();
+    }
+
+    testWidgets('rotating through a 15 degree snap plays exactly one click', (
+      tester,
+    ) async {
+      final calls = clicks(tester);
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      await rotateThrough15(h);
+      expect(h.controller.selectedShape!.rotation, isNot(0));
+      expect(calls, hasLength(1));
+    });
+
+    testWidgets('hapticFeedback: false plays none', (tester) async {
+      final calls = clicks(tester);
+      final h = await _pump(
+        tester,
+        config: const DrawingEditorConfig(hapticFeedback: false),
+      );
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      await rotateThrough15(h);
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('dragging across grid cells plays none', (tester) async {
+      final calls = clicks(tester);
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      final gesture = await tester.startGesture(
+        h.screenOf(const Offset(800, 600)),
+      );
+      for (var i = 1; i <= 20; i++) {
+        await gesture.moveBy(const Offset(4, 3));
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pump();
+      expect(h.controller.selectedShape!.center, isNot(const Offset(800, 600)));
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('an anchor snap plays one click as it engages', (tester) async {
+      final calls = clicks(tester);
+      final h = await _pump(tester);
+      h.controller
+        ..addShape(ShapeType.square, center: const Offset(400, 600))
+        ..addShape(ShapeType.square, center: const Offset(800, 600));
+      await tester.pump();
+      // Drag the second square left until its left-center anchor meets the
+      // first square's right-center anchor at x = 480.
+      final gesture = await tester.startGesture(
+        h.screenOf(const Offset(800, 600)),
+      );
+      // 26 steps of 10 units: b's left side goes from 720 to 460, entering
+      // the snap distance (12 dp, about 30 units) of a's right side at 480.
+      final step = h.viewport.scale * 10;
+      for (var i = 0; i < 26; i++) {
+        await gesture.moveBy(Offset(-step, 0));
+        await tester.pump();
+      }
+      await gesture.up();
+      await tester.pump();
+      expect(calls, hasLength(1));
     });
   });
 }
