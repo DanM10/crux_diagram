@@ -99,4 +99,27 @@ void main() {
       expect(top, closeTo(1000 - bottom, 1e-9));
     });
   });
+
+  group('visibleCenter (spec 03, PL-1)', () {
+    const canvas = Size(1600, 1200);
+    const area = Size(1000, 600);
+
+    test('fitted, it is the canvas center', () {
+      final viewport = CanvasViewport.fit(canvas, area);
+      expect(viewport.visibleCenter(area, canvas), const Offset(800, 600));
+    });
+
+    test('zoomed and panned, it is the canvas point under the area center', () {
+      // Scale 1, canvas shifted so (300, 200) sits under the area center.
+      const viewport = CanvasViewport(scale: 1, origin: Offset(200, 100));
+      expect(viewport.visibleCenter(area, canvas), const Offset(300, 200));
+    });
+
+    test('it is clamped to the canvas', () {
+      const viewport = CanvasViewport(scale: 1, origin: Offset(900, 500));
+      expect(viewport.visibleCenter(area, canvas), Offset.zero);
+      const far = CanvasViewport(scale: 1, origin: Offset(-5000, -5000));
+      expect(far.visibleCenter(area, canvas), const Offset(1600, 1200));
+    });
+  });
 }

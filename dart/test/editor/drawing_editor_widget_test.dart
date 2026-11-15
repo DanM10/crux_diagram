@@ -1,8 +1,10 @@
+import 'package:flutter/gestures.dart' show HitTestResult;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
 import 'package:soft_drawer_service/src/editor/editor_toolbar.dart';
+import 'package:soft_drawer_service/src/geometry/grid.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/id_generator.dart';
 import 'package:soft_drawer_service/src/painting/editor_painters.dart';
@@ -721,6 +723,100 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(anchorOf(h, 'b', 'tl'), isNot(anchorOf(h, 'a', 'tr')));
+    });
+  });
+
+  group('joint hint bar (spec 03, JM-1 to JM-3, AC 4)', () {
+    testWidgets('shows with the joint tool; its close button exits', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final canvas = tester.getSize(find.byKey(DrawingEditor.canvasKey));
+      expect(
+        find.text('Tap a corner or edge point to add a joint'),
+        findsNothing,
+      );
+
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      expect(
+        find.text('Tap a corner or edge point to add a joint'),
+        findsOneWidget,
+      );
+      expect(
+        tester.getSize(find.byKey(DrawingEditor.canvasKey)),
+        canvas,
+        reason: 'the hint overlays the canvas',
+      );
+
+      await tester.tap(find.text('Done adding joints'));
+      await tester.pump();
+      expect(h.controller.tool, DrawingTool.select);
+      expect(
+        find.text('Tap a corner or edge point to add a joint'),
+        findsNothing,
+      );
+    });
+
+    testWidgets('it disappears whatever switches the tool back', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      expect(find.text('Done adding joints'), findsOneWidget);
+      h.controller.tool = DrawingTool.select;
+      await tester.pump();
+      expect(find.text('Done adding joints'), findsNothing);
+    });
+
+    testWidgets('taps on the hint bar never reach the canvas', (tester) async {
+      await _pump(tester);
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      final canvas = tester.renderObject(find.byKey(DrawingEditor.canvasKey));
+      final point = tester.getCenter(
+        find.text('Tap a corner or edge point to add a joint'),
+      );
+      final result = HitTestResult();
+      tester.binding.hitTestInView(result, point, tester.view.viewId);
+      expect(result.path.map((e) => e.target), isNot(contains(canvas)));
+    });
+  });
+
+  group('palette placement (spec 03, PL-1, AC 5)', () {
+    testWidgets('zoomed and panned, new shapes go to the visible center', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await h.pinch(
+        center: h.canvasCenter,
+        fromHalf: 40,
+        toHalf: 100,
+        shift: const Offset(150, 100),
+      );
+      final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+      final visible = h.viewport.toCanvas(rect.center);
+      expect(h.viewport.scale, greaterThan(h.fitScale * 1.5));
+      expect((visible - const Offset(800, 600)).distance, greaterThan(50));
+
+      await tester.tap(find.byTooltip('Add circle'));
+      await tester.pump();
+      final center = h.controller.document.shapes.single.center;
+      expect(center.dx, snapToMultiple(visible.dx, 10));
+      expect(center.dy, snapToMultiple(visible.dy, 10));
+    });
+
+    testWidgets('at 1x the new shape goes to the canvas center', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add circle'));
+      await tester.pump();
+      expect(
+        h.controller.document.shapes.single.center,
+        const Offset(800, 600),
+      );
     });
   });
 }

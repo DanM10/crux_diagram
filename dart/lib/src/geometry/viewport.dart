@@ -3,6 +3,8 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import 'transforms.dart';
+
 /// Maps canvas units to screen (dp) coordinates: `screen = origin + canvas ×
 /// scale`.
 @immutable
@@ -37,6 +39,11 @@ class CanvasViewport {
 
   /// Converts a screen length in dp to canvas units.
   double canvasLength(double dp) => dp / scale;
+
+  /// The canvas point under the center of an area of [areaSize], clamped
+  /// to a canvas of [canvasSize] (spec 03, PL-1).
+  Offset visibleCenter(Size areaSize, Size canvasSize) =>
+      clampToCanvas(toCanvas(areaSize.center(Offset.zero)), canvasSize);
 
   @override
   bool operator ==(Object other) =>

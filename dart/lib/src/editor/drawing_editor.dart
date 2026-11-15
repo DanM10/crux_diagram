@@ -9,11 +9,13 @@ import '../geometry/joint_geometry.dart';
 import '../geometry/resize.dart';
 import '../geometry/transforms.dart';
 import '../geometry/viewport.dart';
+import '../model/drawing_document.dart';
 import '../model/shape_element.dart';
 import '../painting/editor_painters.dart';
 import '../painting/joint_painting.dart';
 import 'drawing_editor_controller.dart';
 import 'drawing_editor_labels.dart';
+import 'drawing_editor_config.dart';
 import 'drawing_tool.dart';
 import 'editor_toolbar.dart';
 
@@ -107,7 +109,13 @@ class _DrawingEditorState extends State<DrawingEditor> {
           EditorToolbar(
             controller: _controller,
             labels: widget.labels,
-            onAddShape: (type) => _controller.addShape(type),
+            onAddShape: (type) => _controller.addShape(
+              type,
+              center: _viewport.visibleCenter(
+                _areaSize,
+                _controller.document.canvasSize,
+              ),
+            ),
             onRenameJoint: _renameJoint,
           ),
         ],
@@ -126,87 +134,110 @@ class _DrawingEditorState extends State<DrawingEditor> {
         _viewport = _zoom.apply(
           CanvasViewport.fit(document.canvasSize, _areaSize),
         );
-        return ClipRect(
-          child: Listener(
-            onPointerDown: _onPointerDown,
-            onPointerUp: (_) => _onPointerGone(),
-            onPointerCancel: (_) => _onPointerGone(),
-            child: GestureDetector(
-              key: DrawingEditor.canvasKey,
-              behavior: HitTestBehavior.opaque,
-              onTapUp: (details) => _onTap(details.localPosition),
-              onScaleStart: _onScaleStart,
-              onScaleUpdate: _onScaleUpdate,
-              onScaleEnd: (_) => _onScaleEnd(),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: BackgroundPainter(
-                        viewport: _viewport,
-                        canvasSize: document.canvasSize,
-                        gridSize: _controller.gridVisible
-                            ? config.gridSize
-                            : null,
-                        gridMajorEvery: config.gridMajorEvery,
-                        gridColor: theme.colorScheme.outlineVariant.withValues(
-                          alpha: 0.5,
-                        ),
-                      ),
+        // Overlays are Stack siblings above the canvas Listener, so taps on
+        // them never reach the canvas (spec 03, JM-3, ZM-6).
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            _buildCanvasLayers(theme, config, document),
+            if (_controller.tool == DrawingTool.joint)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: _JointHintBar(
+                  labels: widget.labels,
+                  onExit: () => _controller.tool = DrawingTool.select,
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCanvasLayers(
+    ThemeData theme,
+    DrawingEditorConfig config,
+    DrawingDocument document,
+  ) {
+    return ClipRect(
+      child: Listener(
+        onPointerDown: _onPointerDown,
+        onPointerUp: (_) => _onPointerGone(),
+        onPointerCancel: (_) => _onPointerGone(),
+        child: GestureDetector(
+          key: DrawingEditor.canvasKey,
+          behavior: HitTestBehavior.opaque,
+          onTapUp: (details) => _onTap(details.localPosition),
+          onScaleStart: _onScaleStart,
+          onScaleUpdate: _onScaleUpdate,
+          onScaleEnd: (_) => _onScaleEnd(),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              RepaintBoundary(
+                child: CustomPaint(
+                  painter: BackgroundPainter(
+                    viewport: _viewport,
+                    canvasSize: document.canvasSize,
+                    gridSize: _controller.gridVisible ? config.gridSize : null,
+                    gridMajorEvery: config.gridMajorEvery,
+                    gridColor: theme.colorScheme.outlineVariant.withValues(
+                      alpha: 0.5,
                     ),
                   ),
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: ShapesPainter(
-                        document: document,
+                ),
+              ),
+              RepaintBoundary(
+                child: CustomPaint(
+                  painter: ShapesPainter(
+                    document: document,
+                    viewport: _viewport,
+                  ),
+                ),
+              ),
+              RepaintBoundary(
+                child: CustomPaint(
+                  painter: JointsPainter(
+                    document: document,
+                    viewport: _viewport,
+                    style: config.jointStyle,
+                  ),
+                ),
+              ),
+              RepaintBoundary(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    CustomPaint(
+                      painter: SelectionPainter(
+                        shape: _controller.selectedShape,
                         viewport: _viewport,
+                        color: theme.colorScheme.primary,
+                        showAngle: _mode == _GestureMode.rotate,
                       ),
                     ),
-                  ),
-                  RepaintBoundary(
-                    child: CustomPaint(
-                      painter: JointsPainter(
+                    CustomPaint(
+                      painter: JointOverlayPainter(
                         document: document,
                         viewport: _viewport,
                         style: config.jointStyle,
+                        color:
+                            config.jointStyle.selectionColor ??
+                            theme.colorScheme.primary,
+                        showAnchors: _controller.tool == DrawingTool.joint,
+                        selectedJoint: _controller.selectedJoint,
+                        snapPoints: _controller.snapHighlight,
                       ),
                     ),
-                  ),
-                  RepaintBoundary(
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CustomPaint(
-                          painter: SelectionPainter(
-                            shape: _controller.selectedShape,
-                            viewport: _viewport,
-                            color: theme.colorScheme.primary,
-                            showAngle: _mode == _GestureMode.rotate,
-                          ),
-                        ),
-                        CustomPaint(
-                          painter: JointOverlayPainter(
-                            document: document,
-                            viewport: _viewport,
-                            style: config.jointStyle,
-                            color:
-                                config.jointStyle.selectionColor ??
-                                theme.colorScheme.primary,
-                            showAnchors: _controller.tool == DrawingTool.joint,
-                            selectedJoint: _controller.selectedJoint,
-                            snapPoints: _controller.snapHighlight,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -499,6 +530,49 @@ class _JointNameDialogState extends State<_JointNameDialog> {
           child: Text(labels.ok),
         ),
       ],
+    );
+  }
+}
+
+/// Explains the Joint tool while it is active and offers a way out
+/// (spec 03, JM-1, JM-2).
+class _JointHintBar extends StatelessWidget {
+  const _JointHintBar({required this.labels, required this.onExit});
+
+  final DrawingEditorLabels labels;
+  final VoidCallback onExit;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Material(
+      color: scheme.secondaryContainer,
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsetsDirectional.only(start: 16, end: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  labels.jointModeHint,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: scheme.onSecondaryContainer),
+                ),
+              ),
+              TextButton.icon(
+                onPressed: onExit,
+                icon: const Icon(Icons.close),
+                label: Text(labels.exitJointMode),
+                style: TextButton.styleFrom(
+                  foregroundColor: scheme.onSecondaryContainer,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
