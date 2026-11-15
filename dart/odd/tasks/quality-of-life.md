@@ -25,7 +25,7 @@ The spec file is the verbatim source; every requirement ID below refers to it.
 | T4 | S4 | Joint hint bar, palette at visible center | inline | done | RED observed first (compile error + 4 widget tests), then 243/243 pass ×3, analyze clean |
 | T5 | S5 | Fit button, zoom readout, manual double-tap zoom, animation | inline | done | RED observed first (7/10 new tests failed; 3 describe existing behavior), then 253/253 pass ×3, analyze clean (root + example) |
 | T6 | S6 | Snap-target haptics | inline | done | RED observed first (compile errors + 2 widget tests; the 2 'plays none' tests passed trivially before haptics existed), then 262/262 pass ×3, analyze clean (root + example) |
-| T7 | S7 | README, CHANGELOG | inline | pending | |
+| T7 | S7 | README, CHANGELOG | inline | done | Passive docs (no runnable RED); structural readback, analyze clean (public_member_api_docs lint covers new members), publish dry run unchanged |
 
 Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_editor.dart`, so there are no disjoint parallel units.
 
@@ -39,3 +39,4 @@ Route evidence: no Writer trigger. T3–T6 all edit `lib/src/editor/drawing_edit
 - **L6** (2026-11-15): T4: `CanvasViewport.visibleCenter` (pure, clamped). The canvas build is now `Stack[canvas layers, overlays]` so the hint bar (and T5's zoom controls) sit above the canvas `Listener`; a hit-test probe proves taps on the hint never reach the canvas render object.
 - **L7** (2026-11-15): T5: double-tap is tracked by hand (`_emptyTapPosition` + timer, `kDoubleTapTimeout`/`kDoubleTapSlop`) like joint labels, so no `onDoubleTap` recognizer delays single taps. Bug caught by the suite: a `late final` AnimationController was first created in `dispose()` (deactivated ticker lookup); it is now created in `initState`.
 - **L8** (2026-11-15): T6: `SnapHapticTracker` (lib/src/editor/snap_haptics.dart) owns the HP-2 baseline/change rule; the controller's internal `snapTarget` is the snapped angle or the (shape id, anchor id) pair, using a new `AnchorSnap.targetIndex`. Fixed during GREEN: `endGesture` cleared the target only when a highlight existed. With equal squares, the tie rule picks b's `tl`->a's `tr`, not `lc`->`rc`.
+- **L9** (2026-11-15): T7 done. All 7 tasks done; 262/262 root tests and 2/2 example tests pass. Next: user decides on the slice PR and the open T11 items of soft-drawer-0-1-0.

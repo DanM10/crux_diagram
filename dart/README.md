@@ -5,10 +5,11 @@ A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows.
 ## Features
 
 - Squares, rectangles and circles: move, resize from corner and edge handles, and rotate with soft snapping to 15° steps.
-- Optional grid with snapping of centers and sizes.
+- Optional grid with snapping of centers and sizes. The guide lines are hidden by default and can be shown from the toolbar; snapping works either way.
 - Named joints (`J1`, `J2`, ...) on shape vertices, edge midpoints and circle cardinal points, each drawn with a leader arrow and an upright label.
 - Anchor snapping: drag a shape near another one and their anchors line up exactly.
-- Two-finger pinch zoom (1× to 4×) and pan.
+- Two-finger pinch zoom (1× to 4×) and pan, double-tap zoom on empty canvas, and a fit-to-screen button with a zoom readout.
+- A phone-friendly toolbar: buttons with short labels that never move, a hint while the joint tool is active, and a light haptic tick when a rotation or anchor snap engages.
 - Undo and redo, with one history entry per gesture.
 - JPEG export at any pixel ratio, encoded off the UI thread.
 - Versioned JSON format (schema 2) with strict decoding. Version 1 documents still open.
@@ -78,12 +79,14 @@ DrawingEditorPage(
 
 | Action | How |
 |---|---|
-| Add a shape | Tap a shape button in the toolbar. |
+| Add a shape | Tap a shape button in the toolbar. It appears in the middle of the screen, even when zoomed in. |
 | Select, move | Tap a shape, then drag it. |
 | Resize | Drag a corner or edge handle. Squares and circles keep their aspect ratio. |
 | Rotate | Drag the round handle above the shape, or tap **Rotate 90°**. |
 | Zoom and pan | Pinch and drag with two fingers. One finger never pans. |
-| Add a joint | Turn on the **Joint tool**, tap an anchor dot, and confirm the name. |
+| Quick zoom | Double-tap empty canvas to zoom to 2× there; double-tap again, or tap **Fit to screen**, to see the whole canvas. |
+| Show the grid | Tap **Grid**. Shapes snap to the grid whether it is shown or not. |
+| Add a joint | Turn on the **Joint tool**, tap an anchor dot, and confirm the name. Tap **Done adding joints** in the hint bar to go back. |
 | Rename a joint | Double-tap its label, or select it and tap **Rename joint**. |
 | Move a label | Drag the label in any tool. The arrow follows. |
 | Delete | Select a shape or joint, then tap **Delete** or **Delete joint**. Deleting a shape also deletes its joints. |
@@ -94,8 +97,8 @@ DrawingEditorPage(
 |---|---|
 | `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`jpeg`, `json`). |
 | `DrawingEditor` | Embeddable editor widget: canvas plus toolbar. |
-| `DrawingEditorController` | Document, selection, tool and undo history. Its methods include `addShape`, `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson` and `exportJpeg`. |
-| `DrawingEditorConfig` | Canvas size, grid, rotation snapping, anchor snapping, joint naming and style, JPEG quality, export size limit, and history limit. |
+| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson` and `exportJpeg`. |
+| `DrawingEditorConfig` | Canvas size, grid (`gridSize`, `showGrid`, `gridMajorEvery`), rotation snapping, anchor snapping, joint naming and style, toolbar labels (`showToolbarLabels`), haptics (`hapticFeedback`), JPEG quality, export size limit, and history limit. |
 | `DrawingEditorLabels` | Every user-visible string, with English defaults. |
 | `DrawingDocument` | Immutable drawing: canvas size, `shapes` and `joints`. `fromJson` and `toJson`. |
 | `ShapeElement`, `ShapeType` | A shape and its kind (square, rectangle, circle). |
