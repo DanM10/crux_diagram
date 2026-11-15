@@ -466,15 +466,26 @@ class DrawingEditorController extends ChangeNotifier {
     return id;
   }
 
-  /// Spec 03, PL-2: the start position (grid-snapped), or the first
-  /// diagonal step from it not taken by a shape of the same type. Steps go
+  /// Spec 03, PL-2: the start position (grid-snapped, kept inside the
+  /// canvas), or the first diagonal step from it not taken by a shape of
+  /// the same type. Steps go
   /// +[cascadeOffset] until the next one would leave the canvas, then
   /// -[cascadeOffset] from the start; when both are exhausted, the start.
   Offset _cascadePosition(ShapeType type, Offset? center) {
     final canvas = _document.canvasSize;
     final grid = config.gridSize;
     var start = center ?? canvas.center(Offset.zero);
-    if (grid != null) start = snapPointToGrid(start, grid);
+    if (grid != null) {
+      // Rounding can pass the far edge of a canvas that is not a multiple
+      // of the grid; step back to the last grid line inside.
+      double inside(double v, double extent) =>
+          v > extent ? (extent / grid).floor() * grid : v;
+      final snapped = snapPointToGrid(start, grid);
+      start = Offset(
+        inside(snapped.dx, canvas.width),
+        inside(snapped.dy, canvas.height),
+      );
+    }
     bool taken(Offset position) =>
         _document.shapes.any((s) => s.type == type && s.center == position);
     bool inside(Offset p) =>
@@ -719,20 +730,14 @@ extension DrawingEditorGestures on DrawingEditorController {
     _snapHighlight = const [];
     _snapTarget = null;
     final raw = normalizeAngle(rotationFromPointer(start.center, pointer));
-    final angle = softSnapAngle(
+    final snap = softSnap(
       raw,
       config.rotationSnapStep,
       config.rotationSnapTolerance,
     );
-    // Same condition as softSnapAngle; the snapped angle identifies the
-    // engaged snap (spec 03, HP-2).
-    final step = config.rotationSnapStep;
-    final snapped =
-        step > 0 &&
-        (raw - (raw / step).round() * step).abs() <=
-            config.rotationSnapTolerance;
-    _snapTarget = snapped ? angle : null;
-    _preview(start.copyWith(rotation: angle));
+    // The snapped angle identifies the engaged snap (spec 03, HP-2).
+    _snapTarget = snap.snapped ? snap.angle : null;
+    _preview(start.copyWith(rotation: snap.angle));
   }
 
   /// Ends the gesture, recording one history entry if anything changed.

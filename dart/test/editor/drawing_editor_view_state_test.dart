@@ -38,6 +38,16 @@ void main() {
       expect(c.document.shapes.single.center, const Offset(810, 600));
     });
 
+    test('a snapped center past the canvas edge moves back inside', () {
+      final c = _controller(
+        config: const DrawingEditorConfig(canvasSize: Size(107, 107)),
+      );
+      // 107 rounds to 110, outside the canvas; the last grid line inside
+      // is 100.
+      c.addShape(ShapeType.square, center: const Offset(107, 107));
+      expect(c.document.shapes.single.center, const Offset(100, 100));
+    });
+
     test('the cascade starts from the given center', () {
       final c = _controller();
       for (var i = 0; i < 3; i++) {

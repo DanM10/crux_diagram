@@ -14,12 +14,21 @@ double rotationFromPointer(Offset center, Offset pointer) => normalizeAngle(
 /// Snaps [radians] to the nearest multiple of [step] when it is within
 /// [tolerance] of it; otherwise returns it unchanged. A [step] of 0 or less
 /// disables snapping. The result is normalized to `[0, 2π)`.
-double softSnapAngle(double radians, double step, double tolerance) {
-  if (step <= 0) return normalizeAngle(radians);
+double softSnapAngle(double radians, double step, double tolerance) =>
+    softSnap(radians, step, tolerance).angle;
+
+/// Like [softSnapAngle], also reporting whether the snap engaged
+/// (spec 03, HP-2).
+({double angle, bool snapped}) softSnap(
+  double radians,
+  double step,
+  double tolerance,
+) {
+  final free = (angle: normalizeAngle(radians), snapped: false);
+  if (step <= 0) return free;
   final multiple = (radians / step).round();
-  final snapped = multiple * step;
-  if ((radians - snapped).abs() > tolerance) return normalizeAngle(radians);
-  return normalizeAngle(_exactMultiple(multiple, step));
+  if ((radians - multiple * step).abs() > tolerance) return free;
+  return (angle: normalizeAngle(_exactMultiple(multiple, step)), snapped: true);
 }
 
 /// `multiple × step`, returning the exact quarter-turn constants when the

@@ -63,4 +63,31 @@ void main() {
       );
     });
   });
+  group('softSnap (spec 03, HP-2)', () {
+    test('reports the snapped angle and that the snap engaged', () {
+      final r = softSnap(_deg(94.9), step, tolerance);
+      expect(r.angle, math.pi / 2);
+      expect(r.snapped, isTrue);
+    });
+
+    test('reports a free angle as not snapped', () {
+      final r = softSnap(_deg(95.1), step, tolerance);
+      expect(r.angle, closeTo(_deg(95.1), 1e-12));
+      expect(r.snapped, isFalse);
+    });
+
+    test('a step of 0 never snaps', () {
+      expect(softSnap(_deg(90), 0, tolerance).snapped, isFalse);
+    });
+
+    test('agrees with softSnapAngle', () {
+      for (var d = -400.0; d <= 400; d += 0.7) {
+        expect(
+          softSnap(_deg(d), step, tolerance).angle,
+          softSnapAngle(_deg(d), step, tolerance),
+          reason: '$d°',
+        );
+      }
+    });
+  });
 }
