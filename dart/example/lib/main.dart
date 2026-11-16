@@ -5,7 +5,7 @@ import 'package:soft_drawer_service/soft_drawer_service.dart';
 
 void main() => runApp(const ExampleApp());
 
-/// Demo app: draw shapes and named joints, export them as JPEG plus JSON,
+/// Demo app: draw shapes and named joints, export them as an image plus JSON,
 /// and reopen the saved JSON.
 class ExampleApp extends StatelessWidget {
   /// Creates the demo app.
@@ -26,7 +26,7 @@ class ExampleHome extends StatefulWidget {
   /// Creates the home screen.
   const ExampleHome({super.key});
 
-  /// Key of the JPEG preview, for tests.
+  /// Key of the image preview, for tests.
   static const Key previewKey = ValueKey('example.preview');
 
   @override
@@ -45,7 +45,7 @@ class _ExampleHomeState extends State<ExampleHome> {
     );
     if (result == null || !mounted) return;
     setState(() {
-      _jpeg = result.jpeg;
+      _jpeg = result.image;
       _json = result.json;
     });
   }
@@ -84,7 +84,7 @@ class _ExampleHomeState extends State<ExampleHome> {
               const Text('No drawing yet.')
             else ...[
               Text(
-                'Exported JPEG',
+                'Exported image',
                 style: Theme.of(context).textTheme.titleMedium,
               ),
               const SizedBox(height: 8),

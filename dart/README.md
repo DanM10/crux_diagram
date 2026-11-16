@@ -39,7 +39,7 @@ Future<void> editDrawing(BuildContext context, {String? savedJson}) async {
   );
   if (result == null) return; // Cancelled.
 
-  final Uint8List jpeg = result.jpeg; // Show, upload or attach it.
+  final Uint8List image = result.image; // JPEG or PNG, see result.format.
   final String json = result.json;    // Store it to reopen the drawing later.
 }
 ```
@@ -59,10 +59,42 @@ final controller = DrawingEditorController(
 DrawingEditor(controller: controller);
 
 // Later:
-final jpeg = await controller.exportJpeg(pixelRatio: 2);
+final image = await controller.exportImage(pixelRatio: 2);
 final json = controller.toJson();
 controller.dispose();
 ```
+
+### Look and defaults
+
+```dart
+const config = DrawingEditorConfig(
+  shapeStyle: ShapeStyle(stroke: Color(0xFF1565C0), strokeWidth: 3),
+  jointStyle: JointStyle(color: Color(0xFF2E7D32)), // line, arrowhead, label
+  imageFormat: ImageFormat.png,
+  transparentBackground: true, // PNG only
+  jointNameSuggestions: ['Elbow', 'Knee', 'Shoulder'], // up to jointNameMaxLength (12)
+);
+```
+
+`shapeStyle` only applies to shapes added after the editor opens; saved shapes keep their colors. Suggestions appear as chips in the joint name dialog (names already used are hidden); free text always works.
+
+### Showing a saved drawing
+
+`DrawingView` draws a document without the editor (white canvas, shapes and joints, scaled to fit its box, no gestures). Give it a bounded size:
+
+```dart
+SizedBox(
+  width: 200,
+  height: 150,
+  child: DrawingView(
+    document: DrawingDocument.fromJson(savedJson),
+    jointStyle: config.jointStyle,
+    semanticLabel: 'Saved drawing',
+  ),
+);
+```
+
+To get an image from stored JSON without a controller, use `renderDrawingImage(document, format: ImageFormat.png, pixelRatio: 2)`. It runs inside a Flutter app or `flutter test`.
 
 ### Localization
 
@@ -100,16 +132,19 @@ DrawingEditorPage(
 
 | Type | Purpose |
 |---|---|
-| `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`jpeg`, `json`). |
+| `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`image`, `format`, `json`). |
 | `DrawingEditor` | Embeddable editor widget: canvas plus toolbar. |
-| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds` (with several shapes selected, `selectedId` is null), `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson` and `exportJpeg`. |
-| `DrawingEditorConfig` | Canvas size, grid (`gridSize`, `showGrid`, `gridMajorEvery`), rotation snapping, anchor snapping, joint naming and style, toolbar labels (`showToolbarLabels`), haptics (`hapticFeedback`), JPEG quality, export size limit, and history limit. |
+| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds` (with several shapes selected, `selectedId` is null), `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson`, `exportImage` and `availableJointNameSuggestions`. |
+| `DrawingEditorConfig` | Canvas size, grid (`gridSize`, `showGrid`, `gridMajorEvery`), rotation snapping, anchor snapping, joint naming (`jointNameMaxLength`, default 12, and `jointNameSuggestions`), shape and joint style, toolbar labels (`showToolbarLabels`), haptics (`hapticFeedback`), image format and transparency, JPEG quality, export size limit, and history limit. |
+| `DrawingView` | Read-only widget that draws a `DrawingDocument` like the export does. |
+| `renderDrawingImage` | Renders a document to JPEG or PNG bytes without a controller. |
+| `ImageFormat`, `ShapeStyle` | `jpeg` or `png`; stroke, fill and width of new shapes. |
 | `DrawingEditorLabels` | Every user-visible string, with English defaults. |
 | `DrawingDocument` | Immutable drawing: canvas size, `shapes`, `joints`, `groups`, `jointLabelSize` and `jointsVisible`. `fromJson`, `toJson`, and `validate` (returns the error instead of throwing). |
 | `ShapeGroup` | A saved group: an id and at least two shape ids. |
 | `ShapeElement`, `ShapeType` | A shape and its kind (square, rectangle, circle). |
 | `Joint`, `Anchor`, `AnchorKind` | Named anchors and the fixed points they attach to. |
-| `JointStyle`, `LeaderStyle` | Arrow and label look. `labelBaseFontSize` (default 30) and `labelFontSizeStep` (default 4) set the three label sizes, in canvas units; the arrowhead grows with them. |
+| `JointStyle`, `LeaderStyle` | Arrow and label look; `color` colors line, arrowhead and label (`labelStyle.color` overrides the label). `labelBaseFontSize` (default 30) and `labelFontSizeStep` (default 4) set the three label sizes, in canvas units; the arrowhead grows with them. |
 | `JointLabelSize` | `small`, `medium` or `large`. |
 | `DrawingTool` | `select` or `joint`. |
 | `DrawingFormatException` | Thrown for malformed or unsupported JSON. |

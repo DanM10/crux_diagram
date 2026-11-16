@@ -8,7 +8,10 @@
 * Named joints on shape anchors, drawn with leader arrows and upright labels, with rename, label dragging and cascade delete.
 * Anchor snapping between shapes while moving and resizing.
 * Undo and redo, one entry per gesture.
-* JPEG export, encoded in a background isolate, with a size guard.
+* JPEG and PNG export (`ImageFormat`, optional transparent PNG background), encoded in a background isolate, with a size guard. `DrawingResult` holds `image`, `format` and `json`; `DrawingEditorController.exportImage` replaces `exportJpeg`.
+* `renderDrawingImage` renders a document without an editor, and `DrawingView` shows one read-only.
+* `DrawingEditorConfig.shapeStyle` sets the look of new shapes, and `JointStyle.color` colors a joint's line, arrowhead and label.
+* Joint name suggestions (`jointNameSuggestions`) as chips in the name dialog; `jointNameMaxLength` defaults to 12 and is validated.
 * Joint display: one label size per document (small, medium, large; 30, 34 and 38 canvas units by default, set with `JointStyle.labelBaseFontSize` and `labelFontSizeStep`) and a show/hide switch, both chosen from the selection bar in joint mode, undoable, saved, and used by the export.
 * Shapes default to a gray stroke (`0xFF757575`); joint labels are bold black with a 2.5-unit leader line and an arrowhead that grows with the label size.
 * While the grid is shown, moved and resized shapes align their edges to the drawn lines (every 50 units at the fitted zoom, every 10 when zoomed in); hidden, snapping stays at `gridSize`.

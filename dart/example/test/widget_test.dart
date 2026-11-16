@@ -14,7 +14,7 @@ void main() {
     expect(reopen.onPressed, isNull);
   });
 
-  testWidgets('new drawing, add a shape, Done shows the JPEG and JSON, and '
+  testWidgets('new drawing, add a shape, Done shows the image and JSON, and '
       'reopen restores the shape', (tester) async {
     await tester.pumpWidget(const ExampleApp());
     await tester.tap(find.text('New drawing'));
