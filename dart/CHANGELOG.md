@@ -9,5 +9,7 @@
 * Anchor snapping between shapes while moving and resizing.
 * Undo and redo, one entry per gesture.
 * JPEG export, encoded in a background isolate, with a size guard.
-* JSON schema version 2 with strict decoding; version 1 documents still open.
+* Joint display: one label size per document (small, medium, large; 30, 34 and 38 canvas units by default, set with `JointStyle.labelBaseFontSize` and `labelFontSizeStep`) and a show/hide switch, both chosen from the selection bar in joint mode, undoable, saved, and used by the export.
+* Shapes default to a gray stroke (`0xFF757575`); joint labels are bold black with a 2.5-unit leader line and an arrowhead that grows with the label size.
+* JSON schema version 3 with strict decoding and a `jointDisplay` object; version 1 and 2 documents still open.
 * `DrawingEditorPage`, `DrawingEditor`, `DrawingEditorController`, and `DrawingEditorLabels` for localization.
