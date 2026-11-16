@@ -277,7 +277,8 @@ ShapeElement _shapeFromJson(Object? raw, String path) {
   );
 
   final size = _positiveSize(json, 'size', path);
-  if (type.locksAspectRatio && size.width != size.height) {
+  if (type.locksAspectRatio &&
+      (size.width - size.height).abs() > _sideTolerance) {
     throw DrawingFormatException(
       '$path.size: a ${type.name} requires width == height.',
     );
@@ -299,6 +300,10 @@ ShapeElement _shapeFromJson(Object? raw, String path) {
     strokeWidth: strokeWidth,
   );
 }
+
+/// Largest width/height difference still accepted for a square or circle, so
+/// float noise from another implementation does not reject a document.
+const double _sideTolerance = 1e-6;
 
 Map<String, Object?> _object(Object? value, String path) {
   if (value is! Map<String, Object?>) {
