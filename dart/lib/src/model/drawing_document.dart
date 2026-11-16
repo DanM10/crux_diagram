@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'drawing_json_codec.dart';
 import 'joint.dart';
+import 'joint_label_size.dart';
 import 'shape_element.dart';
 
 /// An immutable drawing: a canvas size, shapes in z-order and the joints
@@ -21,22 +22,26 @@ class DrawingDocument {
     this.canvasSize = defaultCanvasSize,
     List<ShapeElement> shapes = const [],
     List<Joint> joints = const [],
+    this.jointLabelSize = JointLabelSize.small,
+    this.jointsVisible = true,
   }) : shapes = List.unmodifiable(shapes),
        joints = List.unmodifiable(joints);
 
   /// Decodes a document from a JSON string.
   ///
-  /// Accepts schema versions 1 and 2; a version 1 document has no joints.
+  /// Accepts schema versions 1 to 3; a version 1 document has no joints,
+  /// and versions 1 and 2 open with small, visible joints.
   ///
   /// Throws [DrawingFormatException] when the input is malformed, misses a
   /// required field, uses an unknown shape type or a newer schema version,
   /// or has a joint whose shape or anchor does not exist or that repeats a
-  /// shape anchor.
+  /// shape anchor, or a version 3 document with a missing or malformed
+  /// `jointDisplay`.
   factory DrawingDocument.fromJson(String source) =>
       decodeDrawingDocument(source);
 
   /// The schema version written by [toJson] and the newest one accepted.
-  static const int currentSchemaVersion = 2;
+  static const int currentSchemaVersion = 3;
 
   /// Default canvas size in logical units (4:3).
   static const Size defaultCanvasSize = Size(1600, 1200);
@@ -53,15 +58,26 @@ class DrawingDocument {
   /// Joints in creation order. Unmodifiable.
   final List<Joint> joints;
 
+  /// Size of every joint label (spec 04, JS-1).
+  final JointLabelSize jointLabelSize;
+
+  /// Whether joints are drawn, hit-tested and exported (spec 04, JV-1).
+  /// Hidden joints stay in [joints].
+  final bool jointsVisible;
+
   /// Returns a copy with the given fields replaced.
   DrawingDocument copyWith({
     Size? canvasSize,
     List<ShapeElement>? shapes,
     List<Joint>? joints,
+    JointLabelSize? jointLabelSize,
+    bool? jointsVisible,
   }) => DrawingDocument(
     canvasSize: canvasSize ?? this.canvasSize,
     shapes: shapes ?? this.shapes,
     joints: joints ?? this.joints,
+    jointLabelSize: jointLabelSize ?? this.jointLabelSize,
+    jointsVisible: jointsVisible ?? this.jointsVisible,
   );
 
   /// Encodes this document as a JSON string.
@@ -73,9 +89,16 @@ class DrawingDocument {
       other is DrawingDocument &&
           other.canvasSize == canvasSize &&
           listEquals(other.shapes, shapes) &&
-          listEquals(other.joints, joints);
+          listEquals(other.joints, joints) &&
+          other.jointLabelSize == jointLabelSize &&
+          other.jointsVisible == jointsVisible;
 
   @override
-  int get hashCode =>
-      Object.hash(canvasSize, Object.hashAll(shapes), Object.hashAll(joints));
+  int get hashCode => Object.hash(
+    canvasSize,
+    Object.hashAll(shapes),
+    Object.hashAll(joints),
+    jointLabelSize,
+    jointsVisible,
+  );
 }

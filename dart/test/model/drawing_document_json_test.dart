@@ -48,7 +48,9 @@ void main() {
   group('DrawingDocument defaults', () {
     test('empty document has a 1600 × 1200 canvas and no shapes', () {
       final document = DrawingDocument();
-      expect(document.schemaVersion, 2);
+      expect(document.schemaVersion, 3);
+      expect(document.jointLabelSize, JointLabelSize.small);
+      expect(document.jointsVisible, isTrue);
       expect(document.canvasSize, const Size(1600, 1200));
       expect(document.shapes, isEmpty);
       expect(document.joints, isEmpty);
@@ -84,7 +86,7 @@ void main() {
       );
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
       expect(encoded, {
-        'schemaVersion': 2,
+        'schemaVersion': 3,
         'canvas': {'width': 1600.0, 'height': 1200.0},
         'shapes': [
           {
@@ -99,6 +101,7 @@ void main() {
           },
         ],
         'joints': <Object?>[],
+        'jointDisplay': {'labelSize': 'small', 'visible': true},
       });
     });
   });
@@ -174,7 +177,7 @@ void main() {
     test('newer schemaVersion', () {
       expect(
         () =>
-            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 3)),
+            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 4)),
         _formatError('schemaVersion'),
       );
     });
@@ -283,7 +286,7 @@ void main() {
     test('encodes joints in the spec format', () {
       final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(encoded['schemaVersion'], 2);
+      expect(encoded['schemaVersion'], 3);
       expect(encoded['joints'], [
         {
           'id': 'j_01',
@@ -340,12 +343,12 @@ void main() {
       expect(decoded.joints.map((j) => j.id), ['j2', 'j1', 'j3']);
     });
 
-    test('a version 1 document opens with no joints and saves as 2 (AC 9)', () {
+    test('a version 1 document opens with no joints and saves as 3 (AC 9)', () {
       final document = DrawingDocument.fromJson(jsonEncode(_validJson()));
       expect(document.shapes, hasLength(1));
       expect(document.joints, isEmpty);
       final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(saved['schemaVersion'], 2);
+      expect(saved['schemaVersion'], 3);
       expect(saved['joints'], isEmpty);
     });
 
@@ -357,6 +360,111 @@ void main() {
     test('joints and shapes lists are unmodifiable', () {
       final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
       expect(() => document.joints.clear(), throwsUnsupportedError);
+    });
+  });
+
+  group('schemaVersion 3 (spec 04, section 5)', () {
+    Map<String, Object?> v3Json(Object? jointDisplay) => {
+      ..._validV2Json(),
+      'schemaVersion': 3,
+      'jointDisplay': jointDisplay,
+    };
+
+    test('version 1 and 2 documents load small, visible joints (PS-2)', () {
+      for (final json in [_validJson(), _validV2Json()]) {
+        final document = DrawingDocument.fromJson(jsonEncode(json));
+        expect(document.jointLabelSize, JointLabelSize.small);
+        expect(document.jointsVisible, isTrue);
+      }
+    });
+
+    test('a version 2 document ignores a stray jointDisplay field', () {
+      final json = _validV2Json()..['jointDisplay'] = 'not an object';
+      final document = DrawingDocument.fromJson(jsonEncode(json));
+      expect(document.jointLabelSize, JointLabelSize.small);
+      expect(document.jointsVisible, isTrue);
+    });
+
+    test('decodes every label size and the visibility flag (PS-1)', () {
+      for (final size in JointLabelSize.values) {
+        final document = DrawingDocument.fromJson(
+          jsonEncode(v3Json({'labelSize': size.name, 'visible': false})),
+        );
+        expect(document.jointLabelSize, size);
+        expect(document.jointsVisible, isFalse);
+      }
+    });
+
+    test('round trip keeps the joint display (PS-4)', () {
+      final document = DrawingDocument.fromJson(
+        jsonEncode(_validV2Json()),
+      ).copyWith(jointLabelSize: JointLabelSize.large, jointsVisible: false);
+      final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
+      expect(encoded['jointDisplay'], {'labelSize': 'large', 'visible': false});
+      final decoded = DrawingDocument.fromJson(document.toJson());
+      expect(decoded, document);
+      expect(decoded.joints, document.joints);
+    });
+
+    test('joint display takes part in equality and copyWith', () {
+      final document = DrawingDocument();
+      final medium = document.copyWith(jointLabelSize: JointLabelSize.medium);
+      final hidden = document.copyWith(jointsVisible: false);
+      expect(medium, isNot(document));
+      expect(hidden, isNot(document));
+      expect(medium.jointsVisible, isTrue);
+      expect(hidden.jointLabelSize, JointLabelSize.small);
+      expect(document.copyWith(jointLabelSize: JointLabelSize.medium), medium);
+      expect(
+        document.copyWith(jointLabelSize: JointLabelSize.medium).hashCode,
+        medium.hashCode,
+      );
+    });
+
+    test('missing jointDisplay (PS-3)', () {
+      final json = v3Json(null)..remove('jointDisplay');
+      expect(
+        () => DrawingDocument.fromJson(jsonEncode(json)),
+        _formatError('jointDisplay'),
+      );
+    });
+
+    test('jointDisplay is not an object (PS-3)', () {
+      expect(
+        () => DrawingDocument.fromJson(jsonEncode(v3Json('small'))),
+        _formatError('jointDisplay'),
+      );
+    });
+
+    test('unknown labelSize (PS-3)', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          jsonEncode(v3Json({'labelSize': 'huge', 'visible': true})),
+        ),
+        _formatError('labelSize'),
+      );
+    });
+
+    test('missing labelSize or visible (PS-3)', () {
+      expect(
+        () => DrawingDocument.fromJson(jsonEncode(v3Json({'visible': true}))),
+        _formatError('labelSize'),
+      );
+      expect(
+        () => DrawingDocument.fromJson(
+          jsonEncode(v3Json({'labelSize': 'small'})),
+        ),
+        _formatError('visible'),
+      );
+    });
+
+    test('non-boolean visible (PS-3)', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          jsonEncode(v3Json({'labelSize': 'small', 'visible': 1})),
+        ),
+        _formatError('visible'),
+      );
     });
   });
 

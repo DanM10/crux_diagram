@@ -8,6 +8,7 @@ library;
 export 'src/model/drawing_document.dart' show DrawingDocument;
 export 'src/model/drawing_format_exception.dart' show DrawingFormatException;
 export 'src/model/joint.dart' show Joint;
+export 'src/model/joint_label_size.dart' show JointLabelSize;
 export 'src/model/shape_element.dart' show ShapeElement;
 export 'src/model/shape_type.dart' show ShapeType;
 export 'src/geometry/anchors.dart' show Anchor, AnchorKind;

@@ -5,6 +5,7 @@ import '../geometry/anchors.dart';
 import 'drawing_document.dart';
 import 'drawing_format_exception.dart';
 import 'joint.dart';
+import 'joint_label_size.dart';
 import 'shape_element.dart';
 import 'shape_type.dart';
 import 'shape_type_defaults.dart';
@@ -17,6 +18,10 @@ String encodeDrawingDocument(DrawingDocument document) {
     'canvas': _sizeToJson(document.canvasSize),
     'shapes': [for (final shape in document.shapes) _shapeToJson(shape)],
     'joints': [for (final joint in document.joints) _jointToJson(joint)],
+    'jointDisplay': {
+      'labelSize': document.jointLabelSize.name,
+      'visible': document.jointsVisible,
+    },
   });
 }
 
@@ -61,11 +66,38 @@ DrawingDocument decodeDrawingDocument(String source) {
   // Version 1 has no joints; any `joints` field there is ignored like other
   // unknown fields.
   final joints = version >= 2 ? _jointsFromJson(json, shapes) : <Joint>[];
+  // Versions 1 and 2 have no joint display; they open with the defaults
+  // (spec 04, PS-2).
+  final (labelSize, visible) = version >= 3
+      ? _jointDisplayFromJson(json)
+      : (JointLabelSize.small, true);
   return DrawingDocument(
     canvasSize: canvasSize,
     shapes: shapes,
     joints: joints,
+    jointLabelSize: labelSize,
+    jointsVisible: visible,
   );
+}
+
+(JointLabelSize, bool) _jointDisplayFromJson(Map<String, Object?> json) {
+  const path = 'jointDisplay';
+  final display = _object(_required(json, path, 'document'), path);
+  final sizeName = _required(display, 'labelSize', path);
+  final size = JointLabelSize.values
+      .where((s) => s.name == sizeName)
+      .firstOrNull;
+  if (size == null) {
+    throw DrawingFormatException(
+      '$path.labelSize: unknown joint label size "$sizeName"; expected '
+      '${JointLabelSize.values.map((s) => s.name).join(', ')}.',
+    );
+  }
+  final visible = _required(display, 'visible', path);
+  if (visible is! bool) {
+    throw const DrawingFormatException('$path.visible must be a boolean.');
+  }
+  return (size, visible);
 }
 
 List<Joint> _jointsFromJson(
