@@ -27,8 +27,16 @@ class JointPlacement {
   void dispose() => text.dispose();
 }
 
-/// Places every joint of [document] whose shape and anchor exist.
+/// Places every joint of [document] whose shape and anchor exist, with
+/// labels at the document's [DrawingDocument.jointLabelSize].
+///
+/// Returns nothing when [DrawingDocument.jointsVisible] is false, so hidden
+/// joints are neither drawn, exported nor hit-tested (spec 04, JV-2).
 List<JointPlacement> placeJoints(DrawingDocument document, JointStyle style) {
+  if (!document.jointsVisible) return [];
+  final labelStyle = style.labelStyle.copyWith(
+    fontSize: style.labelFontSize(document.jointLabelSize),
+  );
   final shapes = {for (final shape in document.shapes) shape.id: shape};
   final placements = <JointPlacement>[];
   for (final joint in document.joints) {
@@ -38,7 +46,7 @@ List<JointPlacement> placeJoints(DrawingDocument document, JointStyle style) {
         : anchorPositionOf(shape, joint.anchorId);
     if (anchor == null) continue;
     final text = TextPainter(
-      text: TextSpan(text: joint.name, style: style.labelStyle),
+      text: TextSpan(text: joint.name, style: labelStyle),
       textDirection: TextDirection.ltr,
     )..layout();
     final center = anchor + joint.labelOffset;
@@ -66,18 +74,19 @@ void paintJoints(Canvas canvas, DrawingDocument document, JointStyle style) {
   final head = Paint()
     ..color = style.arrowColor
     ..style = PaintingStyle.fill;
+  final arrowhead = style.arrowheadSize(document.jointLabelSize);
   for (final placement in placeJoints(document, style)) {
     final start = leaderLineStart(placement.labelRect, placement.anchor);
     if (start != null && start != placement.anchor) {
       final points = arrowheadPoints(
         from: start,
         tip: placement.anchor,
-        length: style.arrowheadLength,
-        width: style.arrowheadWidth,
+        length: arrowhead.width,
+        width: arrowhead.height,
       );
       final base = (points[1] + points[2]) / 2;
       final lineLength = (placement.anchor - start).distance;
-      if (lineLength > style.arrowheadLength) {
+      if (lineLength > arrowhead.width) {
         canvas.drawLine(start, base, line);
       }
       canvas.drawPath(Path()..addPolygon(points, true), head);

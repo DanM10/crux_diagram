@@ -14,9 +14,11 @@ void main() {
       size: const Size(240, 140),
     );
 
-    test('fill is transparent white, stroke is black, stroke width is 2', () {
+    test('fill is transparent white, stroke is gray, stroke width is 2 '
+        '(spec 04, CL-1)', () {
       expect(shape.fill.toARGB32(), 0x00FFFFFF);
-      expect(shape.stroke.toARGB32(), 0xFF000000);
+      expect(shape.stroke.toARGB32(), 0xFF757575);
+      expect(ShapeElement.defaultStroke.toARGB32(), 0xFF757575);
       expect(shape.strokeWidth, 2.0);
       expect(shape.rotation, 0.0);
     });

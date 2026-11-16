@@ -96,7 +96,7 @@ void main() {
             'size': {'width': 240.0, 'height': 140.0},
             'rotation': 0.0,
             'fill': 0x00FFFFFF,
-            'stroke': 0xFF000000,
+            'stroke': 0xFF757575,
             'strokeWidth': 2.0,
           },
         ],
@@ -443,6 +443,17 @@ void main() {
         ),
         _formatError('labelSize'),
       );
+    });
+
+    test('non-string labelSize (PS-3)', () {
+      for (final value in [1, null, true]) {
+        expect(
+          () => DrawingDocument.fromJson(
+            jsonEncode(v3Json({'labelSize': value, 'visible': true})),
+          ),
+          _formatError('labelSize'),
+        );
+      }
     });
 
     test('missing labelSize or visible (PS-3)', () {

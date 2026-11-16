@@ -28,8 +28,9 @@ class ShapeElement {
   /// Default fill: transparent, so overlapping shapes stay visible.
   static const Color defaultFill = Color(0x00FFFFFF);
 
-  /// Default stroke color: opaque black.
-  static const Color defaultStroke = Color(0xFF000000);
+  /// Default stroke color: opaque gray, so joints drawn in black stand out
+  /// (spec 04, CL-1).
+  static const Color defaultStroke = Color(0xFF757575);
 
   /// Default stroke width in canvas units.
   static const double defaultStrokeWidth = 2.0;

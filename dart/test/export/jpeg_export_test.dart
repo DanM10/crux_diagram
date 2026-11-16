@@ -47,7 +47,8 @@ void main() {
     expect(_luminance(image, 0, 0), greaterThan(245), reason: 'corner');
     expect(_luminance(image, 10, 10), greaterThan(245), reason: 'grid line');
     expect(_luminance(image, 800, 600), greaterThan(245), reason: 'fill');
-    expect(_luminance(image, 680, 600), lessThan(100), reason: 'left edge');
+    // The default stroke is gray 0xFF757575 (spec 04, CL-1).
+    expect(_luminance(image, 680, 600), lessThan(160), reason: 'left edge');
   });
 
   test('rejects exports above maxPixels before rendering (FR-26)', () async {
@@ -159,6 +160,40 @@ void main() {
         expect(darkest(plain, leader), greaterThan(245));
         expect(darkest(joined, leader), lessThan(150));
       }
+    });
+
+    test('hidden joints are not exported (spec 04, JV-2)', () async {
+      final plain = await render(_documentWithRectangle());
+      final hidden = await render(withJoint().copyWith(jointsVisible: false));
+      for (var y = 380; y < 540; y += 2) {
+        for (var x = 900; x < 1080; x += 2) {
+          expect(
+            hidden.getPixel(x, y),
+            plain.getPixel(x, y),
+            reason: '($x, $y)',
+          );
+        }
+      }
+    });
+
+    test('the label size changes the exported label (spec 04, JS-3)', () async {
+      // Darkest column right of the label center, past the small label's
+      // right edge but inside the large one's.
+      final small = await render(withJoint());
+      final large = await render(
+        withJoint().copyWith(jointLabelSize: JointLabelSize.large),
+      );
+      num inkWidth(img.Image image) {
+        var count = 0;
+        for (var x = 960; x < 1120; x++) {
+          if (darkest(image, Rect.fromLTWH(x.toDouble(), 395, 1, 30)) < 128) {
+            count++;
+          }
+        }
+        return count;
+      }
+
+      expect(inkWidth(large), greaterThan(inkWidth(small)));
     });
 
     test('adds no anchor dots: pixels away from the joint are '
