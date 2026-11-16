@@ -107,3 +107,33 @@ Offset snapMoveToGrid(
 
   return Offset(snapAxis(center.dx, halfX), snapAxis(center.dy, halfY));
 }
+
+/// The translation that moves [box] by about [delta] and snaps it to grid
+/// lines every [step] units (spec 05, MS-4).
+///
+/// With [edges], each axis snaps like [snapMoveToGrid] at a multiple of
+/// 90°: the box edge nearest to a line lands on it (the lower edge on a
+/// tie). Otherwise the box center snaps to multiples of [step]. The
+/// translation is measured from the snapped target, so a box whose edges
+/// are already on lines moves by an exact multiple of [step].
+Offset snapBoxShiftToGrid(
+  Rect box,
+  Offset delta, {
+  required double step,
+  required bool edges,
+}) {
+  double axis(double low, double high, double d) {
+    if (!edges) {
+      final center = (low + high) / 2;
+      return snapToMultiple(center + d, step) - center;
+    }
+    final toLow = snapToMultiple(low + d, step) - low;
+    final toHigh = snapToMultiple(high + d, step) - high;
+    return (toHigh - d).abs() < (toLow - d).abs() ? toHigh : toLow;
+  }
+
+  return Offset(
+    axis(box.left, box.right, delta.dx),
+    axis(box.top, box.bottom, delta.dy),
+  );
+}

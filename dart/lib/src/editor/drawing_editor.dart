@@ -22,7 +22,7 @@ import 'drawing_tool.dart';
 import 'editor_toolbar.dart';
 import 'snap_haptics.dart';
 
-enum _GestureMode { none, move, resize, rotate, pinch, pan, labelDrag }
+enum _GestureMode { none, move, resize, rotate, pinch, pan, labelDrag, marquee }
 
 /// Anchor touch radius in the Joint tool, in dp (spec 02, JT-2).
 const double _anchorTouchRadius = 22;
@@ -119,6 +119,10 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   ViewportZoom _zoomFrom = const ViewportZoom();
   ViewportZoom _zoomTo = const ViewportZoom();
+
+  /// Selection rectangle being drawn, in canvas units, or null
+  /// (spec 05, MS-3).
+  Rect? _marquee;
 
   @override
   void initState() {
@@ -267,6 +271,10 @@ class _DrawingEditorState extends State<DrawingEditor>
                     CustomPaint(
                       painter: SelectionPainter(
                         shape: _controller.selectedShape,
+                        selectionBounds: _controller.selectedIds.length > 1
+                            ? boundsOfShapes(_controller.selectedShapes)
+                            : null,
+                        marquee: _marquee,
                         viewport: _viewport,
                         color: theme.colorScheme.primary,
                         showAngle: _mode == _GestureMode.rotate,
@@ -356,6 +364,19 @@ class _DrawingEditorState extends State<DrawingEditor>
   void _onTap(Offset localPosition) {
     final point = _viewport.toCanvas(localPosition);
     if (_handleAt(point) != null) return;
+
+    if (_inSelectionMode) {
+      // Spec 05, MS-1: taps toggle shapes; empty canvas keeps the
+      // selection but still counts for double-tap zoom.
+      final shape = topmostShapeAt(_controller.document.shapes, point);
+      if (shape == null) {
+        _onEmptyCanvasTap(localPosition);
+      } else {
+        _emptyTapPosition = null;
+        _controller.toggleSelected(shape.id);
+      }
+      return;
+    }
 
     final jointId = _jointAt(point);
     if (jointId != null) {
@@ -531,7 +552,10 @@ class _DrawingEditorState extends State<DrawingEditor>
     _startFocal = _pointerDown ?? details.localFocalPoint;
     final point = _viewport.toCanvas(_startFocal);
     final handleHit = _handleAt(point);
-    final jointId = handleHit == null ? _jointAt(point) : null;
+    // Joint labels are not interactive in selection mode (spec 05, MS-1).
+    final jointId = handleHit == null && !_inSelectionMode
+        ? _jointAt(point)
+        : null;
     if (handleHit != null) {
       _mode = handleHit.mode;
       _handle = handleHit.handle;
@@ -543,11 +567,22 @@ class _DrawingEditorState extends State<DrawingEditor>
       if (shape == null) {
         _mode = _emptyCanvasDragMode;
         if (_mode == _GestureMode.pan) _pinchStartZoom = _zoom;
+        if (_mode == _GestureMode.marquee) {
+          setState(() => _marquee = Rect.fromPoints(point, point));
+        }
         return;
       }
       // Shapes do not move in the joint tool.
       if (_controller.tool == DrawingTool.joint) return;
-      _controller.select(shape.id);
+      // A drag on a selected shape moves the whole selection (spec 05,
+      // MS-4); in selection mode an unselected shape joins it first.
+      if (!_controller.selectedIds.contains(shape.id)) {
+        if (_inSelectionMode) {
+          _controller.toggleSelected(shape.id);
+        } else {
+          _controller.select(shape.id);
+        }
+      }
       _mode = _GestureMode.move;
     }
     _snapHaptics.reset();
@@ -556,11 +591,20 @@ class _DrawingEditorState extends State<DrawingEditor>
     setState(() {});
   }
 
-  /// What a one-finger drag that starts on empty canvas does: it pans
-  /// while zoomed in (spec 05, PN-1) and does nothing at the fitted zoom
-  /// (PN-5). This is the single place that decides it.
-  _GestureMode get _emptyCanvasDragMode =>
-      _zoom.zoom > _zoomedInThreshold ? _GestureMode.pan : _GestureMode.none;
+  /// What a one-finger drag that starts on empty canvas does: in selection
+  /// mode it draws the selection rectangle at any zoom (spec 05, PN-6,
+  /// MS-3); otherwise it pans while zoomed in (PN-1) and does nothing at
+  /// the fitted zoom (PN-5). This is the single place that decides it.
+  _GestureMode get _emptyCanvasDragMode {
+    if (_inSelectionMode) return _GestureMode.marquee;
+    return _zoom.zoom > _zoomedInThreshold
+        ? _GestureMode.pan
+        : _GestureMode.none;
+  }
+
+  /// Whether taps and drags follow selection mode (spec 05, MS-1).
+  bool get _inSelectionMode =>
+      _controller.selectionMode && _controller.tool == DrawingTool.select;
 
   void _onScaleUpdate(ScaleUpdateDetails details) {
     switch (_mode) {
@@ -578,6 +622,13 @@ class _DrawingEditorState extends State<DrawingEditor>
                 scale: _mode == _GestureMode.pan ? 1 : details.scale,
               )
               .clamped(_controller.document.canvasSize, _areaSize);
+        });
+      case _GestureMode.marquee:
+        setState(() {
+          _marquee = Rect.fromPoints(
+            _viewport.toCanvas(_startFocal),
+            _viewport.toCanvas(details.localFocalPoint),
+          );
         });
       case _GestureMode.labelDrag:
         _controller.dragSelectedJointLabelBy(
@@ -615,11 +666,31 @@ class _DrawingEditorState extends State<DrawingEditor>
     }
   }
 
+  /// Adds every shape whose bounding box lies fully inside the selection
+  /// rectangle to the selection and removes the rectangle (spec 05, MS-3).
+  void _finishMarquee() {
+    final marquee = _marquee;
+    final inside = [
+      if (marquee != null)
+        for (final shape in _controller.document.shapes)
+          if (_containsRect(marquee, shapeBounds(shape))) shape.id,
+    ];
+    if (inside.isNotEmpty) _controller.selectAll(inside);
+    setState(() {
+      _mode = _GestureMode.none;
+      _marquee = null;
+    });
+  }
+
   void _onScaleEnd() {
     if (_mode == _GestureMode.none) return;
     // View changes never touch history or the dirty flag (PN-3, ZM-5).
     if (_mode == _GestureMode.pinch || _mode == _GestureMode.pan) {
       _mode = _GestureMode.none;
+      return;
+    }
+    if (_mode == _GestureMode.marquee) {
+      _finishMarquee();
       return;
     }
     _controller.endGesture();
@@ -630,6 +701,13 @@ class _DrawingEditorState extends State<DrawingEditor>
     });
   }
 }
+
+/// Whether [inner] lies fully inside [outer], edges included.
+bool _containsRect(Rect outer, Rect inner) =>
+    inner.left >= outer.left &&
+    inner.top >= outer.top &&
+    inner.right <= outer.right &&
+    inner.bottom <= outer.bottom;
 
 /// Single-line joint name editor (spec 02, NM-1).
 class _JointNameDialog extends StatefulWidget {

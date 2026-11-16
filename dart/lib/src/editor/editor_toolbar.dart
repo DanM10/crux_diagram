@@ -34,6 +34,11 @@ const double _rowVerticalSlack = 8;
 /// With the Joint tool active, the selection bar shows the joint display
 /// bar: the three label sizes and the show/hide button (spec 04, JD-1).
 ///
+/// In the select tool the selection bar starts with the Select toggle when
+/// nothing is selected or selection mode is on (spec 05, MS-1). A
+/// multi-selection shows Group, or Ungroup when it is exactly one group,
+/// before the shape actions (MS-5, MS-6).
+///
 /// The create bar never changes for a given configuration. The selection
 /// bar keeps its height when it is empty, so selecting never moves a
 /// button or resizes the canvas.
@@ -245,7 +250,31 @@ class _EditorToolbarState extends State<EditorToolbar> {
           () => controller.removeJoint(joint.id),
         ),
       ],
-      if (controller.selectedShape != null) ...[
+      if (!jointTool &&
+          (controller.selectionMode ||
+              (joint == null && controller.selectedIds.isEmpty)))
+        button(
+          Icons.highlight_alt,
+          labels.select,
+          labels.selectShort,
+          () => controller.selectionMode = !controller.selectionMode,
+          selected: controller.selectionMode,
+        ),
+      if (controller.selectedIds.length > 1)
+        controller.selectedGroup == null
+            ? button(
+                Icons.link,
+                labels.group,
+                labels.groupShort,
+                controller.groupSelected,
+              )
+            : button(
+                Icons.link_off,
+                labels.ungroup,
+                labels.ungroupShort,
+                controller.ungroupSelected,
+              ),
+      if (controller.selectedIds.isNotEmpty) ...[
         button(
           Icons.rotate_right,
           labels.rotate90,

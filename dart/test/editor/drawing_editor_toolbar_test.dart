@@ -138,7 +138,13 @@ void main() {
       tester,
     ) async {
       final c = await _pump(tester);
-      expect(_inBar(EditorToolbar.selectionBarKey), findsNothing);
+      // Spec 05, MS-1: with nothing selected only the Select toggle shows.
+      expect(
+        tester
+            .widgetList<ToolbarButton>(_inBar(EditorToolbar.selectionBarKey))
+            .map((b) => b.tooltip),
+        ['Select shapes'],
+      );
       double barHeight() =>
           tester.getSize(find.byKey(EditorToolbar.selectionBarKey)).height;
       final empty = barHeight();
@@ -194,6 +200,39 @@ void main() {
         final size = tester.getSize(_button(t));
         expect(size.width, greaterThanOrEqualTo(48), reason: t);
         expect(size.height, greaterThanOrEqualTo(48), reason: t);
+      }
+    });
+
+    testWidgets('at 360 dp the multi-selection bar keeps one line, 48 dp '
+        'buttons and whole short labels (spec 05, MS-1, MS-5)', (tester) async {
+      await _loadRoboto();
+      final c = await _pump(tester, screen: const Size(360, 800));
+      c
+        ..addShape(ShapeType.square)
+        ..addShape(ShapeType.circle)
+        ..selectionMode = true
+        ..selectAll([for (final s in c.document.shapes) s.id]);
+      await tester.pump();
+      const tooltips = ['Select shapes', 'Group shapes', ..._shapeTooltips];
+      expect(
+        tester
+            .widgetList<ToolbarButton>(_inBar(EditorToolbar.selectionBarKey))
+            .map((b) => b.tooltip),
+        tooltips,
+      );
+      expect(
+        {for (final t in tooltips) tester.getCenter(_button(t)).dy},
+        hasLength(1),
+        reason: 'buttons never wrap to a new line',
+      );
+      for (final t in tooltips) {
+        expect(tester.getSize(_button(t)).width, greaterThanOrEqualTo(48));
+      }
+      for (final label in ['Select', 'Group']) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.text(label),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse, reason: label);
       }
     });
 
@@ -381,7 +420,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Joint tool'));
       await tester.pump();
-      expect(selectionTooltips(tester), isEmpty);
+      expect(selectionTooltips(tester), ['Select shapes']);
       expect(_createPositions(tester), before);
     });
 

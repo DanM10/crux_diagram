@@ -281,7 +281,9 @@ class JointOverlayPainter extends CustomPainter {
       !listEquals(old.snapPoints, snapPoints);
 }
 
-/// Layer 4: selection outline, handles, rotation handle and angle readout.
+/// Layer 4: selection outline, handles, rotation handle and angle readout;
+/// for a multi-selection one bounding box with no handles, and the
+/// selection rectangle while it is drawn (spec 05, MS-2, MS-3).
 class SelectionPainter extends CustomPainter {
   /// Creates the selection painter.
   SelectionPainter({
@@ -289,10 +291,18 @@ class SelectionPainter extends CustomPainter {
     required this.viewport,
     required this.color,
     required this.showAngle,
+    this.selectionBounds,
+    this.marquee,
   });
 
-  /// Selected shape, or null for nothing.
+  /// The single selected shape, or null for nothing or a multi-selection.
   final ShapeElement? shape;
+
+  /// Bounding box of a multi-selection in canvas units, or null.
+  final Rect? selectionBounds;
+
+  /// Selection rectangle being drawn, in canvas units, or null.
+  final Rect? marquee;
 
   /// Current viewport.
   final CanvasViewport viewport;
@@ -303,14 +313,28 @@ class SelectionPainter extends CustomPainter {
   /// Whether to draw the angle readout (while rotating).
   final bool showAngle;
 
+  Rect _toScreen(Rect rect) => Rect.fromPoints(
+    viewport.toScreen(rect.topLeft),
+    viewport.toScreen(rect.bottomRight),
+  );
+
   @override
   void paint(Canvas canvas, Size size) {
-    final shape = this.shape;
-    if (shape == null) return;
     final outline = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1.5;
+    final bounds = selectionBounds;
+    if (bounds != null) canvas.drawRect(_toScreen(bounds), outline);
+    final marquee = this.marquee;
+    if (marquee != null) {
+      final rect = _toScreen(marquee);
+      canvas
+        ..drawRect(rect, Paint()..color = color.withValues(alpha: 0.08))
+        ..drawRect(rect, outline);
+    }
+    final shape = this.shape;
+    if (shape == null) return;
     final handleFill = Paint()..color = Colors.white;
 
     Offset screen(Offset local) =>
@@ -363,6 +387,8 @@ class SelectionPainter extends CustomPainter {
   @override
   bool shouldRepaint(SelectionPainter old) =>
       old.shape != shape ||
+      old.selectionBounds != selectionBounds ||
+      old.marquee != marquee ||
       old.viewport != viewport ||
       old.color != color ||
       old.showAngle != showAngle;

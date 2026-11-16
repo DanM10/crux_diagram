@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,7 @@ import '../model/joint.dart';
 import '../model/joint_label_size.dart';
 import '../model/joint_names.dart';
 import '../model/shape_element.dart';
+import '../model/shape_group.dart';
 import '../model/shape_type.dart';
 import '../model/shape_type_defaults.dart';
 import 'document_history.dart';
@@ -33,16 +35,25 @@ class DrawingEditorController extends ChangeNotifier {
   /// Creates a controller editing [initial], or an empty document with
   /// [config]'s canvas size.
   ///
-  /// [idGenerator] and [jointIdGenerator] produce ids for new shapes and
-  /// joints; the defaults combine a timestamp with a counter.
+  /// [idGenerator], [jointIdGenerator] and [groupIdGenerator] produce ids
+  /// for new shapes, joints and groups; the defaults combine a timestamp
+  /// with a counter.
+  ///
+  /// The groups of [initial] are normalized like after every edit: members
+  /// that are not shapes of the document and repeated members are dropped,
+  /// and so is a group left with fewer than two shapes (spec 05, MS-7).
   DrawingEditorController({
     DrawingDocument? initial,
     this.config = const DrawingEditorConfig(),
     String Function()? idGenerator,
     String Function()? jointIdGenerator,
-  }) : _document = initial ?? DrawingDocument(canvasSize: config.canvasSize),
+    String Function()? groupIdGenerator,
+  }) : _document = _normalizeGroups(
+         initial ?? DrawingDocument(canvasSize: config.canvasSize),
+       ),
        _nextId = idGenerator ?? defaultIdGenerator(prefix: 's'),
        _nextJointId = jointIdGenerator ?? defaultIdGenerator(prefix: 'j'),
+       _nextGroupId = groupIdGenerator ?? defaultIdGenerator(prefix: 'g'),
        _history = DocumentHistory(limit: config.historyLimit),
        _gridVisible = config.showGrid && config.gridSize != null {
     if (config.gridMajorEvery < 2) {
@@ -63,10 +74,15 @@ class DrawingEditorController extends ChangeNotifier {
 
   final String Function() _nextId;
   final String Function() _nextJointId;
+  final String Function() _nextGroupId;
   final DocumentHistory _history;
   DrawingDocument _document;
   late DrawingDocument _cleanBaseline;
-  String? _selectedId;
+
+  /// Ids of the selected shapes, in selection order. Always closed under
+  /// groups: a selected group member brings its whole group (MS-6).
+  final Set<String> _selection = <String>{};
+  bool _selectionMode = false;
   String? _selectedJointId;
   DrawingTool _tool = DrawingTool.select;
 
@@ -101,9 +117,99 @@ class DrawingEditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Id of the selected shape, or null. A shape and a joint are never
-  /// selected at the same time.
-  String? get selectedId => _selectedId;
+  /// Id of the selected shape when exactly one shape is selected, or null.
+  /// It is null for a multi-selection (spec 05, section 6). A shape and a
+  /// joint are never selected at the same time.
+  String? get selectedId => _selection.length == 1 ? _selection.first : null;
+
+  /// Ids of the selected shapes: empty, one or many (spec 05, section 6).
+  ///
+  /// Selecting a member of a group selects the whole group (MS-6). The set
+  /// is an unmodifiable copy.
+  Set<String> get selectedIds => Set.unmodifiable(_selection);
+
+  /// Whether selection mode is on (spec 05, MS-1): taps on shapes add them
+  /// to the selection or remove them, and a one-finger drag on empty
+  /// canvas draws a selection rectangle (MS-3).
+  ///
+  /// This is view state: setting it notifies listeners, adds no undo entry
+  /// and keeps the selection (MS-8). Turning it on clears a joint
+  /// selection. Switching to [DrawingTool.joint] turns it off.
+  bool get selectionMode => _selectionMode;
+
+  set selectionMode(bool value) {
+    if (_selectionMode == value) return;
+    _selectionMode = value;
+    if (value) _selectedJointId = null;
+    notifyListeners();
+  }
+
+  /// Adds the shape with [shapeId] to the selection, or removes it when it
+  /// is selected (spec 05, MS-1). A grouped shape adds or removes its whole
+  /// group (MS-6). Clears any joint selection; adds no undo entry.
+  ///
+  /// Throws [ArgumentError] when no such shape exists.
+  void toggleSelected(String shapeId) {
+    _shapeOrThrow(shapeId);
+    final members = _withGroupMates([shapeId]);
+    if (_selection.contains(shapeId)) {
+      _selection.removeAll(members);
+    } else {
+      _selection.addAll(members);
+    }
+    _selectedJointId = null;
+    notifyListeners();
+  }
+
+  /// Adds the shapes with [shapeIds], and their groups, to the selection
+  /// (spec 05, MS-3). Clears any joint selection; adds no undo entry.
+  ///
+  /// Throws [ArgumentError] when one of the shapes does not exist; the
+  /// selection is then unchanged.
+  void selectAll(Iterable<String> shapeIds) {
+    final ids = shapeIds.toList();
+    ids.forEach(_shapeOrThrow);
+    _selection.addAll(_withGroupMates(ids));
+    if (_selection.isNotEmpty) _selectedJointId = null;
+    notifyListeners();
+  }
+
+  /// Turns the selected shapes into one group, as one history entry
+  /// (spec 05, MS-6). Selected shapes that are already grouped are merged
+  /// into the new group, since groups do not nest (decision 14).
+  ///
+  /// Does nothing with fewer than two selected shapes or when the selection
+  /// is exactly one group.
+  void groupSelected() {
+    if (_selection.length < 2 || _selectedGroup != null) return;
+    final members = [
+      for (final shape in _document.shapes)
+        if (_selection.contains(shape.id)) shape.id,
+    ];
+    _commit(
+      _normalizeGroups(
+        _document.copyWith(
+          groups: [
+            for (final group in _document.groups)
+              if (!group.shapeIds.any(_selection.contains)) group,
+            ShapeGroup(id: _uniqueGroupId(), shapeIds: members),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Removes every group with a selected member, as one history entry
+  /// (spec 05, MS-6). The shapes stay selected; afterwards each selects on
+  /// its own. Does nothing when no selected shape is grouped.
+  void ungroupSelected() {
+    final kept = [
+      for (final group in _document.groups)
+        if (!group.shapeIds.any(_selection.contains)) group,
+    ];
+    if (kept.length == _document.groups.length) return;
+    _commit(_document.copyWith(groups: kept));
+  }
 
   /// The selected joint, or null.
   Joint? get selectedJoint => _jointById(_selectedJointId);
@@ -116,7 +222,10 @@ class DrawingEditorController extends ChangeNotifier {
   set tool(DrawingTool value) {
     if (_tool == value) return;
     _tool = value;
-    if (value == DrawingTool.joint) _selectedId = null;
+    if (value == DrawingTool.joint) {
+      _selection.clear();
+      _selectionMode = false;
+    }
     notifyListeners();
   }
 
@@ -262,12 +371,23 @@ class DrawingEditorController extends ChangeNotifier {
     );
   }
 
-  /// Deletes the selected joint, or else the selected shape together with
-  /// its joints.
+  /// Deletes the selected joint, or else the selected shapes together with
+  /// their joints, as one history entry. A group whose shapes are all
+  /// deleted is deleted with them (spec 05, MS-5, MS-7).
   void deleteSelected() {
     final joint = selectedJoint;
     if (joint != null) {
       removeJoint(joint.id);
+      return;
+    }
+    if (_selection.length > 1) {
+      _commit(
+        _withShapes([
+          for (final s in _document.shapes)
+            if (!_selection.contains(s.id)) s,
+        ]),
+        select: null,
+      );
       return;
     }
     final selected = _selected;
@@ -283,7 +403,16 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// Duplicates the selected shape with a new id, offset diagonally by
   /// [cascadeOffset], on top of the stack, and selects the copy.
+  ///
+  /// A multi-selection is copied the same way as one history entry: the
+  /// copies keep their stacking order on top and are selected, and the
+  /// copies of a group form a new group (spec 05, MS-5). Joints are not
+  /// copied, as for a single shape.
   void duplicateSelected() {
+    if (_selection.length > 1) {
+      _duplicateSelection();
+      return;
+    }
     final selected = _selected;
     if (selected == null) return;
     final copy = selected.copyWith(
@@ -297,14 +426,48 @@ class DrawingEditorController extends ChangeNotifier {
   }
 
   /// Rotates the selected shape clockwise by [radians].
+  ///
+  /// A multi-selection turns as one history entry around the center of its
+  /// bounding box: every shape rotates by [radians] and its center turns
+  /// around that point, kept inside the canvas (spec 05, MS-5).
   void rotateSelectedBy(double radians) {
+    if (_selection.length > 1) {
+      final pivot = boundsOfShapes(_selectedShapes).center;
+      _commit(
+        _withShapes([
+          for (final s in _document.shapes)
+            _selection.contains(s.id)
+                ? s.copyWith(
+                    center: clampToCanvas(
+                      pivot + rotateVector(s.center - pivot, radians),
+                      _document.canvasSize,
+                    ),
+                    rotation: s.rotation + radians,
+                  )
+                : s,
+        ]),
+      );
+      return;
+    }
     final selected = _selected;
     if (selected == null) return;
     _replaceSelected(selected.copyWith(rotation: selected.rotation + radians));
   }
 
-  /// Moves the selected shape to the top of the stack.
+  /// Moves the selected shape to the top of the stack. A multi-selection
+  /// moves as one history entry and keeps its relative order (spec 05,
+  /// MS-5).
   void bringToFront() {
+    if (_selection.length > 1) {
+      _commit(
+        _withShapes([
+          for (final s in _document.shapes)
+            if (!_selection.contains(s.id)) s,
+          ..._selectedShapes,
+        ]),
+      );
+      return;
+    }
     final selected = _selected;
     if (selected == null) return;
     _commit(
@@ -316,8 +479,20 @@ class DrawingEditorController extends ChangeNotifier {
     );
   }
 
-  /// Moves the selected shape to the bottom of the stack.
+  /// Moves the selected shape to the bottom of the stack. A
+  /// multi-selection moves as one history entry and keeps its relative
+  /// order (spec 05, MS-5).
   void sendToBack() {
+    if (_selection.length > 1) {
+      _commit(
+        _withShapes([
+          ..._selectedShapes,
+          for (final s in _document.shapes)
+            if (!_selection.contains(s.id)) s,
+        ]),
+      );
+      return;
+    }
     final selected = _selected;
     if (selected == null) return;
     _commit(
@@ -365,7 +540,7 @@ class DrawingEditorController extends ChangeNotifier {
       );
 
   ShapeElement? get _selected {
-    final id = _selectedId;
+    final id = selectedId;
     if (id == null) return null;
     for (final shape in _document.shapes) {
       if (shape.id == id) return shape;
@@ -373,15 +548,88 @@ class DrawingEditorController extends ChangeNotifier {
     return null;
   }
 
-  /// The document with [shapes], keeping the joints whose shape survives.
-  DrawingDocument _withShapes(List<ShapeElement> shapes) {
+  /// The selected shapes in stacking order.
+  List<ShapeElement> get _selectedShapes => [
+    for (final shape in _document.shapes)
+      if (_selection.contains(shape.id)) shape,
+  ];
+
+  /// The group whose members are exactly the selection, or null.
+  ShapeGroup? get _selectedGroup {
+    for (final group in _document.groups) {
+      if (group.shapeIds.length == _selection.length &&
+          group.shapeIds.every(_selection.contains)) {
+        return group;
+      }
+    }
+    return null;
+  }
+
+  /// [ids] plus every other member of their groups.
+  Set<String> _withGroupMates(Iterable<String> ids) {
+    final result = {...ids};
+    for (final group in _document.groups) {
+      if (group.shapeIds.any(result.contains)) result.addAll(group.shapeIds);
+    }
+    return result;
+  }
+
+  /// Replaces the selection with [ids] and their groups (MS-6).
+  void _setSelection(Iterable<String> ids) {
+    final next = _withGroupMates(ids);
+    _selection
+      ..clear()
+      ..addAll(next);
+  }
+
+  /// The document with [shapes], keeping the joints whose shape survives
+  /// and the groups normalized against them (spec 05, MS-7).
+  DrawingDocument _withShapes(
+    List<ShapeElement> shapes, {
+    List<ShapeGroup>? groups,
+  }) {
     final ids = {for (final shape in shapes) shape.id};
-    return _document.copyWith(
-      shapes: shapes,
-      joints: [
-        for (final joint in _document.joints)
-          if (ids.contains(joint.shapeId)) joint,
-      ],
+    return _normalizeGroups(
+      _document.copyWith(
+        shapes: shapes,
+        joints: [
+          for (final joint in _document.joints)
+            if (ids.contains(joint.shapeId)) joint,
+        ],
+        groups: groups,
+      ),
+    );
+  }
+
+  /// Copies the multi-selection on top, with the copies of each group in a
+  /// new group, and selects the copies (spec 05, MS-5).
+  void _duplicateSelection() {
+    final copies = <String, ShapeElement>{};
+    for (final shape in _selectedShapes) {
+      copies[shape.id] = shape.copyWith(
+        id: _uniqueId(copies.values.map((c) => c.id)),
+        center: clampToCanvas(
+          shape.center + const Offset(cascadeOffset, cascadeOffset),
+          _document.canvasSize,
+        ),
+      );
+    }
+    final newGroups = <ShapeGroup>[];
+    for (final group in _document.groups) {
+      if (!group.shapeIds.every(copies.containsKey)) continue;
+      newGroups.add(
+        ShapeGroup(
+          id: _uniqueGroupId(newGroups.map((g) => g.id)),
+          shapeIds: [for (final id in group.shapeIds) copies[id]!.id],
+        ),
+      );
+    }
+    _commit(
+      _withShapes(
+        [..._document.shapes, ...copies.values],
+        groups: [..._document.groups, ...newGroups],
+      ),
+      select: [for (final copy in copies.values) copy.id],
     );
   }
 
@@ -398,14 +646,22 @@ class DrawingEditorController extends ChangeNotifier {
   }
 
   /// Applies a shape and/or joint selection; selecting one clears the other.
+  ///
+  /// [select] is a shape id, a list of shape ids, null to clear, or
+  /// [_keepSelection].
   void _applySelection(Object? select, Object? selectJoint) {
     if (select != _keepSelection) {
-      _selectedId = select as String?;
-      if (_selectedId != null) _selectedJointId = null;
+      _setSelection(switch (select) {
+        null => const <String>[],
+        final String id => [id],
+        final List<String> ids => ids,
+        _ => throw ArgumentError.value(select, 'select'),
+      });
+      if (_selection.isNotEmpty) _selectedJointId = null;
     }
     if (selectJoint != _keepSelection) {
       _selectedJointId = selectJoint as String?;
-      if (_selectedJointId != null) _selectedId = null;
+      if (_selectedJointId != null) _selection.clear();
     }
   }
 
@@ -499,11 +755,22 @@ class DrawingEditorController extends ChangeNotifier {
     );
   }
 
-  String _uniqueId() {
-    final taken = {for (final s in _document.shapes) s.id};
+  /// A new shape id, unused by the document and by [reserved].
+  String _uniqueId([Iterable<String> reserved = const []]) {
+    final taken = {for (final s in _document.shapes) s.id, ...reserved};
     var id = _nextId();
     while (taken.contains(id)) {
       id = _nextId();
+    }
+    return id;
+  }
+
+  /// A new group id, unused by the document and by [reserved].
+  String _uniqueGroupId([Iterable<String> reserved = const []]) {
+    final taken = {for (final g in _document.groups) g.id, ...reserved};
+    var id = _nextGroupId();
+    while (taken.contains(id)) {
+      id = _nextGroupId();
     }
     return id;
   }
@@ -549,8 +816,11 @@ class DrawingEditorController extends ChangeNotifier {
   /// [notifyListeners] is protected.
   void _notify() => notifyListeners();
 
+  /// Drops selected ids that no longer exist and completes the groups of
+  /// the rest (MS-6), and drops a stale or hidden joint selection.
   void _dropStaleSelection() {
-    if (_selected == null) _selectedId = null;
+    final shapeIds = {for (final s in _document.shapes) s.id};
+    _setSelection(_selection.where(shapeIds.contains).toList());
     if (selectedJoint == null || !_document.jointsVisible) {
       _selectedJointId = null;
     }
@@ -568,6 +838,38 @@ class DrawingEditorController extends ChangeNotifier {
 
 const Object _keepSelection = Object();
 
+/// [document] with its groups normalized against its shapes (spec 05,
+/// MS-7): members that are not shapes of the document and members already
+/// in an earlier group are dropped, and so is a group left with fewer than
+/// two shapes. Returns [document] itself when nothing changes, so the
+/// encoder never writes groups that `DrawingDocument.fromJson` rejects
+/// (PS-6).
+DrawingDocument _normalizeGroups(DrawingDocument document) {
+  final shapeIds = {for (final s in document.shapes) s.id};
+  final grouped = <String>{};
+  final groups = <ShapeGroup>[];
+  final groupIds = <String>{};
+  var changed = false;
+  for (final group in document.groups) {
+    final members = [
+      for (final id in group.shapeIds)
+        if (shapeIds.contains(id) && grouped.add(id)) id,
+    ];
+    if (members.length < 2 || !groupIds.add(group.id)) {
+      grouped.removeAll(members);
+      changed = true;
+      continue;
+    }
+    if (members.length != group.shapeIds.length) {
+      changed = true;
+      groups.add(ShapeGroup(id: group.id, shapeIds: members));
+    } else {
+      groups.add(group);
+    }
+  }
+  return changed ? document.copyWith(groups: groups) : document;
+}
+
 /// Gesture and selection operations used by the editor widgets.
 ///
 /// Not exported from the public library.
@@ -575,11 +877,19 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// The selected shape, or null.
   ShapeElement? get selectedShape => _selected;
 
-  /// Selects the shape with [id], or clears the selection with null.
-  /// Clears any joint selection.
+  /// The selected shapes, in stacking order: empty, one or many.
+  List<ShapeElement> get selectedShapes => _selectedShapes;
+
+  /// The group whose members are exactly the selected shapes, or null
+  /// (spec 05, MS-6).
+  ShapeGroup? get selectedGroup => _selectedGroup;
+
+  /// Selects the shape with [id] and the rest of its group (spec 05, MS-6),
+  /// or clears the selection with null. Clears any joint selection.
   void select(String? id) {
-    if (_selectedId == id && _selectedJointId == null) return;
-    _selectedId = id;
+    final next = id == null ? const <String>{} : _withGroupMates([id]);
+    if (setEquals(next, _selection) && _selectedJointId == null) return;
+    _setSelection(next);
     _selectedJointId = null;
     _notify();
   }
@@ -591,9 +901,9 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// (spec 04, JV-2).
   void selectJoint(String? id) {
     if (!_document.jointsVisible) id = null;
-    if (_selectedJointId == id && _selectedId == null) return;
+    if (_selectedJointId == id && _selection.isEmpty) return;
     _selectedJointId = id;
-    _selectedId = null;
+    _selection.clear();
     _notify();
   }
 
@@ -610,7 +920,7 @@ extension DrawingEditorGestures on DrawingEditorController {
       jointsVisible: true,
     );
     _selectedJointId = joint.id;
-    _selectedId = null;
+    _selection.clear();
     _notify();
     return joint;
   }
@@ -681,18 +991,34 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// bounding box edges land on grid lines, otherwise the center snaps to
   /// the step (spec 05, GA-1, GA-3, GA-5). Anchor snapping keeps priority
   /// (GA-7). Without it, snapping is unchanged (GA-2).
+  ///
+  /// A multi-selection moves as one shape (spec 05, MS-4): any selected
+  /// anchor snaps onto an unselected shape's anchor first; otherwise the
+  /// selection's bounding box snaps at [gridStep] (or
+  /// [DrawingEditorConfig.gridSize] while the grid is hidden), by its edges
+  /// when every selected shape is at a multiple of 90° and by its center
+  /// otherwise. The selection stays rigid while its centers are kept inside
+  /// the canvas.
   void moveSelectedBy(
     Offset delta, {
     double? anchorSnapDistance,
     double? gridStep,
   }) {
+    if (_selection.length > 1) {
+      _moveSelectionBy(
+        delta,
+        anchorSnapDistance: anchorSnapDistance,
+        gridStep: gridStep,
+      );
+      return;
+    }
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
     _snapTarget = null;
     final raw = start.center + delta;
     var center = raw;
-    final others = _otherAnchors(start.id);
+    final others = _otherAnchors({start.id});
     final snap = anchorSnapDistance == null
         ? null
         : nearestAnchorSnap(anchors.anchorsOf(start.copyWith(center: raw)), [
@@ -781,7 +1107,7 @@ extension DrawingEditorGestures on DrawingEditorController {
     double distance,
   ) {
     final anchorId = anchorIdForHandle(handle);
-    final others = _otherAnchors(start.id);
+    final others = _otherAnchors({start.id});
     final free = resizeShape(start, handle, pointer, limits: limits);
     final position = anchorPositionOf(free, anchorId);
     if (position == null) return null;
@@ -799,15 +1125,90 @@ extension DrawingEditorGestures on DrawingEditorController {
     return snapped;
   }
 
-  /// Anchors of every shape except [shapeId], in the current document,
+  /// Anchors of every shape not in [shapeIds], in the current document,
   /// each with its (shape id, anchor id) key.
-  List<({Anchor anchor, (String, String) key})> _otherAnchors(String shapeId) =>
-      [
-        for (final shape in _document.shapes)
-          if (shape.id != shapeId)
-            for (final anchor in anchors.anchorsOf(shape))
-              (anchor: anchor, key: (shape.id, anchor.id)),
-      ];
+  List<({Anchor anchor, (String, String) key})> _otherAnchors(
+    Set<String> shapeIds,
+  ) => [
+    for (final shape in _document.shapes)
+      if (!shapeIds.contains(shape.id))
+        for (final anchor in anchors.anchorsOf(shape))
+          (anchor: anchor, key: (shape.id, anchor.id)),
+  ];
+
+  /// The multi-selection part of [moveSelectedBy] (spec 05, MS-4).
+  void _moveSelectionBy(
+    Offset delta, {
+    double? anchorSnapDistance,
+    double? gridStep,
+  }) {
+    final start = _gestureStart;
+    if (start == null) return;
+    final moving = [
+      for (final shape in start.shapes)
+        if (_selection.contains(shape.id)) shape,
+    ];
+    if (moving.isEmpty) return;
+    _snapHighlight = const [];
+    _snapTarget = null;
+    final others = _otherAnchors(_selection);
+    final snap = anchorSnapDistance == null
+        ? null
+        : nearestAnchorSnap(
+            [
+              for (final shape in moving)
+                ...anchors.anchorsOf(
+                  shape.copyWith(center: shape.center + delta),
+                ),
+            ],
+            [for (final other in others) other.anchor],
+            threshold: anchorSnapDistance,
+          );
+    final step = gridStep ?? config.gridSize;
+    var shift = delta;
+    if (snap != null) {
+      shift = delta + snap.delta;
+      _snapHighlight = [snap.to, snap.to];
+      _snapTarget = others[snap.targetIndex].key;
+    } else if (step != null) {
+      shift = snapBoxShiftToGrid(
+        boundsOfShapes(moving),
+        delta,
+        step: step,
+        edges: moving.every((s) => isQuarterTurn(s.rotation)),
+      );
+    }
+    shift = _clampShift(moving, shift);
+    final byId = {for (final shape in moving) shape.id: shape};
+    _document = _withShapes([
+      for (final s in _document.shapes)
+        if (byId[s.id] case final from?)
+          from.copyWith(center: from.center + shift)
+        else
+          s,
+    ]);
+    _notify();
+  }
+
+  /// [shift] limited so every center of [shapes] stays inside the canvas
+  /// (FR-10) while the shapes keep their relative positions.
+  Offset _clampShift(List<ShapeElement> shapes, Offset shift) {
+    final canvas = _document.canvasSize;
+    var minX = double.infinity, maxX = -double.infinity;
+    var minY = double.infinity, maxY = -double.infinity;
+    for (final shape in shapes) {
+      minX = math.min(minX, shape.center.dx);
+      maxX = math.max(maxX, shape.center.dx);
+      minY = math.min(minY, shape.center.dy);
+      maxY = math.max(maxY, shape.center.dy);
+    }
+    double clampAxis(double v, double low, double high) =>
+        low > high ? v : v.clamp(low, high);
+    return Offset(
+      clampAxis(shift.dx, -minX, canvas.width - maxX),
+      clampAxis(shift.dy, -minY, canvas.height - maxY),
+    );
+  }
 
   /// Rotates the selected shape so its rotation handle points at [pointer],
   /// with soft snapping (FR-15, FR-16).
@@ -852,7 +1253,7 @@ extension DrawingEditorGestures on DrawingEditorController {
 
   ShapeElement? get _gestureShape {
     final start = _gestureStart;
-    final id = _selectedId;
+    final id = selectedId;
     if (start == null || id == null) return null;
     for (final shape in start.shapes) {
       if (shape.id == id) return shape;

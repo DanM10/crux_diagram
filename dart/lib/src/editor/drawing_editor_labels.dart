@@ -61,6 +61,12 @@ class DrawingEditorLabels {
     this.zoomPercent = _defaultZoomPercent,
     this.invalidDrawing = 'This drawing could not be opened.',
     this.close = 'Close',
+    this.select = 'Select shapes',
+    this.selectShort = 'Select',
+    this.group = 'Group shapes',
+    this.groupShort = 'Group',
+    this.ungroup = 'Ungroup shapes',
+    this.ungroupShort = 'Ungroup',
   });
 
   static String _defaultZoomPercent(int percent) => '$percent%';
@@ -226,4 +232,23 @@ class DrawingEditorLabels {
 
   /// Button under [invalidDrawing] that closes the page without a result.
   final String close;
+
+  /// Tooltip of the toggle that enters and leaves selection mode
+  /// (spec 05, MS-1).
+  final String select;
+
+  /// Short label of the selection mode toggle.
+  final String selectShort;
+
+  /// Tooltip of the action that groups the selected shapes (spec 05, MS-6).
+  final String group;
+
+  /// Short label of the group button.
+  final String groupShort;
+
+  /// Tooltip of the action that ungroups the selected group.
+  final String ungroup;
+
+  /// Short label of the ungroup button.
+  final String ungroupShort;
 }
