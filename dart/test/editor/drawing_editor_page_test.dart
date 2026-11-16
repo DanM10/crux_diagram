@@ -7,9 +7,10 @@ import 'package:soft_drawer_service/soft_drawer_service.dart';
 
 /// Opens the page from a launcher and records what it pops.
 class _Launcher extends StatefulWidget {
-  const _Launcher({this.initialJson});
+  const _Launcher({this.initialJson, this.format = ImageFormat.jpeg});
 
   final String? initialJson;
+  final ImageFormat format;
 
   @override
   State<_Launcher> createState() => _LauncherState();
@@ -28,7 +29,10 @@ class _LauncherState extends State<_Launcher> {
             MaterialPageRoute(
               builder: (_) => DrawingEditorPage(
                 initialJson: widget.initialJson,
-                config: const DrawingEditorConfig(canvasSize: Size(400, 300)),
+                config: DrawingEditorConfig(
+                  canvasSize: const Size(400, 300),
+                  imageFormat: widget.format,
+                ),
               ),
             ),
           );
@@ -43,9 +47,15 @@ class _LauncherState extends State<_Launcher> {
   );
 }
 
-Future<_LauncherState> _open(WidgetTester tester, {String? initialJson}) async {
+Future<_LauncherState> _open(
+  WidgetTester tester, {
+  String? initialJson,
+  ImageFormat format = ImageFormat.jpeg,
+}) async {
   await tester.pumpWidget(
-    MaterialApp(home: _Launcher(initialJson: initialJson)),
+    MaterialApp(
+      home: _Launcher(initialJson: initialJson, format: format),
+    ),
   );
   // The launcher goes offstage once the page is pushed, so read it first.
   final launcher = tester.state<_LauncherState>(find.byType(_Launcher));
@@ -65,6 +75,35 @@ Future<void> _settleAsync(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('Done returns the configured format (spec 06, AC 8)', (
+    tester,
+  ) async {
+    final jpeg = await _open(tester);
+    await tester.tap(find.text('Done'));
+    await _settleAsync(tester);
+    expect(jpeg.result!.format, ImageFormat.jpeg);
+    expect(jpeg.result!.image.sublist(0, 3), [0xFF, 0xD8, 0xFF]);
+  });
+
+  testWidgets('Done returns a PNG with imageFormat png (spec 06, AC 8)', (
+    tester,
+  ) async {
+    final launcher = await _open(tester, format: ImageFormat.png);
+    await tester.tap(find.text('Done'));
+    await _settleAsync(tester);
+    expect(launcher.result!.format, ImageFormat.png);
+    expect(launcher.result!.image.sublist(0, 8), [
+      0x89,
+      0x50,
+      0x4E,
+      0x47,
+      0x0D,
+      0x0A,
+      0x1A,
+      0x0A,
+    ]);
+  });
+
   testWidgets('Done pops a DrawingResult with a JPEG and the JSON', (
     tester,
   ) async {
@@ -76,7 +115,7 @@ void main() {
 
     expect(launcher.popped, isTrue);
     final result = launcher.result!;
-    final image = img.decodeJpg(result.jpeg)!;
+    final image = img.decodeJpg(result.image)!;
     expect(image.width, 400);
     expect(image.height, 300);
     final document = DrawingDocument.fromJson(result.json);

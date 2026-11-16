@@ -35,6 +35,7 @@ class JointPlacement {
 List<JointPlacement> placeJoints(DrawingDocument document, JointStyle style) {
   if (!document.jointsVisible) return [];
   final labelStyle = style.labelStyle.copyWith(
+    color: style.labelStyle.color ?? style.color,
     fontSize: style.labelFontSize(document.jointLabelSize),
   );
   final shapes = {for (final shape in document.shapes) shape.id: shape};
@@ -67,12 +68,12 @@ List<JointPlacement> placeJoints(DrawingDocument document, JointStyle style) {
 /// identically. Call after the shapes so joints sit above them (AW-6).
 void paintJoints(Canvas canvas, DrawingDocument document, JointStyle style) {
   final line = Paint()
-    ..color = style.arrowColor
+    ..color = style.color
     ..style = PaintingStyle.stroke
     ..strokeWidth = style.lineWidth
     ..strokeCap = StrokeCap.butt;
   final head = Paint()
-    ..color = style.arrowColor
+    ..color = style.color
     ..style = PaintingStyle.fill;
   final arrowhead = style.arrowheadSize(document.jointLabelSize);
   for (final placement in placeJoints(document, style)) {

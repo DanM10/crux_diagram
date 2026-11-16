@@ -68,12 +68,18 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
     final controller = _controller!;
     setState(() => _exporting = true);
     try {
-      final jpeg = await controller.exportJpeg();
+      final image = await controller.exportImage();
       final json = controller.toJson();
       controller.markClean();
       if (!mounted) return;
       _leaving = true;
-      Navigator.of(context).pop(DrawingResult(jpeg: jpeg, json: json));
+      Navigator.of(context).pop(
+        DrawingResult(
+          image: image,
+          format: controller.config.imageFormat,
+          json: json,
+        ),
+      );
     } catch (_) {
       if (!mounted) return;
       setState(() => _exporting = false);

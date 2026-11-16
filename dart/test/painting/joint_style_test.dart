@@ -32,8 +32,8 @@ void main() {
   group('JointStyle defaults (spec 04, CL-2, CL-3)', () {
     const style = JointStyle();
 
-    test('labels are black and bold with no font size of their own', () {
-      expect(style.labelStyle.color, const Color(0xFF000000));
+    test('labels are bold with no color or font size of their own', () {
+      expect(style.labelStyle.color, isNull);
       expect(style.labelStyle.fontWeight, FontWeight.bold);
       expect(style.labelStyle.fontSize, isNull);
     });
@@ -42,7 +42,7 @@ void main() {
       expect(style.lineWidth, 2.5);
       expect(style.arrowheadLength, 16);
       expect(style.arrowheadWidth, 11);
-      expect(style.arrowColor, const Color(0xFF000000));
+      expect(style.color, const Color(0xFF000000));
     });
   });
 
