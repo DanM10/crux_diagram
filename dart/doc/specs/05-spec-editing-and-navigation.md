@@ -185,3 +185,4 @@ class DrawingEditorLabels {
 | 13 | Can a multi-selection or group be resized by handles? | No: move, rotate 90°, duplicate, z-order and delete only (MS-2). User: "confirmo todo". |
 | 14 | Nested groups? | No; grouping shapes that are already grouped merges them into one group. User: "confirmo todo". |
 | 15 | Do new shapes align to the visible lines when created? | No; they keep Spec 03 PL-1 placement and align on their first move or resize, since default sizes are not multiples of 50. User: "confirmo todo". |
+| 16 | Does Duplicate copy joints? | No, neither for one shape nor for a multi-selection; a joint names one connection point, so a second "J1" would confuse a diagram (MS-5). User: "1". |
