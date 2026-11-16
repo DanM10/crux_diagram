@@ -275,12 +275,14 @@ class _EditorToolbarState extends State<EditorToolbar> {
                 controller.ungroupSelected,
               ),
       if (controller.selectedIds.isNotEmpty) ...[
-        button(
-          Icons.rotate_right,
-          labels.rotate90,
-          labels.rotateShort,
-          () => controller.rotateSelectedBy(math.pi / 2),
-        ),
+        // Only a single shape rotates (spec 05, MS-5).
+        if (controller.selectedIds.length == 1)
+          button(
+            Icons.rotate_right,
+            labels.rotate90,
+            labels.rotateShort,
+            () => controller.rotateSelectedBy(math.pi / 2),
+          ),
         button(
           Icons.copy_outlined,
           labels.duplicate,

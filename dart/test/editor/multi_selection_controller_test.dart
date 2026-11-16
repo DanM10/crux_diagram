@@ -279,37 +279,25 @@ void main() {
   });
 
   group('multi-selection actions (spec 05, MS-5)', () {
-    test('rotate 90° turns every shape around the bounding box center as '
-        'one history entry', () {
+    test('a multi-selection does not rotate: no change and no history '
+        'entry', () {
       final c = _controller()..selectAll(['a', 'b']);
+      final before = c.document;
       c.rotateSelectedBy(math.pi / 2);
-      // Bounding box 150..550 × 150..250, center (350, 200).
-      expect(_shape(c, 'a').center.dx, closeTo(350, 1e-9));
-      expect(_shape(c, 'a').center.dy, closeTo(50, 1e-9));
-      expect(_shape(c, 'b').center.dx, closeTo(350, 1e-9));
-      expect(_shape(c, 'b').center.dy, closeTo(350, 1e-9));
-      expect(_shape(c, 'a').rotation, math.pi / 2);
-      expect(_shape(c, 'b').rotation, math.pi / 2);
-      expect(_shape(c, 'c').center, const Offset(800, 800));
+      expect(c.document, same(before));
       expect(c.selectedIds, {'a', 'b'});
-      expect(c.document.joints, _document().joints);
-      _expectDecodable(c);
-      expect(_historyDepth(c), 1);
-      expect(c.document, _document());
+      expect(c.canUndo, isFalse);
+      expect(c.isDirty, isFalse);
     });
 
-    test('rotating keeps every center inside the canvas', () {
-      final c = _controller(
-        initial: DrawingDocument(
-          shapes: [
-            _box('a', const Offset(50, 600)),
-            _box('b', const Offset(1550, 600)),
-          ],
-        ),
-      )..selectAll(['a', 'b']);
+    test('a selected group does not rotate either', () {
+      final c = _controller()
+        ..selectAll(['a', 'b'])
+        ..groupSelected();
+      final before = c.document;
       c.rotateSelectedBy(math.pi / 2);
-      expect(_shape(c, 'a').center.dy, 0);
-      expect(_shape(c, 'b').center.dy, 1200);
+      expect(c.document, same(before));
+      expect(_historyDepth(c), 1);
     });
 
     test('duplicate copies every shape offset by 20, on top, selected; '

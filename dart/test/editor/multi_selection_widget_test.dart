@@ -17,6 +17,10 @@ const _shapeActions = [
   'Delete',
 ];
 
+/// The actions of a multi-selection: the same without Rotate 90°, since
+/// only a single shape rotates.
+const _multiActions = ['Duplicate', 'Bring to front', 'Send to back', 'Delete'];
+
 const _jointDisplay = [
   'Small joint labels',
   'Medium joint labels',
@@ -143,7 +147,7 @@ void main() {
       await h.tapCanvas(const Offset(400, 400));
       await h.tapCanvas(const Offset(1000, 400));
       expect(h.controller.selectedIds, {'a', 'b'});
-      expect(h.bar, [_select, 'Group shapes', ..._shapeActions]);
+      expect(h.bar, [_select, 'Group shapes', ..._multiActions]);
       expect(find.text('Group'), findsOneWidget);
 
       await h.tapCanvas(const Offset(400, 400));
@@ -187,11 +191,11 @@ void main() {
       await h.tapCanvas(const Offset(1000, 400));
       await h.tapButton('Group shapes');
       expect(h.controller.document.groups, hasLength(1));
-      expect(h.bar, [_select, 'Ungroup shapes', ..._shapeActions]);
+      expect(h.bar, [_select, 'Ungroup shapes', ..._multiActions]);
       expect(find.text('Ungroup'), findsOneWidget);
 
       await h.tapButton(_select);
-      expect(h.bar, ['Ungroup shapes', ..._shapeActions]);
+      expect(h.bar, ['Ungroup shapes', ..._multiActions]);
     });
 
     testWidgets('the joint tool clears the selection and keeps its display '
@@ -221,7 +225,7 @@ void main() {
       await h.tapCanvas(const Offset(1000, 400));
       expect(h.controller.selectedIds, {'a', 'b'});
       expect(h.controller.selectedId, isNull);
-      expect(h.bar, ['Ungroup shapes', ..._shapeActions]);
+      expect(h.bar, ['Ungroup shapes', ..._multiActions]);
 
       await h.tapButton('Ungroup shapes');
       await h.tapCanvas(const Offset(100, 1100));

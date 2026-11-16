@@ -13,7 +13,7 @@ A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows.
 - A phone-friendly toolbar: buttons with short labels that never move, a hint while the joint tool is active, and a light haptic tick when a rotation or anchor snap engages.
 - Undo and redo, with one history entry per gesture.
 - JPEG export at any pixel ratio, encoded off the UI thread.
-- Multi-selection and groups: select several shapes, move, rotate, duplicate, reorder or delete them together, and keep them grouped in the saved document.
+- Multi-selection and groups: select several shapes, move, duplicate, reorder or delete them together, and keep them grouped in the saved document.
 - Versioned JSON format (schema 4) with strict decoding. Version 1 to 3 documents still open, and `DrawingDocument.validate` checks a JSON string without throwing.
 - Every user-visible string can be replaced through `DrawingEditorLabels`.
 
@@ -84,7 +84,7 @@ DrawingEditorPage(
 | Add a shape | Tap a shape button in the toolbar. It appears in the middle of the screen, even when zoomed in. |
 | Select, move | Tap a shape, then drag it. |
 | Resize | Drag a corner or edge handle. Squares and circles keep their aspect ratio. |
-| Rotate | Drag the round handle above the shape, or tap **Rotate 90°**. |
+| Rotate | Drag the round handle above the shape, or tap **Rotate 90°**. Only a single shape rotates; a multi-selection or group does not. |
 | Zoom and pan | Pinch with two fingers. When zoomed in, drag one finger on empty canvas (or two fingers anywhere) to move around. |
 | Quick zoom | Double-tap empty canvas to zoom to 2× there; double-tap again, or tap **Fit to screen**, to see the whole canvas. |
 | Show the grid | Tap **Grid**. While it is shown, moved and resized shapes line up their edges with the lines you see (every 50 units zoomed out, every 10 zoomed in). Hidden, shapes still snap every 10 units. |
@@ -102,7 +102,7 @@ DrawingEditorPage(
 |---|---|
 | `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`jpeg`, `json`). |
 | `DrawingEditor` | Embeddable editor widget: canvas plus toolbar. |
-| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds`, `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson` and `exportJpeg`. |
+| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds` (with several shapes selected, `selectedId` is null), `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson` and `exportJpeg`. |
 | `DrawingEditorConfig` | Canvas size, grid (`gridSize`, `showGrid`, `gridMajorEvery`), rotation snapping, anchor snapping, joint naming and style, toolbar labels (`showToolbarLabels`), haptics (`hapticFeedback`), JPEG quality, export size limit, and history limit. |
 | `DrawingEditorLabels` | Every user-visible string, with English defaults. |
 | `DrawingDocument` | Immutable drawing: canvas size, `shapes`, `joints`, `groups`, `jointLabelSize` and `jointsVisible`. `fromJson`, `toJson`, and `validate` (returns the error instead of throwing). |

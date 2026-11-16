@@ -213,7 +213,12 @@ void main() {
         ..selectionMode = true
         ..selectAll([for (final s in c.document.shapes) s.id]);
       await tester.pump();
-      const tooltips = ['Select shapes', 'Group shapes', ..._shapeTooltips];
+      // Only a single shape rotates, so Rotate 90° is not offered here.
+      final tooltips = [
+        'Select shapes',
+        'Group shapes',
+        ..._shapeTooltips.skip(1),
+      ];
       expect(
         tester
             .widgetList<ToolbarButton>(_inBar(EditorToolbar.selectionBarKey))

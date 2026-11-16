@@ -427,28 +427,10 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// Rotates the selected shape clockwise by [radians].
   ///
-  /// A multi-selection turns as one history entry around the center of its
-  /// bounding box: every shape rotates by [radians] and its center turns
-  /// around that point, kept inside the canvas (spec 05, MS-5).
+  /// Only a single shape rotates: with a multi-selection or a group this
+  /// does nothing and adds no history entry (spec 05, MS-5).
   void rotateSelectedBy(double radians) {
-    if (_selection.length > 1) {
-      final pivot = boundsOfShapes(_selectedShapes).center;
-      _commit(
-        _withShapes([
-          for (final s in _document.shapes)
-            _selection.contains(s.id)
-                ? s.copyWith(
-                    center: clampToCanvas(
-                      pivot + rotateVector(s.center - pivot, radians),
-                      _document.canvasSize,
-                    ),
-                    rotation: s.rotation + radians,
-                  )
-                : s,
-        ]),
-      );
-      return;
-    }
+    if (_selection.length > 1) return;
     final selected = _selected;
     if (selected == null) return;
     _replaceSelected(selected.copyWith(rotation: selected.rotation + radians));

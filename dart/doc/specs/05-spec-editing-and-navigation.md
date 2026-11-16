@@ -76,7 +76,7 @@ It also closes the three follow-ups the Spec 04 verifier left.
 | MS-2 | Must | With one shape selected, the editor behaves as today. With two or more, the selection shows one bounding box with no resize or rotation handles (decision 13). |
 | MS-3 | Must | In selection mode, a one-finger drag on empty canvas draws a rectangle; on release, every shape whose bounding box lies fully inside it is added to the selection. |
 | MS-4 | Must | Dragging any selected shape moves the whole selection as one history entry. Grid snapping (GA-3) applies to the selection's bounding box; anchor snapping applies to any selected shape's anchor against unselected shapes' anchors. |
-| MS-5 | Must | With a multi-selection, the selection bar shows: Group, Rotate 90° (around the bounding box center), Duplicate, Front, Back, Delete. Each is one history entry. Joints of affected shapes follow their shapes as for a single shape: they move, rotate and are deleted with them; Duplicate copies shapes only, without their joints, like single-shape duplicate. |
+| MS-5 | Must | With a multi-selection, the selection bar shows: Group, Duplicate, Front, Back, Delete. Each is one history entry. A multi-selection or group does not rotate: Rotate 90° is shown only for a single shape, and `rotateSelectedBy` does nothing with several shapes selected (decision 17). Joints of affected shapes follow their shapes as for a single shape: they move and are deleted with them; Duplicate copies shapes only, without their joints, like single-shape duplicate. |
 | MS-6 | Must | Group turns the multi-selection into a group. Tapping any shape of a group selects the whole group. A selected group shows Ungroup in place of Group, plus the MS-5 actions. |
 | MS-7 | Must | Groups are saved in the document (PS-5) and restored on open. Deleting every shape of a group deletes the group; a group never holds fewer than two shapes. |
 | MS-8 | Must | Leaving selection mode keeps the current selection. Switching to the joint tool clears it (Spec 02, JT-1). |
@@ -152,7 +152,7 @@ class DrawingEditorLabels {
 **Unit tests**
 - Visible grid step for several scales on both sides of the Spec 03 8 dp threshold, and undefined while hidden.
 - Edge snapping for move and resize at steps 10 and 50, for 0°, 90°, 180° and 270°, with center snapping for other angles; the minimum size of GA-6; anchor snap priority (GA-7).
-- Selection: toggle, rectangle containment, group and ungroup, merging groups (decision 14), group cleanup when shapes are deleted, joints following moved, rotated, duplicated and deleted selections.
+- Selection: toggle, rectangle containment, group and ungroup, merging groups (decision 14), group cleanup when shapes are deleted, joints following moved, duplicated and deleted selections; a multi-selection does not rotate.
 - JSON v4 round trip; v1 to v3 open with no groups; every PS-6 error; `validate` returns null or the same exception `fromJson` throws, and never throws.
 - Controller: one history entry per multi-selection action and per group or ungroup; `selectedId` null for a multi-selection.
 
@@ -182,7 +182,8 @@ class DrawingEditorLabels {
 | 10 | Where does the Select toggle live? | In the selection bar, which is empty when nothing is selected; the create bar is full at 360 dp (MS-1). User: "1)". |
 | 11 | Are groups saved in the JSON? | Yes, `schemaVersion` 4 with `groups` (MS-7, PS-5). User: "ok, 1". |
 | 12 | Invalid `initialJson` in `DrawingEditorPage`: error and close, or empty drawing? | Error message and Close, popping with no result (JX-2). User: "1". |
-| 13 | Can a multi-selection or group be resized by handles? | No: move, rotate 90°, duplicate, z-order and delete only (MS-2). User: "confirmo todo". |
+| 13 | Can a multi-selection or group be resized by handles? | No: move, duplicate, z-order and delete only (MS-2; rotation removed by decision 17). User: "confirmo todo". |
 | 14 | Nested groups? | No; grouping shapes that are already grouped merges them into one group. User: "confirmo todo". |
 | 15 | Do new shapes align to the visible lines when created? | No; they keep Spec 03 PL-1 placement and align on their first move or resize, since default sizes are not multiples of 50. User: "confirmo todo". |
 | 16 | Does Duplicate copy joints? | No, neither for one shape nor for a multi-selection; a joint names one connection point, so a second "J1" would confuse a diagram (MS-5). User: "1". |
+| 17 | Can a multi-selection or group rotate? | No, only a single shape rotates: rigid group rotation near the canvas edge had no clear rule and is not needed yet (MS-5). User: "que tal quitar la rotacion de la parte del grupo? es decir q solo se pueda rotar figuras individuales, no lo veo util de momennto especialmente si da problemas". |

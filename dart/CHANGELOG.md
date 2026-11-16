@@ -13,7 +13,7 @@
 * Shapes default to a gray stroke (`0xFF757575`); joint labels are bold black with a 2.5-unit leader line and an arrowhead that grows with the label size.
 * While the grid is shown, moved and resized shapes align their edges to the drawn lines (every 50 units at the fitted zoom, every 10 when zoomed in); hidden, snapping stays at `gridSize`.
 * One-finger pan on empty canvas while zoomed in.
-* Multi-selection through a Select mode (taps and a selection rectangle), with move, rotate 90°, duplicate, z-order and delete as one undo step each, and saved shape groups (`ShapeGroup`).
+* Multi-selection through a Select mode (taps and a selection rectangle), with move, duplicate, z-order and delete as one undo step each, and saved shape groups (`ShapeGroup`). Only a single shape rotates; with several selected, `selectedId` is null and `selectedIds` holds the selection.
 * `DrawingDocument.validate`, and `DrawingEditorPage` shows a message instead of throwing for invalid `initialJson`.
-* JSON schema version 4 with strict decoding, a `jointDisplay` object and a `groups` list; version 1 to 3 documents still open.
+* JSON schema version 4 with strict decoding, a `jointDisplay` object and a `groups` list; version 1 to 3 documents still open. Numbers must be finite, so a literal such as `1e400` is rejected.
 * `DrawingEditorPage`, `DrawingEditor`, `DrawingEditorController`, and `DrawingEditorLabels` for localization.
