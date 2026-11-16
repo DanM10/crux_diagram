@@ -19,14 +19,11 @@ class JointStyle {
   /// Creates a joint style. Every value has a default from spec 02 or
   /// spec 04.
   const JointStyle({
-    this.arrowColor = const Color(0xFF000000),
+    this.color = const Color(0xFF000000),
     this.lineWidth = 2.5,
     this.arrowheadLength = 16,
     this.arrowheadWidth = 11,
-    this.labelStyle = const TextStyle(
-      color: Color(0xFF000000),
-      fontWeight: FontWeight.bold,
-    ),
+    this.labelStyle = const TextStyle(fontWeight: FontWeight.bold),
     this.labelBaseFontSize = 30,
     this.labelFontSizeStep = 4,
     this.labelPadding = 6,
@@ -35,8 +32,9 @@ class JointStyle {
   }) : assert(labelBaseFontSize > 0),
        assert(labelFontSizeStep >= 0);
 
-  /// Color of the leader line and arrowhead.
-  final Color arrowColor;
+  /// Color of the leader line, the arrowhead and the label (spec 06, JC-1).
+  /// The label uses [labelStyle]'s color instead when that is set.
+  final Color color;
 
   /// Leader line width. It does not change with the label size.
   final double lineWidth;
@@ -50,7 +48,8 @@ class JointStyle {
   final double arrowheadWidth;
 
   /// Text style of the joint name. Its `fontSize` is ignored: the size comes
-  /// from [labelFontSize] (spec 04, JS-6).
+  /// from [labelFontSize] (spec 04, JS-6). Its `color` is optional: without
+  /// it the label uses [color] (spec 06, JC-2).
   final TextStyle labelStyle;
 
   /// Font size of [JointLabelSize.small] labels, in canvas units.
@@ -85,7 +84,7 @@ class JointStyle {
   @override
   bool operator ==(Object other) =>
       other is JointStyle &&
-      other.arrowColor == arrowColor &&
+      other.color == color &&
       other.lineWidth == lineWidth &&
       other.arrowheadLength == arrowheadLength &&
       other.arrowheadWidth == arrowheadWidth &&
@@ -98,7 +97,7 @@ class JointStyle {
 
   @override
   int get hashCode => Object.hash(
-    arrowColor,
+    color,
     lineWidth,
     arrowheadLength,
     arrowheadWidth,

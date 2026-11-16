@@ -3,7 +3,9 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import '../export/image_format.dart';
 import '../model/drawing_document.dart';
+import '../model/shape_style.dart';
 import '../painting/joint_style.dart';
 
 /// Behavior settings for a drawing editor.
@@ -18,16 +20,20 @@ class DrawingEditorConfig {
     this.gridMajorEvery = 5,
     this.rotationSnapStep = 15 * math.pi / 180,
     this.rotationSnapTolerance = 5 * math.pi / 180,
+    this.imageFormat = ImageFormat.jpeg,
     this.jpegQuality = 90,
+    this.transparentBackground = false,
     this.maxExportPixels = 16000000,
     this.historyLimit = 100,
     this.jointNamePrefix = 'J',
-    this.jointNameMaxLength = 24,
+    this.jointNameMaxLength = 12,
+    this.jointNameSuggestions = const [],
+    this.shapeStyle = const ShapeStyle(),
     this.jointStyle = const JointStyle(),
     this.anchorSnapThreshold = 12,
     this.showToolbarLabels = true,
     this.hapticFeedback = true,
-  }) : assert(jointNameMaxLength > 0);
+  });
 
   /// Canvas size for new documents, in canvas units. A document opened from
   /// JSON keeps its own canvas size.
@@ -54,8 +60,18 @@ class DrawingEditorConfig {
   /// How close, in radians, an angle must be to a step to snap to it.
   final double rotationSnapTolerance;
 
-  /// JPEG quality from 1 to 100.
+  /// Image format `DrawingEditorPage` returns on Done and the default of
+  /// `DrawingEditorController.exportImage` (spec 06, EX-1).
+  final ImageFormat imageFormat;
+
+  /// JPEG quality from 1 to 100. Ignored for PNG.
   final int jpegQuality;
+
+  /// Whether exported images leave the canvas background transparent
+  /// instead of white. Only valid with [ImageFormat.png]:
+  /// `DrawingEditorController` throws [ArgumentError] for JPEG (spec 06,
+  /// EX-5).
+  final bool transparentBackground;
 
   /// Largest exported image allowed, in pixels.
   final int maxExportPixels;
@@ -67,8 +83,20 @@ class DrawingEditorConfig {
   /// NM-3).
   final String jointNamePrefix;
 
-  /// Longest joint name, in characters. Longer input is cut to this length.
+  /// Longest joint name, in characters. Longer typed input is cut to this
+  /// length; names loaded from JSON are kept as saved. Must be at least 1:
+  /// `DrawingEditorController` throws [ArgumentError] otherwise (spec 06,
+  /// NL-1, NL-2).
   final int jointNameMaxLength;
+
+  /// Joint names the name dialog offers as chips to tap (spec 06, NS-1).
+  /// Free text stays available. Each must be non-empty after trimming, at
+  /// most [jointNameMaxLength] characters and unique:
+  /// `DrawingEditorController` throws [ArgumentError] otherwise.
+  final List<String> jointNameSuggestions;
+
+  /// Stroke, fill and width of shapes added in the editor (spec 06, SS-1).
+  final ShapeStyle shapeStyle;
 
   /// Look of leader arrows and labels, on screen and in the export.
   final JointStyle jointStyle;

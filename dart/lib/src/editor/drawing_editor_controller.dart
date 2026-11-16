@@ -2,8 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show StringCharacters;
 
-import '../export/jpeg_export.dart';
+import '../export/image_export.dart';
+import '../export/image_format.dart';
 import '../geometry/anchors.dart' as anchors show anchorsOf;
 import '../geometry/anchor_snapping.dart';
 import '../geometry/angles.dart';
@@ -63,7 +65,47 @@ class DrawingEditorController extends ChangeNotifier {
         'Must be at least 2',
       );
     }
+    _validateConfig(config);
     _cleanBaseline = _document;
+  }
+
+  static void _validateConfig(DrawingEditorConfig config) {
+    final width = config.shapeStyle.strokeWidth;
+    if (!width.isFinite || width < 0) {
+      throw ArgumentError.value(
+        width,
+        'config.shapeStyle.strokeWidth',
+        'Must be finite and not negative',
+      );
+    }
+    if (config.jointNameMaxLength < 1) {
+      throw ArgumentError.value(
+        config.jointNameMaxLength,
+        'config.jointNameMaxLength',
+        'Must be at least 1',
+      );
+    }
+    if (config.transparentBackground && config.imageFormat != ImageFormat.png) {
+      throw ArgumentError.value(
+        config.transparentBackground,
+        'config.transparentBackground',
+        'Only valid with ImageFormat.png',
+      );
+    }
+    final seen = <String>{};
+    for (final suggestion in config.jointNameSuggestions) {
+      final name = suggestion.trim();
+      if (name.isEmpty ||
+          suggestion.characters.length > config.jointNameMaxLength ||
+          !seen.add(name)) {
+        throw ArgumentError.value(
+          suggestion,
+          'config.jointNameSuggestions',
+          'Must be non-empty, at most ${config.jointNameMaxLength} '
+              'characters and unique',
+        );
+      }
+    }
   }
 
   /// Distance, in canvas units, between cascaded and duplicated shapes.
@@ -264,6 +306,9 @@ class DrawingEditorController extends ChangeNotifier {
       type: type,
       center: _cascadePosition(type, center),
       size: type.defaultSize,
+      stroke: config.shapeStyle.stroke,
+      fill: config.shapeStyle.fill,
+      strokeWidth: config.shapeStyle.strokeWidth,
     );
     _commit(_withShapes([..._document.shapes, shape]), select: shape.id);
   }
@@ -507,19 +552,50 @@ class DrawingEditorController extends ChangeNotifier {
   /// Encodes the current document as JSON.
   String toJson() => _document.toJson();
 
-  /// Renders the current document as JPEG at `canvasSize × pixelRatio`.
+  /// Renders the current document as an image at `canvasSize × pixelRatio`
+  /// (spec 06, RD-3).
   ///
-  /// [quality] defaults to [DrawingEditorConfig.jpegQuality]. Throws
-  /// [ArgumentError] when the image would exceed
-  /// [DrawingEditorConfig.maxExportPixels] or the arguments are out of range.
-  Future<Uint8List> exportJpeg({double pixelRatio = 1.0, int? quality}) =>
-      exportDocumentJpeg(
-        _document,
-        pixelRatio: pixelRatio,
-        quality: quality ?? config.jpegQuality,
-        maxPixels: config.maxExportPixels,
-        jointStyle: config.jointStyle,
-      );
+  /// [format] defaults to [DrawingEditorConfig.imageFormat], [quality] to
+  /// [DrawingEditorConfig.jpegQuality] (JPEG only) and
+  /// [transparentBackground] to [DrawingEditorConfig.transparentBackground]
+  /// (PNG only). Throws [ArgumentError] when the image would exceed
+  /// [DrawingEditorConfig.maxExportPixels] or the arguments are out of range
+  /// or incompatible.
+  Future<Uint8List> exportImage({
+    ImageFormat? format,
+    double pixelRatio = 1.0,
+    int? quality,
+    bool? transparentBackground,
+  }) {
+    final chosen = format ?? config.imageFormat;
+    return renderDrawingImage(
+      _document,
+      format: chosen,
+      pixelRatio: pixelRatio,
+      quality: quality ?? config.jpegQuality,
+      maxPixels: config.maxExportPixels,
+      // The config's transparency only applies to the format it was
+      // validated for; an explicit JPEG export stays opaque.
+      transparentBackground:
+          transparentBackground ??
+          (config.transparentBackground && chosen == ImageFormat.png),
+      jointStyle: config.jointStyle,
+    );
+  }
+
+  /// Joint name suggestions not used by another joint of the document, in
+  /// list order (spec 06, NS-4). The joint [exceptJointId] does not count as
+  /// using its own name. Names match exactly after trimming.
+  List<String> availableJointNameSuggestions({String? exceptJointId}) {
+    final used = {
+      for (final joint in _document.joints)
+        if (joint.id != exceptJointId) joint.name.trim(),
+    };
+    return [
+      for (final suggestion in config.jointNameSuggestions)
+        if (!used.contains(suggestion.trim())) suggestion,
+    ];
+  }
 
   ShapeElement? get _selected {
     final id = selectedId;

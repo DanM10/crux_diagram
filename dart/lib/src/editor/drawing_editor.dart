@@ -480,7 +480,7 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   Future<void> _createJoint(String shapeId, String anchorId) async {
     final joint = _controller.beginJointCreation(shapeId, anchorId);
-    final name = await _editJointName(joint.name);
+    final name = await _editJointName(joint.name, exceptJointId: joint.id);
     if (!mounted) return;
     _controller.confirmJointCreation(name ?? '');
   }
@@ -490,7 +490,7 @@ class _DrawingEditorState extends State<DrawingEditor>
         .where((j) => j.id == jointId)
         .firstOrNull;
     if (joint == null) return;
-    final name = await _editJointName(joint.name);
+    final name = await _editJointName(joint.name, exceptJointId: jointId);
     if (!mounted || name == null) return;
     if (_controller.document.joints.any((j) => j.id == jointId)) {
       _controller.renameJoint(jointId, name);
@@ -499,14 +499,20 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   /// Shows the name editor; returns the entered text, or null when it is
   /// cancelled or dismissed.
-  Future<String?> _editJointName(String initial) => showDialog<String>(
-    context: context,
-    builder: (context) => _JointNameDialog(
-      initial: initial,
-      maxLength: _controller.config.jointNameMaxLength,
-      labels: widget.labels,
-    ),
-  );
+  Future<String?> _editJointName(String initial, {String? exceptJointId}) {
+    final suggestions = _controller.availableJointNameSuggestions(
+      exceptJointId: exceptJointId,
+    );
+    return showDialog<String>(
+      context: context,
+      builder: (context) => _JointNameDialog(
+        initial: initial,
+        maxLength: _controller.config.jointNameMaxLength,
+        suggestions: suggestions,
+        labels: widget.labels,
+      ),
+    );
+  }
 
   /// The anchor snap threshold in canvas units at the current zoom, or null
   /// when anchor snapping is disabled.
@@ -714,11 +720,13 @@ class _JointNameDialog extends StatefulWidget {
   const _JointNameDialog({
     required this.initial,
     required this.maxLength,
+    required this.suggestions,
     required this.labels,
   });
 
   final String initial;
   final int maxLength;
+  final List<String> suggestions;
   final DrawingEditorLabels labels;
 
   @override
@@ -743,15 +751,55 @@ class _JointNameDialogState extends State<_JointNameDialog> {
   Widget build(BuildContext context) {
     final labels = widget.labels;
     return AlertDialog(
-      content: TextField(
-        controller: _text,
-        autofocus: true,
-        maxLength: widget.maxLength,
-        decoration: InputDecoration(
-          hintText: labels.jointNameHint,
-          counterText: '',
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              controller: _text,
+              autofocus: true,
+              maxLength: widget.maxLength,
+              decoration: InputDecoration(
+                hintText: labels.jointNameHint,
+                counterText: '',
+              ),
+              onSubmitted: (value) => Navigator.of(context).pop(value),
+            ),
+            if (widget.suggestions.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              Text(
+                labels.jointNameSuggestions,
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                children: [
+                  for (final name in widget.suggestions)
+                    Semantics(
+                      button: true,
+                      label: name,
+                      excludeSemantics: true,
+                      onTap: () => Navigator.of(context).pop(name),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Center(
+                          widthFactor: 1,
+                          child: ActionChip(
+                            label: Text(name),
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
+                            onPressed: () => Navigator.of(context).pop(name),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
         ),
-        onSubmitted: (value) => Navigator.of(context).pop(value),
       ),
       actions: [
         TextButton(

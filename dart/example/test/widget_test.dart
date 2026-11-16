@@ -14,7 +14,7 @@ void main() {
     expect(reopen.onPressed, isNull);
   });
 
-  testWidgets('new drawing, add a shape, Done shows the JPEG and JSON, and '
+  testWidgets('new drawing, add a shape, Done shows the image and JSON, and '
       'reopen restores the shape', (tester) async {
     await tester.pumpWidget(const ExampleApp());
     await tester.tap(find.text('New drawing'));
@@ -38,11 +38,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(DrawingEditorPage), findsNothing);
     expect(find.byKey(ExampleHome.previewKey), findsOneWidget);
+    expect(find.byKey(ExampleHome.viewKey), findsOneWidget);
     expect(find.textContaining('"schemaVersion":4'), findsOneWidget);
 
     await tester.tap(find.text('Reopen drawing'));
     await tester.pumpAndSettle();
     final editor = tester.widget<DrawingEditor>(find.byType(DrawingEditor));
     expect(editor.controller.document.shapes, hasLength(1));
+    expect(
+      editor.controller.document.shapes.single.stroke,
+      const Color(0xFF1565C0),
+    );
   });
 }

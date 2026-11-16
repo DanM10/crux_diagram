@@ -82,6 +82,7 @@ Future<_Harness> _pump(
   DrawingEditorConfig config = const DrawingEditorConfig(),
   DrawingEditorLabels labels = const DrawingEditorLabels(),
   Size? screen,
+  DrawingDocument? initial,
 }) async {
   if (screen != null) {
     tester.view
@@ -90,6 +91,7 @@ Future<_Harness> _pump(
     addTearDown(tester.view.reset);
   }
   final controller = DrawingEditorController(
+    initial: initial,
     config: config,
     idGenerator: sequentialIdGenerator(prefix: 's'),
   );
@@ -700,6 +702,170 @@ void main() {
       await confirmName(tester, '   ');
       expect(h.controller.document.joints, isEmpty);
       expect(h.controller.canUndo, before);
+    });
+
+    group('name suggestions (spec 06, NS-1 to NS-7, AC 12, 14)', () {
+      const config = DrawingEditorConfig(
+        jointNameSuggestions: ['Elbow', 'Knee', 'Shoulder'],
+      );
+
+      testWidgets('empty list: no chips, no heading (NS-1)', (tester) async {
+        final h = await _pump(tester);
+        await addRectangle(h);
+        h.controller.tool = DrawingTool.joint;
+        await tester.pump();
+        await tester.tapAt(h.screenOf(tr));
+        await tester.pumpAndSettle();
+        expect(find.byType(ActionChip), findsNothing);
+        expect(find.text('Suggestions'), findsNothing);
+      });
+
+      testWidgets('one tap on a chip creates the joint; used names hide; '
+          'rename keeps its own (AC 12)', (tester) async {
+        final h = await _pump(tester, config: config);
+        await addRectangle(h);
+        h.controller.tool = DrawingTool.joint;
+        await tester.pump();
+
+        await tester.tapAt(h.screenOf(tr));
+        await tester.pumpAndSettle();
+        expect(find.text('Suggestions'), findsOneWidget);
+        expect(find.byType(ActionChip), findsNWidgets(3));
+        expect(
+          tester
+              .widgetList<ActionChip>(find.byType(ActionChip))
+              .map((c) => (c.label as Text).data),
+          ['Elbow', 'Knee', 'Shoulder'],
+        );
+        await tester.tap(find.widgetWithText(ActionChip, 'Knee'));
+        await tester.pumpAndSettle();
+        expect(h.controller.document.joints.single.name, 'Knee');
+
+        await tester.tapAt(h.screenOf(bl));
+        await tester.pumpAndSettle();
+        expect(find.widgetWithText(ActionChip, 'Knee'), findsNothing);
+        expect(find.byType(ActionChip), findsNWidgets(2));
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+
+        h.controller.selectJoint(h.controller.document.joints.single.id);
+        await tester.pump();
+        await tester.tap(find.byTooltip('Rename joint'));
+        await tester.pumpAndSettle();
+        expect(find.byType(ActionChip), findsNWidgets(3));
+        await tester.tap(find.widgetWithText(ActionChip, 'Elbow'));
+        await tester.pumpAndSettle();
+        expect(h.controller.document.joints.single.name, 'Elbow');
+      });
+
+      testWidgets('typing a used name still works (NS-5)', (tester) async {
+        final h = await _pump(tester, config: config);
+        await addRectangle(h);
+        h.controller.addJoint(
+          h.controller.document.shapes.single.id,
+          'bl',
+          name: 'Knee',
+        );
+        h.controller.tool = DrawingTool.joint;
+        await tester.pump();
+        await tester.tapAt(h.screenOf(tr));
+        await tester.pumpAndSettle();
+        await confirmName(tester, 'Knee');
+        expect(h.controller.document.joints.map((j) => j.name), [
+          'Knee',
+          'Knee',
+        ]);
+      });
+
+      testWidgets('all used: no chip area; chips are 48 dp buttons '
+          '(NS-4, NS-7, NS-8)', (tester) async {
+        final handle = tester.ensureSemantics();
+        final h = await _pump(
+          tester,
+          config: const DrawingEditorConfig(jointNameSuggestions: ['Knee']),
+          labels: const DrawingEditorLabels(
+            jointNameSuggestions: 'Sugerencias',
+          ),
+        );
+        await addRectangle(h);
+        h.controller.tool = DrawingTool.joint;
+        await tester.pump();
+        await tester.tapAt(h.screenOf(tr));
+        await tester.pumpAndSettle();
+        expect(find.text('Sugerencias'), findsOneWidget);
+        expect(
+          tester.getSize(find.widgetWithText(ActionChip, 'Knee')).height,
+          greaterThanOrEqualTo(32),
+        );
+        final tap = find.ancestor(
+          of: find.widgetWithText(ActionChip, 'Knee'),
+          matching: find.byType(ConstrainedBox),
+        );
+        expect(tester.getSize(tap.first).height, greaterThanOrEqualTo(48));
+        expect(
+          tester.getSemantics(find.bySemanticsLabel('Knee').first),
+          matchesSemantics(label: 'Knee', isButton: true, hasTapAction: true),
+        );
+        await tester.tap(find.widgetWithText(ActionChip, 'Knee'));
+        await tester.pumpAndSettle();
+        await tester.tapAt(h.screenOf(bl));
+        await tester.pumpAndSettle();
+        expect(find.byType(ActionChip), findsNothing);
+        expect(find.text('Sugerencias'), findsNothing);
+        handle.dispose();
+      });
+
+      testWidgets('a saved long name opens in full when renamed (NL-3)', (
+        tester,
+      ) async {
+        final h = await _pump(
+          tester,
+          initial: DrawingDocument(
+            shapes: [
+              ShapeElement(
+                id: 's',
+                type: ShapeType.rectangle,
+                center: const Offset(800, 600),
+                size: const Size(240, 140),
+              ),
+            ],
+            joints: [
+              Joint(
+                id: 'j',
+                shapeId: 's',
+                anchorId: 'tr',
+                name: 'B' * 20,
+                labelOffset: const Offset(120, -120),
+              ),
+            ],
+          ),
+        );
+        h.controller.selectJoint('j');
+        await tester.pump();
+        await tester.tap(find.byTooltip('Rename joint'));
+        await tester.pumpAndSettle();
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).controller!.text,
+          'B' * 20,
+        );
+      });
+
+      testWidgets('typed names are cut to 12 (AC 14, NL-1)', (tester) async {
+        final h = await _pump(tester);
+        await addRectangle(h);
+        h.controller.tool = DrawingTool.joint;
+        await tester.pump();
+        await tester.tapAt(h.screenOf(tr));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'A' * 20);
+        await tester.pump();
+        expect(
+          tester.widget<TextField>(find.byType(TextField)).controller!.text,
+          'A' * 12,
+        );
+        await tester.tap(find.text('Cancel'));
+        await tester.pumpAndSettle();
+      });
     });
 
     testWidgets('tapping an anchor that has a joint selects it, no duplicate '

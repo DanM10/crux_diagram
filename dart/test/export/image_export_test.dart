@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/export/jpeg_export.dart';
 
 DrawingDocument _documentWithRectangle() => DrawingDocument(
   shapes: [
@@ -24,11 +23,10 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   test('exports a decodable JPEG at canvas size × pixelRatio', () async {
-    final bytes = await exportDocumentJpeg(
+    final bytes = await renderDrawingImage(
       _documentWithRectangle(),
       pixelRatio: 0.5,
       quality: 90,
-      maxPixels: 16000000,
     );
     final image = img.decodeJpg(bytes);
     expect(image, isNotNull);
@@ -37,11 +35,10 @@ void main() {
   });
 
   test('white background, shapes drawn, no grid lines (AC 8, AC 9)', () async {
-    final bytes = await exportDocumentJpeg(
+    final bytes = await renderDrawingImage(
       _documentWithRectangle(),
       pixelRatio: 1,
       quality: 95,
-      maxPixels: 16000000,
     );
     final image = img.decodeJpg(bytes)!;
     expect(_luminance(image, 0, 0), greaterThan(245), reason: 'corner');
@@ -53,12 +50,7 @@ void main() {
 
   test('rejects exports above maxPixels before rendering (FR-26)', () async {
     expect(
-      () => exportDocumentJpeg(
-        DrawingDocument(),
-        pixelRatio: 4,
-        quality: 90,
-        maxPixels: 16000000,
-      ),
+      () => renderDrawingImage(DrawingDocument(), pixelRatio: 4, quality: 90),
       throwsA(
         isA<ArgumentError>().having(
           (e) => e.message.toString(),
@@ -71,36 +63,26 @@ void main() {
 
   test('rejects a quality outside 1 to 100 and a non-positive pixel ratio', () {
     expect(
-      () => exportDocumentJpeg(
-        DrawingDocument(),
-        pixelRatio: 1,
-        quality: 0,
-        maxPixels: 16000000,
-      ),
+      () => renderDrawingImage(DrawingDocument(), pixelRatio: 1, quality: 0),
       throwsArgumentError,
     );
     expect(
-      () => exportDocumentJpeg(
-        DrawingDocument(),
-        pixelRatio: 0,
-        quality: 90,
-        maxPixels: 16000000,
-      ),
+      () => renderDrawingImage(DrawingDocument(), pixelRatio: 0, quality: 90),
       throwsArgumentError,
     );
   });
 
-  test('controller.exportJpeg uses the config defaults', () async {
+  test('controller.exportImage uses the config defaults', () async {
     final controller = DrawingEditorController(
       config: const DrawingEditorConfig(canvasSize: Size(160, 120)),
     );
-    final image = img.decodeJpg(await controller.exportJpeg())!;
+    final image = img.decodeJpg(await controller.exportImage())!;
     expect(image.width, 160);
     expect(image.height, 120);
     expect(
       () => DrawingEditorController(
         config: const DrawingEditorConfig(maxExportPixels: 100),
-      ).exportJpeg(),
+      ).exportImage(),
       throwsArgumentError,
     );
   });
@@ -119,12 +101,7 @@ void main() {
     );
 
     Future<img.Image> render(DrawingDocument document) async => img.decodeJpg(
-      await exportDocumentJpeg(
-        document,
-        pixelRatio: 1,
-        quality: 95,
-        maxPixels: 16000000,
-      ),
+      await renderDrawingImage(document, pixelRatio: 1, quality: 95),
     )!;
 
     num darkest(img.Image image, Rect area) {

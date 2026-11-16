@@ -29,6 +29,7 @@ class DrawingEditorLabels {
     this.renameJoint = 'Rename joint',
     this.deleteJoint = 'Delete joint',
     this.jointNameHint = 'Joint name',
+    this.jointNameSuggestions = 'Suggestions',
     this.ok = 'OK',
     this.squareShort = 'Square',
     this.rectangleShort = 'Rect',
@@ -133,6 +134,9 @@ class DrawingEditorLabels {
 
   /// Hint of the joint name field.
   final String jointNameHint;
+
+  /// Heading above the suggested joint names in the name dialog.
+  final String jointNameSuggestions;
 
   /// Confirm button of the joint name editor.
   final String ok;
