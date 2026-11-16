@@ -155,6 +155,17 @@ void main() {
       expect(shape.fill.toARGB32(), 0x00FFFFFF);
       expect(shape.stroke.toARGB32(), 0xFF000000);
     });
+
+    test('accepts a circle or square whose sides differ by float noise', () {
+      for (final type in ['circle', 'square']) {
+        final json = _validJson();
+        final shape = (json['shapes'] as List).single as Map<String, Object?>;
+        shape['type'] = type;
+        shape['size'] = {'width': 80, 'height': 80.00000000001};
+        final document = DrawingDocument.fromJson(jsonEncode(json));
+        expect(document.shapes.single.type.name, type);
+      }
+    });
   });
 
   group('JSON decoding errors', () {
@@ -239,6 +250,18 @@ void main() {
         () => DrawingDocument.fromJson(
           encodeWith((j) {
             shapeOf(j)['type'] = 'circle';
+          }),
+        ),
+        _formatError('width == height'),
+      );
+    });
+
+    test('circle whose sides differ by more than the tolerance', () {
+      expect(
+        () => DrawingDocument.fromJson(
+          encodeWith((j) {
+            shapeOf(j)['type'] = 'circle';
+            shapeOf(j)['size'] = {'width': 80, 'height': 80.001};
           }),
         ),
         _formatError('width == height'),
