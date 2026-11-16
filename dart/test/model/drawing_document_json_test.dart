@@ -7,6 +7,9 @@ import 'package:soft_drawer_service/soft_drawer_service.dart';
 Map<String, Object?> _validJson() => {
   'schemaVersion': 1,
   'canvas': {'width': 1600, 'height': 1200},
+  'joints': <Object?>[],
+  'jointDisplay': {'labelSize': 'small', 'visible': true},
+  'groups': <Object?>[],
   'shapes': [
     {
       'id': 's_01',
@@ -22,9 +25,8 @@ Map<String, Object?> _validJson() => {
 };
 
 /// The Spec 02 section 8 example.
-Map<String, Object?> _validV2Json() => {
+Map<String, Object?> _validJointJson() => {
   ..._validJson(),
-  'schemaVersion': 2,
   'joints': [
     {
       'id': 'j_01',
@@ -48,7 +50,7 @@ void main() {
   group('DrawingDocument defaults', () {
     test('empty document has a 1600 × 1200 canvas and no shapes', () {
       final document = DrawingDocument();
-      expect(document.schemaVersion, 4);
+      expect(document.schemaVersion, 1);
       expect(document.jointLabelSize, JointLabelSize.small);
       expect(document.jointsVisible, isTrue);
       expect(document.canvasSize, const Size(1600, 1200));
@@ -86,7 +88,7 @@ void main() {
       );
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
       expect(encoded, {
-        'schemaVersion': 4,
+        'schemaVersion': 1,
         'canvas': {'width': 1600.0, 'height': 1200.0},
         'shapes': [
           {
@@ -189,7 +191,7 @@ void main() {
     test('newer schemaVersion', () {
       expect(
         () =>
-            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 5)),
+            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 2)),
         _formatError('schemaVersion'),
       );
     });
@@ -293,9 +295,9 @@ void main() {
     });
   });
 
-  group('schemaVersion 2 (spec 02, section 8)', () {
+  group('joints (spec 02, section 8)', () {
     test('decodes the spec example with its joint', () {
-      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      final document = DrawingDocument.fromJson(jsonEncode(_validJointJson()));
       expect(document.joints, [
         const Joint(
           id: 'j_01',
@@ -308,9 +310,9 @@ void main() {
     });
 
     test('encodes joints in the spec format', () {
-      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      final document = DrawingDocument.fromJson(jsonEncode(_validJointJson()));
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(encoded['schemaVersion'], 4);
+      expect(encoded['schemaVersion'], 1);
       expect(encoded['joints'], [
         {
           'id': 'j_01',
@@ -367,47 +369,17 @@ void main() {
       expect(decoded.joints.map((j) => j.id), ['j2', 'j1', 'j3']);
     });
 
-    test('a version 1 document opens with no joints and saves as 4 (AC 9)', () {
-      final document = DrawingDocument.fromJson(jsonEncode(_validJson()));
-      expect(document.shapes, hasLength(1));
-      expect(document.joints, isEmpty);
-      final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(saved['schemaVersion'], 4);
-      expect(saved['joints'], isEmpty);
-    });
-
-    test('a version 1 document ignores a stray joints field', () {
-      final json = _validJson()..['joints'] = 'not a list';
-      expect(DrawingDocument.fromJson(jsonEncode(json)).joints, isEmpty);
-    });
-
     test('joints and shapes lists are unmodifiable', () {
-      final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
+      final document = DrawingDocument.fromJson(jsonEncode(_validJointJson()));
       expect(() => document.joints.clear(), throwsUnsupportedError);
     });
   });
 
-  group('schemaVersion 3 (spec 04, section 5)', () {
+  group('joint display (spec 04, section 5)', () {
     Map<String, Object?> v3Json(Object? jointDisplay) => {
-      ..._validV2Json(),
-      'schemaVersion': 3,
+      ..._validJointJson(),
       'jointDisplay': jointDisplay,
     };
-
-    test('version 1 and 2 documents load small, visible joints (PS-2)', () {
-      for (final json in [_validJson(), _validV2Json()]) {
-        final document = DrawingDocument.fromJson(jsonEncode(json));
-        expect(document.jointLabelSize, JointLabelSize.small);
-        expect(document.jointsVisible, isTrue);
-      }
-    });
-
-    test('a version 2 document ignores a stray jointDisplay field', () {
-      final json = _validV2Json()..['jointDisplay'] = 'not an object';
-      final document = DrawingDocument.fromJson(jsonEncode(json));
-      expect(document.jointLabelSize, JointLabelSize.small);
-      expect(document.jointsVisible, isTrue);
-    });
 
     test('decodes every label size and the visibility flag (PS-1)', () {
       for (final size in JointLabelSize.values) {
@@ -421,7 +393,7 @@ void main() {
 
     test('round trip keeps the joint display (PS-4)', () {
       final document = DrawingDocument.fromJson(
-        jsonEncode(_validV2Json()),
+        jsonEncode(_validJointJson()),
       ).copyWith(jointLabelSize: JointLabelSize.large, jointsVisible: false);
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
       expect(encoded['jointDisplay'], {'labelSize': 'large', 'visible': false});
@@ -503,9 +475,9 @@ void main() {
     });
   });
 
-  group('schemaVersion 2 decoding errors', () {
+  group('joint decoding errors', () {
     String encodeWith(void Function(Map<String, Object?> json) edit) {
-      final json = _validV2Json();
+      final json = _validJointJson();
       edit(json);
       return jsonEncode(json);
     }
@@ -694,7 +666,7 @@ void main() {
       for (final literal in ['1e400', '-1e400']) {
         test('$field = $literal is rejected by fromJson and validate', () {
           final json =
-              jsonDecode(jsonEncode(_validV2Json())) as Map<String, Object?>;
+              jsonDecode(jsonEncode(_validJointJson())) as Map<String, Object?>;
           edit(json);
           final text = jsonEncode(json).replaceFirst('$sentinel', literal);
           expect(text, contains(literal));
@@ -712,7 +684,7 @@ void main() {
 
     test('a finite value written with an exponent still opens', () {
       final text = jsonEncode(
-        _validV2Json(),
+        _validJointJson(),
       ).replaceFirst('"rotation":0.0', '"rotation":1e-3');
       expect(DrawingDocument.fromJson(text).shapes.single.rotation, 1e-3);
     });
@@ -721,7 +693,7 @@ void main() {
   group('validate (spec 05, JX-1)', () {
     test('returns null for JSON that opens', () {
       expect(DrawingDocument.validate(jsonEncode(_validJson())), isNull);
-      expect(DrawingDocument.validate(jsonEncode(_validV2Json())), isNull);
+      expect(DrawingDocument.validate(jsonEncode(_validJointJson())), isNull);
       expect(DrawingDocument.validate(DrawingDocument().toJson()), isNull);
     });
 
@@ -736,9 +708,9 @@ void main() {
         jsonEncode({..._validJson(), 'schemaVersion': 0}),
         jsonEncode({..._validJson(), 'shapes': 'nope'}),
         jsonEncode({..._validJson(), 'canvas': null}),
-        jsonEncode({..._validV2Json(), 'joints': 7}),
+        jsonEncode({..._validJointJson(), 'joints': 7}),
         jsonEncode({
-          ..._validV2Json(),
+          ..._validJointJson(),
           'joints': [
             {'id': 'j_01', 'shapeId': 'missing', 'anchorId': 'tr'},
           ],
@@ -760,15 +732,14 @@ void main() {
     });
   });
 
-  group('schemaVersion 4 (spec 05, PS-5, PS-6)', () {
+  group('groups (spec 05, PS-5, PS-6)', () {
     Map<String, Object?> shapeJson(String id) => {
       ...(_validJson()['shapes'] as List).single as Map<String, Object?>,
       'id': id,
     };
 
     Map<String, Object?> v4Json(Object? groups) => {
-      ..._validV2Json(),
-      'schemaVersion': 4,
+      ..._validJointJson(),
       'shapes': [
         for (final id in ['s_01', 's_02', 's_03', 's_04']) shapeJson(id),
       ],
@@ -796,7 +767,7 @@ void main() {
         ],
       );
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(encoded['schemaVersion'], 4);
+      expect(encoded['schemaVersion'], 1);
       expect(encoded['groups'], [
         {
           'id': 'g_01',
@@ -828,47 +799,6 @@ void main() {
       expect(decoded.groups.first.shapeIds, ['s_03', 's_01']);
       expect(decoded.jointLabelSize, JointLabelSize.medium);
       expect(decoded.jointsVisible, isFalse);
-    });
-
-    test('versions 1 to 3 open with no groups', () {
-      final v3 = {
-        ..._validV2Json(),
-        'schemaVersion': 3,
-        'jointDisplay': {'labelSize': 'small', 'visible': true},
-      };
-      for (final json in [_validJson(), _validV2Json(), v3]) {
-        expect(DrawingDocument.fromJson(jsonEncode(json)).groups, isEmpty);
-      }
-    });
-
-    test('versions 1 to 3 ignore a stray groups field', () {
-      final v3 = {
-        ..._validV2Json(),
-        'schemaVersion': 3,
-        'jointDisplay': {'labelSize': 'small', 'visible': true},
-      };
-      for (final json in [_validJson(), _validV2Json(), v3]) {
-        json['groups'] = 'not a list';
-        expect(DrawingDocument.fromJson(jsonEncode(json)).groups, isEmpty);
-      }
-    });
-
-    test('a version 3 document opens unchanged and saves as 4', () {
-      final v3 = {
-        ..._validV2Json(),
-        'schemaVersion': 3,
-        'jointDisplay': {'labelSize': 'large', 'visible': false},
-      };
-      final document = DrawingDocument.fromJson(jsonEncode(v3));
-      expect(document.joints.single.id, 'j_01');
-      expect(document.jointLabelSize, JointLabelSize.large);
-      expect(document.jointsVisible, isFalse);
-      final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(saved['schemaVersion'], 4);
-      expect(saved['jointDisplay'], {'labelSize': 'large', 'visible': false});
-      expect(saved['joints'], v3['joints']);
-      expect(saved['groups'], isEmpty);
-      expect(DrawingDocument.fromJson(document.toJson()), document);
     });
 
     test('groups take part in equality, hashCode and copyWith', () {

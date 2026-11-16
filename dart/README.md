@@ -153,11 +153,11 @@ Lengths in the document are canvas units (default canvas 1600 × 1200). Touch ta
 
 ## JSON format
 
-`toJson` always writes schema version 4:
+`toJson` always writes schema version 1:
 
 ```json
 {
-  "schemaVersion": 4,
+  "schemaVersion": 1,
   "canvas": { "width": 1600, "height": 1200 },
   "shapes": [
     {

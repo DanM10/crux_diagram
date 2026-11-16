@@ -34,17 +34,15 @@ class DrawingDocument {
 
   /// Decodes a document from a JSON string.
   ///
-  /// Accepts schema versions 1 to 4; a version 1 document has no joints,
-  /// versions 1 and 2 open with small, visible joints, and versions 1 to 3
-  /// open with no groups.
+  /// Accepts only schema version 1: `joints`, `jointDisplay` and `groups`
+  /// are required.
   ///
   /// Throws [DrawingFormatException] when the input is malformed, misses a
   /// required field, uses an unknown shape type or a newer schema version,
   /// or has a joint whose shape or anchor does not exist or that repeats a
-  /// shape anchor, or a version 3 or 4 document with a missing or malformed
-  /// `jointDisplay`, or a version 4 document with a missing or malformed
-  /// `groups` list: a group with fewer than two shapes, a repeated or
-  /// unknown shape id, a shape in two groups or a duplicate group id.
+  /// shape anchor, or a missing or malformed `jointDisplay`, or a missing or
+  /// malformed `groups` list: a group with fewer than two shapes, a repeated
+  /// or unknown shape id, a shape in two groups or a duplicate group id.
   factory DrawingDocument.fromJson(String source) =>
       decodeDrawingDocument(source);
 
@@ -63,7 +61,7 @@ class DrawingDocument {
   }
 
   /// The schema version written by [toJson] and the newest one accepted.
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = 1;
 
   /// Default canvas size in logical units (4:3).
   static const Size defaultCanvasSize = Size(1600, 1200);

@@ -12,7 +12,7 @@ import 'shape_type.dart';
 import 'shape_type_defaults.dart';
 
 /// Encodes [document] as a JSON string, always as the current schema
-/// version (spec 02, section 8).
+/// version.
 String encodeDrawingDocument(DrawingDocument document) {
   return jsonEncode({
     'schemaVersion': DrawingDocument.currentSchemaVersion,
@@ -40,9 +40,9 @@ DrawingDocument decodeDrawingDocument(String source) {
   final json = _object(root, 'document');
 
   final version = _int(json, 'schemaVersion', 'document');
-  if (version < 1 || version > DrawingDocument.currentSchemaVersion) {
+  if (version != DrawingDocument.currentSchemaVersion) {
     throw DrawingFormatException(
-      'Unsupported schemaVersion $version; supported versions are 1 to '
+      'Unsupported schemaVersion $version; the supported version is '
       '${DrawingDocument.currentSchemaVersion}.',
     );
   }
@@ -65,17 +65,9 @@ DrawingDocument decodeDrawingDocument(String source) {
     shapes.add(shape);
   }
 
-  // Version 1 has no joints; any `joints` field there is ignored like other
-  // unknown fields.
-  final joints = version >= 2 ? _jointsFromJson(json, shapes) : <Joint>[];
-  // Versions 1 and 2 have no joint display; they open with the defaults
-  // (spec 04, PS-2).
-  final (labelSize, visible) = version >= 3
-      ? _jointDisplayFromJson(json)
-      : (JointLabelSize.small, true);
-  // Versions 1 to 3 have no groups; a stray `groups` field there is ignored
-  // (spec 05, PS-5).
-  final groups = version >= 4 ? _groupsFromJson(json, ids) : <ShapeGroup>[];
+  final joints = _jointsFromJson(json, shapes);
+  final (labelSize, visible) = _jointDisplayFromJson(json);
+  final groups = _groupsFromJson(json, ids);
   return DrawingDocument(
     canvasSize: canvasSize,
     shapes: shapes,
