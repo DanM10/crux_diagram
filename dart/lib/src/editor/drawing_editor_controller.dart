@@ -674,7 +674,18 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// With [anchorSnapDistance] (canvas units), an anchor of the shape that
   /// comes that close to another shape's anchor snaps onto it instead of
   /// the grid; only the nearest pair applies (spec 02, SN-1, SN-3).
-  void moveSelectedBy(Offset delta, {double? anchorSnapDistance}) {
+  ///
+  /// With [gridStep], the visible grid step captured when the gesture
+  /// started, grid snapping uses it instead of
+  /// [DrawingEditorConfig.gridSize]: at a multiple of 90° the nearest
+  /// bounding box edges land on grid lines, otherwise the center snaps to
+  /// the step (spec 05, GA-1, GA-3, GA-5). Anchor snapping keeps priority
+  /// (GA-7). Without it, snapping is unchanged (GA-2).
+  void moveSelectedBy(
+    Offset delta, {
+    double? anchorSnapDistance,
+    double? gridStep,
+  }) {
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
@@ -692,6 +703,13 @@ extension DrawingEditorGestures on DrawingEditorController {
     if (snap != null) {
       center = raw + snap.delta;
       _snapHighlight = [snap.to, snap.to];
+    } else if (gridStep != null) {
+      center = snapMoveToGrid(
+        center,
+        size: start.size,
+        rotation: start.rotation,
+        step: gridStep,
+      );
     } else if (grid != null) {
       center = snapPointToGrid(center, grid);
     }
@@ -705,17 +723,28 @@ extension DrawingEditorGestures on DrawingEditorController {
   /// With [anchorSnapDistance] (canvas units), only the anchor under
   /// [handle] may snap onto another shape's anchor, taking priority over
   /// the grid (spec 02, SN-2, SN-3).
+  ///
+  /// With [gridStep], the visible grid step captured when the gesture
+  /// started, the dragged edges snap to grid lines at that step instead of
+  /// sizes to multiples of `2 × gridSize`, and the minimum size is at
+  /// least one step (spec 05, GA-1, GA-4 to GA-6). Without it, resizing is
+  /// unchanged (GA-2).
   void resizeSelected(
     ResizeHandle handle,
     Offset pointer, {
     double? anchorSnapDistance,
+    double? gridStep,
   }) {
     final start = _gestureShape;
     if (start == null) return;
     _snapHighlight = const [];
     _snapTarget = null;
     final grid = config.gridSize;
-    final limits = SizeLimits.forCanvas(_document.canvasSize, gridSize: grid);
+    final limits = SizeLimits.forCanvas(
+      _document.canvasSize,
+      gridSize: grid,
+      gridStep: gridStep,
+    );
     if (anchorSnapDistance != null) {
       final snapped = _snappedResize(
         start,
@@ -730,7 +759,14 @@ extension DrawingEditorGestures on DrawingEditorController {
       }
     }
     _preview(
-      resizeShape(start, handle, pointer, limits: limits, gridSize: grid),
+      resizeShape(
+        start,
+        handle,
+        pointer,
+        limits: limits,
+        gridSize: grid,
+        gridStep: gridStep,
+      ),
     );
   }
 

@@ -9,6 +9,7 @@ import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
 import 'package:soft_drawer_service/src/editor/editor_toolbar.dart';
 import 'package:soft_drawer_service/src/geometry/grid.dart';
+import 'package:soft_drawer_service/src/geometry/resize.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/id_generator.dart';
 import 'package:soft_drawer_service/src/painting/editor_painters.dart';
@@ -80,7 +81,14 @@ Future<_Harness> _pump(
   WidgetTester tester, {
   DrawingEditorConfig config = const DrawingEditorConfig(),
   DrawingEditorLabels labels = const DrawingEditorLabels(),
+  Size? screen,
 }) async {
+  if (screen != null) {
+    tester.view
+      ..devicePixelRatio = 3
+      ..physicalSize = screen * 3;
+    addTearDown(tester.view.reset);
+  }
   final controller = DrawingEditorController(
     config: config,
     idGenerator: sequentialIdGenerator(prefix: 's'),
@@ -1179,6 +1187,224 @@ void main() {
       await gesture.up();
       await tester.pump();
       expect(calls, hasLength(1));
+    });
+  });
+
+  group('grid alignment (spec 05, GA-1 to GA-8, AC 1 to AC 3)', () {
+    const phone = Size(360, 800);
+
+    BackgroundPainter background(WidgetTester tester) => tester
+        .widgetList<CustomPaint>(find.byType(CustomPaint))
+        .map((paint) => paint.painter)
+        .whereType<BackgroundPainter>()
+        .single;
+
+    // Positions of the grid lines the background draws along [extent].
+    List<double> drawnLines(WidgetTester tester, double extent) {
+      final painter = background(tester);
+      return [
+        for (final line in gridLinesAlong(
+          extent,
+          gridSize: painter.gridSize!,
+          majorEvery: painter.gridMajorEvery,
+          scale: painter.viewport.scale,
+        ))
+          line.at,
+      ];
+    }
+
+    Matcher onDrawnLine(List<double> lines) => predicate<double>(
+      (v) => lines.any((line) => (line - v).abs() < 1e-6),
+      'on a drawn grid line',
+    );
+
+    Rect box(ShapeElement shape) => Rect.fromCenter(
+      center: shape.center,
+      width: shape.size.width,
+      height: shape.size.height,
+    );
+
+    // Drags the bottom-right corner of [shape] by [delta] canvas units.
+    Future<void> resizeBy(_Harness h, ShapeElement shape, Offset delta) => h
+        .tester
+        .dragFrom(h.screenOf(box(shape).bottomRight), delta * h.viewport.scale);
+
+    // Drags the body of [shape] by [delta] canvas units.
+    Future<void> moveBy(_Harness h, ShapeElement shape, Offset delta) =>
+        h.tester.dragFrom(h.screenOf(shape.center), delta * h.viewport.scale);
+
+    ShapeElement shapeOf(_Harness h) => h.controller.document.shapes.single;
+
+    testWidgets('at the fitted zoom on a 360 dp phone, resize and move align '
+        'to the drawn major lines (AC 1)', (tester) async {
+      final h = await _pump(
+        tester,
+        screen: phone,
+        config: const DrawingEditorConfig(showGrid: true),
+      );
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      expect(
+        visibleGridStep(gridSize: 10, majorEvery: 5, scale: h.viewport.scale),
+        50,
+      );
+
+      // The 240 × 140 rectangle spans 680–920 × 530–670. Drags exceed the
+      // scale gesture's slop.
+      await resizeBy(h, shapeOf(h), const Offset(183, 142));
+      await tester.pumpAndSettle();
+      final lines = drawnLines(tester, 1600);
+      var b = box(shapeOf(h));
+      expect(b.right, onDrawnLine(lines));
+      expect(b.bottom, onDrawnLine(lines));
+      expect(b.right, closeTo(1100, 1e-6));
+      expect(b.bottom, closeTo(800, 1e-6));
+      expect(b.topLeft, const Offset(680, 530));
+
+      // Raw left 917 → 900 (Δ−17) loses to right 1337 → 1350 (Δ13); top
+      // 357 → 350 (Δ−7) beats bottom 627 → 650 (Δ23).
+      await moveBy(h, shapeOf(h), const Offset(237, -173));
+      await tester.pumpAndSettle();
+      b = box(shapeOf(h));
+      expect(b.right, onDrawnLine(lines));
+      expect(b.top, onDrawnLine(lines));
+      expect(b.center.dx, closeTo(1140, 1e-6));
+      expect(b.center.dy, closeTo(485, 1e-6));
+    });
+
+    testWidgets('zoomed in until minor lines are drawn, the same gestures '
+        'align to minor lines (AC 2)', (tester) async {
+      final h = await _pump(
+        tester,
+        screen: phone,
+        config: const DrawingEditorConfig(showGrid: true),
+      );
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      await h.pinch(
+        center: h.screenOf(const Offset(800, 600)),
+        fromHalf: 20,
+        toHalf: 160,
+      );
+      expect(
+        visibleGridStep(gridSize: 10, majorEvery: 5, scale: h.viewport.scale),
+        10,
+      );
+
+      // Raw width 313 would snap to 320 at multiples of 2 × gridSize.
+      await resizeBy(h, shapeOf(h), const Offset(73, 38));
+      await tester.pumpAndSettle();
+      final lines = drawnLines(tester, 1600);
+      var b = box(shapeOf(h));
+      expect(b.right, onDrawnLine(lines));
+      expect(b.bottom, onDrawnLine(lines));
+      expect(b.right, closeTo(990, 1e-6));
+      expect(b.bottom, closeTo(710, 1e-6));
+
+      // 310 × 180 is a multiple of 10, so every edge lands on a line; the
+      // center (885, 570) is off the 10-unit grid.
+      await moveBy(h, shapeOf(h), const Offset(53, -47));
+      await tester.pumpAndSettle();
+      b = box(shapeOf(h));
+      for (final edge in [b.left, b.right, b.top, b.bottom]) {
+        expect(edge, onDrawnLine(lines));
+      }
+      expect(b.center.dx, closeTo(885, 1e-6));
+      expect(b.center.dy, closeTo(570, 1e-6));
+      expect(b.left, closeTo(730, 1e-6));
+    });
+
+    testWidgets('a second finger during a drag keeps the step (GA-8)', (
+      tester,
+    ) async {
+      final h = await _pump(
+        tester,
+        screen: phone,
+        config: const DrawingEditorConfig(showGrid: true),
+      );
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      // Large enough that its center is away from every handle.
+      h.controller
+        ..beginGesture()
+        ..resizeSelected(ResizeHandle.bottomRight, const Offset(1100, 800))
+        ..endGesture();
+      await tester.pump();
+      final before = h.viewport;
+      final scale = before.scale;
+      final first = await tester.startGesture(h.screenOf(shapeOf(h).center));
+      for (var i = 0; i < 5; i++) {
+        await first.moveBy(Offset(40 * scale, 10 * scale));
+        await tester.pump();
+      }
+      final second = await tester.startGesture(
+        h.screenOf(const Offset(600, 900)),
+      );
+      for (var i = 0; i < 5; i++) {
+        await first.moveBy(Offset(-11 * scale, 0));
+        await second.moveBy(Offset(11 * scale, 9 * scale));
+        await tester.pump();
+      }
+      await first.up();
+      await second.up();
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+      expect(shapeOf(h).size, const Size(420, 280), reason: 'a move');
+      expect(shapeOf(h).center, isNot(const Offset(890, 670)));
+      final lines = drawnLines(tester, 1600);
+      final b = box(shapeOf(h));
+      expect(
+        lines.any(
+          (l) => (l - b.left).abs() < 1e-6 || (l - b.right).abs() < 1e-6,
+        ),
+        isTrue,
+        reason: '$b',
+      );
+      expect(
+        lines.any(
+          (l) => (l - b.top).abs() < 1e-6 || (l - b.bottom).abs() < 1e-6,
+        ),
+        isTrue,
+        reason: '$b',
+      );
+      expect(lines.every((l) => l % 50 == 0), isTrue);
+    });
+
+    testWidgets('with the grid hidden, resize and move give the same result '
+        'as the controller without a step (AC 3, GA-2)', (tester) async {
+      final h = await _pump(tester, screen: phone);
+      expect(h.controller.gridVisible, isFalse);
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      final start = shapeOf(h);
+      final scale = h.viewport.scale;
+      final resizeFrom = h.screenOf(box(start).bottomRight);
+      const resizeDelta = Offset(183, 142);
+      await resizeBy(h, start, resizeDelta);
+      await tester.pumpAndSettle();
+      final resized = shapeOf(h);
+      final moveFrom = h.screenOf(resized.center);
+      const moveDelta = Offset(237, -173);
+      await moveBy(h, resized, moveDelta);
+      await tester.pumpAndSettle();
+
+      final expected =
+          DrawingEditorController(
+              idGenerator: sequentialIdGenerator(prefix: 's'),
+            )
+            ..addShape(ShapeType.rectangle)
+            ..beginGesture()
+            ..resizeSelected(
+              ResizeHandle.bottomRight,
+              h.viewport.toCanvas(resizeFrom + resizeDelta * scale),
+            )
+            ..endGesture()
+            ..beginGesture()
+            ..moveSelectedBy((moveFrom + moveDelta * scale - moveFrom) / scale)
+            ..endGesture();
+      addTearDown(expected.dispose);
+      expect(resized.size, const Size(420, 280));
+      expect(shapeOf(h), expected.document.shapes.single);
     });
   });
 }

@@ -411,4 +411,113 @@ void main() {
       },
     );
   });
+
+  group('visible grid step (spec 05, GA-1 to GA-7)', () {
+    test('without a step, move and resize snap at gridSize as before', () {
+      final c = _controller()..addShape(ShapeType.rectangle);
+      c
+        ..beginGesture()
+        ..moveSelectedBy(const Offset(3, -3))
+        ..endGesture();
+      expect(_selected(c).center, const Offset(800, 600));
+      c
+        ..beginGesture()
+        ..resizeSelected(ResizeHandle.bottomRight, const Offset(1003, 712))
+        ..endGesture();
+      expect(_selected(c).size, const Size(320, 180));
+    });
+
+    test('with a step, a move puts the nearest edges on lines', () {
+      final c = _controller()..addShape(ShapeType.rectangle);
+      c
+        ..beginGesture()
+        // Raw edges 683–923 and 527–667: left 683 → 700, bottom 667 → 650.
+        ..moveSelectedBy(const Offset(3, -3), gridStep: 50)
+        ..endGesture();
+      expect(_selected(c).center, const Offset(820, 580));
+      c.undo();
+      expect(_selected(c).center, const Offset(800, 600));
+    });
+
+    test('with a step, a resize puts the dragged edges on lines', () {
+      final c = _controller()..addShape(ShapeType.rectangle);
+      c
+        ..beginGesture()
+        ..resizeSelected(
+          ResizeHandle.bottomRight,
+          const Offset(1003, 712),
+          gridStep: 50,
+        )
+        ..endGesture();
+      expect(_selected(c).size, const Size(320, 170));
+      expect(_selected(c).center, const Offset(840, 615));
+    });
+
+    test('with a step, the minimum size is one step (GA-6)', () {
+      final c = _controller()..addShape(ShapeType.rectangle);
+      c
+        ..beginGesture()
+        ..resizeSelected(
+          ResizeHandle.bottomRight,
+          const Offset(0, 0),
+          gridStep: 50,
+        )
+        ..endGesture();
+      expect(_selected(c).size.width, greaterThanOrEqualTo(50));
+      expect(_selected(c).size.height, greaterThanOrEqualTo(50));
+    });
+
+    group('anchor snapping keeps priority (GA-7)', () {
+      // `a` at (400, 300) has tr = (520, 230); `b` at (900, 600) has
+      // tl = (780, 530).
+      DrawingDocument twoRectangles() => DrawingDocument(
+        shapes: [
+          ShapeElement(
+            id: 'a',
+            type: ShapeType.rectangle,
+            center: const Offset(400, 300),
+            size: const Size(240, 140),
+          ),
+          ShapeElement(
+            id: 'b',
+            type: ShapeType.rectangle,
+            center: const Offset(900, 600),
+            size: const Size(240, 140),
+          ),
+        ],
+      );
+
+      Offset anchor(DrawingEditorController c, String shape, String id) =>
+          c.anchorsOf(shape).firstWhere((a) => a.id == id).position;
+
+      test('on a move', () {
+        final c = _controller(initial: twoRectangles())
+          ..select('b')
+          ..beginGesture()
+          ..moveSelectedBy(
+            const Offset(-253, -297),
+            anchorSnapDistance: 12,
+            gridStep: 50,
+          );
+        expect(anchor(c, 'b', 'tl'), anchor(c, 'a', 'tr'));
+        c.endGesture();
+        expect(anchor(c, 'b', 'tl'), const Offset(520, 230));
+      });
+
+      test('on a resize', () {
+        final c = _controller(initial: twoRectangles())
+          ..select('b')
+          ..beginGesture()
+          ..resizeSelected(
+            ResizeHandle.topLeft,
+            const Offset(524, 233),
+            anchorSnapDistance: 12,
+            gridStep: 50,
+          )
+          ..endGesture();
+        expect(anchor(c, 'b', 'tl'), const Offset(520, 230));
+        expect(c.document.shapes.last.size, const Size(500, 440));
+      });
+    });
+  });
 }

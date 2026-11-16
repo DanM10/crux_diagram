@@ -5,6 +5,7 @@ import 'package:flutter/gestures.dart' show kDoubleTapSlop, kDoubleTapTimeout;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show HapticFeedback;
 
+import '../geometry/grid.dart';
 import '../geometry/hit_testing.dart';
 import '../geometry/joint_geometry.dart';
 import '../geometry/resize.dart';
@@ -110,6 +111,11 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   /// Decides when a snap haptic plays (spec 03, HP-1, HP-2).
   final SnapHapticTracker _snapHaptics = SnapHapticTracker();
+
+  /// The visible grid step captured when the current gesture started, or
+  /// null while the grid is hidden; kept until the gesture ends
+  /// (spec 05, GA-1, GA-2, GA-8).
+  double? _gestureGridStep;
 
   ViewportZoom _zoomFrom = const ViewportZoom();
   ViewportZoom _zoomTo = const ViewportZoom();
@@ -488,6 +494,18 @@ class _DrawingEditorState extends State<DrawingEditor>
     return threshold == null ? null : _viewport.canvasLength(threshold);
   }
 
+  /// The visible grid step at the current zoom while the grid is shown,
+  /// or null while it is hidden (spec 05, section 2).
+  double? get _visibleGridStep {
+    final grid = _controller.config.gridSize;
+    if (!_controller.gridVisible || grid == null) return null;
+    return visibleGridStep(
+      gridSize: grid,
+      majorEvery: _controller.config.gridMajorEvery,
+      scale: _viewport.scale,
+    );
+  }
+
   void _onPointerDown(PointerDownEvent event) {
     // A finger on the canvas stops a running zoom animation where it is.
     _zoomAnimation.stop();
@@ -529,6 +547,7 @@ class _DrawingEditorState extends State<DrawingEditor>
       _mode = _GestureMode.move;
     }
     _snapHaptics.reset();
+    _gestureGridStep = _visibleGridStep;
     _controller.beginGesture();
     setState(() {});
   }
@@ -555,6 +574,7 @@ class _DrawingEditorState extends State<DrawingEditor>
         _controller.moveSelectedBy(
           (details.localFocalPoint - _startFocal) / _viewport.scale,
           anchorSnapDistance: _anchorSnapDistance,
+          gridStep: _gestureGridStep,
         );
         _playSnapHaptic();
       case _GestureMode.resize:
@@ -562,6 +582,7 @@ class _DrawingEditorState extends State<DrawingEditor>
           _handle!,
           _viewport.toCanvas(details.localFocalPoint),
           anchorSnapDistance: _anchorSnapDistance,
+          gridStep: _gestureGridStep,
         );
         _playSnapHaptic();
       case _GestureMode.rotate:
@@ -591,6 +612,7 @@ class _DrawingEditorState extends State<DrawingEditor>
     setState(() {
       _mode = _GestureMode.none;
       _handle = null;
+      _gestureGridStep = null;
     });
   }
 }

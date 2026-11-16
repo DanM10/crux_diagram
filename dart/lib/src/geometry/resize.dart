@@ -62,11 +62,20 @@ class SizeLimits {
 
   /// Limits from FR-13: minimum 20 units, or 2 × [gridSize] when a grid is
   /// active; maximum is the canvas's longest side.
-  factory SizeLimits.forCanvas(Size canvasSize, {double? gridSize}) =>
-      SizeLimits(
-        min: gridSize == null ? 20 : 2 * gridSize,
-        max: canvasSize.longestSide,
-      );
+  ///
+  /// With [gridStep], the visible grid step, the minimum is at least one
+  /// step (spec 05, GA-6).
+  factory SizeLimits.forCanvas(
+    Size canvasSize, {
+    double? gridSize,
+    double? gridStep,
+  }) {
+    final min = gridSize == null ? 20.0 : 2 * gridSize;
+    return SizeLimits(
+      min: gridStep == null ? min : math.max(min, gridStep),
+      max: canvasSize.longestSide,
+    );
+  }
 
   /// Smallest allowed side length.
   final double min;
@@ -81,12 +90,19 @@ class SizeLimits {
 /// The point opposite the handle stays fixed in world space. Works in the
 /// shape's local frame, so rotated shapes resize correctly. With [gridSize],
 /// sizes snap to multiples of `2 × gridSize` (FR-14).
+///
+/// With [gridStep], the visible grid step, it replaces [gridSize]
+/// (spec 05, GA-4, GA-5): at a multiple of 90° the dragged edges snap to
+/// grid lines every [gridStep] units while the opposite edges stay fixed;
+/// squares, circles and other rotations snap their sizes to multiples of
+/// [gridStep]. A size held at [limits]' minimum still ends on a line.
 ShapeElement resizeShape(
   ShapeElement shape,
   ResizeHandle handle,
   Offset pointer, {
   required SizeLimits limits,
   double? gridSize,
+  double? gridStep,
 }) {
   assert(
     handle.isCorner || !shape.type.locksAspectRatio,
@@ -118,7 +134,35 @@ ShapeElement resizeShape(
   }
 
   // 5. Grid snapping, then the clamps.
-  if (gridSize != null) {
+  if (gridStep != null) {
+    if (shape.type.locksAspectRatio || !isQuarterTurn(shape.rotation)) {
+      if (sx != 0) {
+        newWidth = math.max(limits.min, snapToMultiple(newWidth, gridStep));
+      }
+      if (sy != 0) {
+        newHeight = math.max(limits.min, snapToMultiple(newHeight, gridStep));
+      }
+    } else {
+      if (sx != 0) {
+        newWidth = _edgeSnappedLength(
+          fixedWorld,
+          rotateVector(Offset(sx.toDouble(), 0), shape.rotation),
+          newWidth,
+          gridStep,
+          limits.min,
+        );
+      }
+      if (sy != 0) {
+        newHeight = _edgeSnappedLength(
+          fixedWorld,
+          rotateVector(Offset(0, sy.toDouble()), shape.rotation),
+          newHeight,
+          gridStep,
+          limits.min,
+        );
+      }
+    }
+  } else if (gridSize != null) {
     final step = 2 * gridSize;
     if (sx != 0) {
       newWidth = math.max(limits.min, snapToMultiple(newWidth, step));
@@ -139,4 +183,31 @@ ShapeElement resizeShape(
       );
 
   return shape.copyWith(center: center, size: Size(newWidth, newHeight));
+}
+
+/// The length, at least [min], that puts the moving edge of a quarter-turn
+/// shape on a grid line every [step] units (spec 05, GA-4).
+///
+/// The edge starts at [fixed] and moves along [direction], the world
+/// direction of the handle's local axis, which is a canvas axis at a
+/// multiple of 90°. [length] is the unsnapped length.
+double _edgeSnappedLength(
+  Offset fixed,
+  Offset direction,
+  double length,
+  double step,
+  double min,
+) {
+  final alongX = direction.dx.abs() > direction.dy.abs();
+  final start = alongX ? fixed.dx : fixed.dy;
+  final sign = (alongX ? direction.dx : direction.dy).sign;
+  var snapped = sign * (snapToMultiple(start + sign * length, step) - start);
+  if (snapped < min) {
+    // The first line at least [min] away; the slack absorbs rotation noise.
+    final edge = sign > 0
+        ? ((start + min) / step - 1e-9).ceil() * step
+        : ((start - min) / step + 1e-9).floor() * step;
+    snapped = sign * (edge - start);
+  }
+  return snapped;
 }
