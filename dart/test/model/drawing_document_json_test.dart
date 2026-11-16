@@ -636,4 +636,46 @@ void main() {
       );
     });
   });
+
+  group('validate (spec 05, JX-1)', () {
+    test('returns null for JSON that opens', () {
+      expect(DrawingDocument.validate(jsonEncode(_validJson())), isNull);
+      expect(DrawingDocument.validate(jsonEncode(_validV2Json())), isNull);
+      expect(DrawingDocument.validate(DrawingDocument().toJson()), isNull);
+    });
+
+    test('returns the exception fromJson throws, and never throws', () {
+      final invalid = [
+        '',
+        '{not json',
+        '[]',
+        'null',
+        '42',
+        jsonEncode({..._validJson(), 'schemaVersion': 99}),
+        jsonEncode({..._validJson(), 'schemaVersion': 0}),
+        jsonEncode({..._validJson(), 'shapes': 'nope'}),
+        jsonEncode({..._validJson(), 'canvas': null}),
+        jsonEncode({..._validV2Json(), 'joints': 7}),
+        jsonEncode({
+          ..._validV2Json(),
+          'joints': [
+            {'id': 'j_01', 'shapeId': 'missing', 'anchorId': 'tr'},
+          ],
+        }),
+      ];
+      for (final json in invalid) {
+        DrawingFormatException? thrown;
+        try {
+          DrawingDocument.fromJson(json);
+        } on DrawingFormatException catch (error) {
+          thrown = error;
+        }
+        expect(thrown, isNotNull, reason: json);
+        late final DrawingFormatException? result;
+        expect(() => result = DrawingDocument.validate(json), returnsNormally);
+        expect(result, isA<DrawingFormatException>(), reason: json);
+        expect(result!.message, thrown!.message, reason: json);
+      }
+    });
+  });
 }

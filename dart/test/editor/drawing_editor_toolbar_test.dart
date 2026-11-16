@@ -385,6 +385,29 @@ void main() {
       expect(_createPositions(tester), before);
     });
 
+    testWidgets('each display button is one semantics node announced once '
+        '(spec 05, FU-2)', (tester) async {
+      final semantics = tester.ensureSemantics();
+      final c = await _pump(tester);
+      c.tool = DrawingTool.joint;
+      await tester.pump();
+      const shortLabels = ['Small', 'Medium', 'Large', 'Hide'];
+      for (var i = 0; i < displayTooltips.length; i++) {
+        final node = tester.getSemantics(_button(displayTooltips[i]));
+        expect(
+          node,
+          isSemantics(isButton: true, tooltip: displayTooltips[i]),
+          reason: displayTooltips[i],
+        );
+        expect(
+          node.label,
+          isNot(contains(shortLabels[i])),
+          reason: '${displayTooltips[i]} is announced once',
+        );
+      }
+      semantics.dispose();
+    });
+
     testWidgets('the active size is selected and a tap applies another', (
       tester,
     ) async {

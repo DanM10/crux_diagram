@@ -59,6 +59,8 @@ class DrawingEditorLabels {
     this.jointModeHint = 'Tap a corner or edge point to add a joint',
     this.exitJointMode = 'Done adding joints',
     this.zoomPercent = _defaultZoomPercent,
+    this.invalidDrawing = 'This drawing could not be opened.',
+    this.close = 'Close',
   });
 
   static String _defaultZoomPercent(int percent) => '$percent%';
@@ -217,4 +219,11 @@ class DrawingEditorLabels {
   ///
   /// Pass a static or top-level function to keep the labels `const`.
   final String Function(int percent) zoomPercent;
+
+  /// Message shown by `DrawingEditorPage` when its initial JSON cannot be
+  /// opened (spec 05, JX-2).
+  final String invalidDrawing;
+
+  /// Button under [invalidDrawing] that closes the page without a result.
+  final String close;
 }

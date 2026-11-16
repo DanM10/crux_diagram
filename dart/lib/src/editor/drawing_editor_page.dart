@@ -12,9 +12,15 @@ import 'drawing_result.dart';
 /// Pops a [DrawingResult] when the user confirms, and `null` when they
 /// cancel. Leaving with unsaved changes (cancel or system back) asks for
 /// confirmation first.
+///
+/// When [initialJson] cannot be opened, the page shows
+/// [DrawingEditorLabels.invalidDrawing] and a [DrawingEditorLabels.close]
+/// button that pops `null`, as if the user cancelled; no editor is shown, so
+/// the saved drawing is never replaced (spec 05, JX-2). Check the JSON
+/// beforehand with [DrawingDocument.validate].
 class DrawingEditorPage extends StatefulWidget {
   /// Creates the page. [initialJson] reopens a drawing saved from a previous
-  /// [DrawingResult]; it throws `DrawingFormatException` if it is invalid.
+  /// [DrawingResult]; an invalid one shows an error instead of the editor.
   const DrawingEditorPage({
     super.key,
     this.initialJson,
@@ -36,7 +42,8 @@ class DrawingEditorPage extends StatefulWidget {
 }
 
 class _DrawingEditorPageState extends State<DrawingEditorPage> {
-  late final DrawingEditorController _controller;
+  /// Null when [DrawingEditorPage.initialJson] could not be opened.
+  DrawingEditorController? _controller;
   bool _exporting = false;
   bool _leaving = false;
 
@@ -44,6 +51,7 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
   void initState() {
     super.initState();
     final json = widget.initialJson;
+    if (json != null && DrawingDocument.validate(json) != null) return;
     _controller = DrawingEditorController(
       initial: json == null ? null : DrawingDocument.fromJson(json),
       config: widget.config,
@@ -52,16 +60,17 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 
   Future<void> _confirm() async {
+    final controller = _controller!;
     setState(() => _exporting = true);
     try {
-      final jpeg = await _controller.exportJpeg();
-      final json = _controller.toJson();
-      _controller.markClean();
+      final jpeg = await controller.exportJpeg();
+      final json = controller.toJson();
+      controller.markClean();
       if (!mounted) return;
       _leaving = true;
       Navigator.of(context).pop(DrawingResult(jpeg: jpeg, json: json));
@@ -101,10 +110,12 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
   @override
   Widget build(BuildContext context) {
     final labels = widget.labels;
+    final controller = _controller;
+    if (controller == null) return _InvalidDrawing(labels: labels);
     return ListenableBuilder(
-      listenable: _controller,
+      listenable: controller,
       builder: (context, child) => PopScope<Object?>(
-        canPop: _leaving || !_controller.isDirty,
+        canPop: _leaving || !controller.isDirty,
         onPopInvokedWithResult: (didPop, _) {
           if (!didPop) _confirmDiscard();
         },
@@ -124,8 +135,37 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
             ),
           ],
         ),
-        body: DrawingEditor(controller: _controller, labels: labels),
+        body: DrawingEditor(controller: controller, labels: labels),
       ),
     );
   }
+}
+
+/// Shown instead of the editor when the initial JSON is invalid (JX-2).
+class _InvalidDrawing extends StatelessWidget {
+  const _InvalidDrawing({required this.labels});
+
+  final DrawingEditorLabels labels;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(labels.invalidDrawing, textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(labels.close),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }

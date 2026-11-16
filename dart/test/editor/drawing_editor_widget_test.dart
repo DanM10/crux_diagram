@@ -511,6 +511,50 @@ void main() {
       expect(h.controller.document.joints, hasLength(1));
     });
 
+    testWidgets('tapping a taken anchor while joints are hidden shows them '
+        'and selects the joint; one undo hides them (spec 05, FU-1, AC 8)', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller
+        ..setJointsVisible(false)
+        ..tool = DrawingTool.joint;
+      await tester.pump();
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      expect(find.byType(TextField), findsNothing);
+      expect(h.controller.document.jointsVisible, isTrue);
+      expect(h.controller.selectedJoint, joint);
+      expect(h.controller.document.joints, hasLength(1));
+      expect(find.byTooltip('Hide joints'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Undo'));
+      await tester.pump();
+      expect(h.controller.document.jointsVisible, isFalse);
+      expect(h.controller.selectedJoint, isNull);
+      expect(h.controller.document.joints, hasLength(1));
+    });
+
+    testWidgets('tapping a taken anchor while joints are shown selects it '
+        'with no history entry', (tester) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller
+        ..selectJoint(null)
+        ..tool = DrawingTool.joint
+        ..markClean();
+      final document = h.controller.document;
+      await tester.pump();
+      await tester.tapAt(h.screenOf(tr));
+      await tester.pumpAndSettle();
+      expect(h.controller.selectedJoint, joint);
+      expect(h.controller.document, same(document));
+      expect(h.controller.isDirty, isFalse);
+    });
+
     testWidgets('shape gestures are disabled in the Joint tool', (
       tester,
     ) async {
@@ -569,23 +613,6 @@ void main() {
         h.controller.document.joints.single.labelOffset,
         joint.labelOffset,
       );
-    });
-
-    testWidgets('in joint mode, tapping the anchor of a hidden joint selects '
-        'nothing (spec 04, JV-2)', (tester) async {
-      final h = await _pump(tester);
-      final id = await addRectangle(h);
-      h.controller.addJoint(id, 'tr');
-      h.controller.tool = DrawingTool.joint;
-      await tester.pump();
-      await tester.tap(find.byTooltip('Hide joints'));
-      await tester.pump();
-      await tester.tapAt(h.screenOf(tr));
-      await tester.pumpAndSettle();
-      expect(h.controller.selectedJoint, isNull);
-      expect(find.byTooltip('Delete joint'), findsNothing);
-      expect(h.controller.document.joints, hasLength(1));
-      expect(h.controller.document.jointsVisible, isFalse);
     });
 
     testWidgets('double-tapping a label opens the rename editor (NM-2, AC 3)', (

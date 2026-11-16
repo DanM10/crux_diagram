@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
 
+import 'drawing_format_exception.dart';
 import 'drawing_json_codec.dart';
 import 'joint.dart';
 import 'joint_label_size.dart';
@@ -39,6 +40,20 @@ class DrawingDocument {
   /// `jointDisplay`.
   factory DrawingDocument.fromJson(String source) =>
       decodeDrawingDocument(source);
+
+  /// Checks whether [json] would open with [DrawingDocument.fromJson]
+  /// (spec 05, JX-1).
+  ///
+  /// Returns null when it opens, or the [DrawingFormatException] that
+  /// [DrawingDocument.fromJson] would throw. Never throws.
+  static DrawingFormatException? validate(String json) {
+    try {
+      decodeDrawingDocument(json);
+      return null;
+    } on DrawingFormatException catch (error) {
+      return error;
+    }
+  }
 
   /// The schema version written by [toJson] and the newest one accepted.
   static const int currentSchemaVersion = 3;

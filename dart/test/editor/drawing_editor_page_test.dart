@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
@@ -138,5 +140,51 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Discard changes?'), findsNothing);
     expect(launcher.popped, isTrue);
+  });
+
+  group('invalid initialJson (spec 05, JX-2, AC 7)', () {
+    testWidgets('shows the message and Close, with no editor', (tester) async {
+      final launcher = await _open(tester, initialJson: '{not json');
+      expect(tester.takeException(), isNull);
+      expect(find.text('This drawing could not be opened.'), findsOneWidget);
+      expect(find.text('Close'), findsOneWidget);
+      expect(find.byType(DrawingEditor), findsNothing);
+      expect(find.text('Done'), findsNothing);
+      expect(launcher.popped, isFalse);
+    });
+
+    testWidgets('Close pops a null result without asking', (tester) async {
+      final launcher = await _open(
+        tester,
+        initialJson: jsonEncode({'schemaVersion': 99}),
+      );
+      await tester.tap(find.text('Close'));
+      await tester.pumpAndSettle();
+      expect(find.text('Discard changes?'), findsNothing);
+      expect(find.byType(DrawingEditorPage), findsNothing);
+      expect(launcher.popped, isTrue);
+      expect(launcher.result, isNull);
+    });
+
+    testWidgets('system back also pops a null result', (tester) async {
+      final launcher = await _open(tester, initialJson: '[]');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(launcher.popped, isTrue);
+      expect(launcher.result, isNull);
+    });
+
+    testWidgets('valid and null initialJson still open the editor', (
+      tester,
+    ) async {
+      for (final json in [null, DrawingDocument().toJson()]) {
+        await _open(tester, initialJson: json);
+        expect(find.byType(DrawingEditor), findsOneWidget);
+        expect(find.text('This drawing could not be opened.'), findsNothing);
+        expect(find.text('Close'), findsNothing);
+        await tester.tap(find.byTooltip('Cancel'));
+        await tester.pumpAndSettle();
+      }
+    });
   });
 }

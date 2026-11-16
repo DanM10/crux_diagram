@@ -374,7 +374,8 @@ class _DrawingEditorState extends State<DrawingEditor>
           .where((j) => j.shapeId == hit.shapeId && j.anchorId == hit.anchorId)
           .firstOrNull;
       if (existing != null) {
-        _controller.selectJoint(existing.id);
+        // Spec 05, FU-1: a taken anchor shows hidden joints and selects it.
+        _controller.showJointsAndSelect(existing.id);
       } else {
         _createJoint(hit.shapeId, hit.anchorId);
       }

@@ -174,4 +174,44 @@ void main() {
       expect(c.document.joints, hasLength(1));
     });
   });
+
+  group('taken anchor while hidden (spec 05, FU-1, AC 8)', () {
+    test('shows the joints and selects the joint as one entry', () {
+      final c = _controller();
+      final joint = c.document.joints.single;
+      c.setJointsVisible(false);
+      c.markClean();
+      c.showJointsAndSelect(joint.id);
+      expect(c.document.jointsVisible, isTrue);
+      expect(c.selectedJoint, joint);
+      expect(c.selectedId, isNull);
+      expect(c.isDirty, isTrue);
+
+      c.undo();
+      expect(c.document.jointsVisible, isFalse);
+      expect(c.selectedJoint, isNull);
+      expect(c.isDirty, isFalse);
+      c.undo();
+      expect(c.document.jointsVisible, isTrue, reason: 'one entry only');
+    });
+
+    test('while visible it only selects, with no history entry', () {
+      final c = _controller();
+      final joint = c.document.joints.single;
+      c.select(c.document.shapes.single.id);
+      final document = c.document;
+      c.showJointsAndSelect(joint.id);
+      expect(c.selectedJoint, joint);
+      expect(c.selectedId, isNull);
+      expect(c.document, same(document));
+      expect(c.isDirty, isFalse);
+    });
+
+    test('throws for an unknown joint', () {
+      final c = _controller();
+      c.setJointsVisible(false);
+      expect(() => c.showJointsAndSelect('missing'), throwsArgumentError);
+      expect(c.document.jointsVisible, isFalse);
+    });
+  });
 }

@@ -200,6 +200,23 @@ class DrawingEditorController extends ChangeNotifier {
     );
   }
 
+  /// Selects the joint with [jointId], showing hidden joints first (spec 05,
+  /// FU-1).
+  ///
+  /// While joints are hidden, showing them and selecting the joint is one
+  /// history entry; undoing it hides them again and clears the selection.
+  /// While they are shown, this is [selectJoint] and records nothing.
+  ///
+  /// Throws [ArgumentError] when no such joint exists.
+  void showJointsAndSelect(String jointId) {
+    final joint = _jointOrThrow(jointId);
+    if (_document.jointsVisible) {
+      selectJoint(joint.id);
+      return;
+    }
+    _commit(_document.copyWith(jointsVisible: true), selectJoint: joint.id);
+  }
+
   /// Renames the joint with [jointId] to [name], trimmed and limited to
   /// [DrawingEditorConfig.jointNameMaxLength]. A blank [name] keeps the old
   /// name.
