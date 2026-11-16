@@ -59,7 +59,7 @@ Make joints readable and controllable. Joint labels work well, but at the defaul
 
 | ID | Priority | Requirement |
 |---|---|---|
-| JD-1 | Must | While the joint tool is active, the selection bar shows the joint display bar: Small, Medium, Large, and one show/hide button, in that order. It works like the shape actions that appear when a shape is selected. This adds a joint-mode case to Spec 03 TB-3; no button is added to the create bar, so Spec 03 TB-1, AC 1 and AC 2 still hold. |
+| JD-1 | Must | While the joint tool is active, the selection bar shows the joint display bar: Small, Medium, Large, and one show/hide button, in that order. It works like the shape actions that appear when a shape is selected. When a joint is selected in joint mode (for example right after creating one), Rename and Delete follow the four display buttons, so Spec 03 TB-3's joint actions stay available. This adds a joint-mode case to Spec 03 TB-3; no button is added to the create bar, so Spec 03 TB-1, AC 1 and AC 2 still hold. |
 | JD-2 | Must | The three size buttons act as a single choice: the active size is shown selected, and tapping another size applies it (JS-4). |
 | JD-3 | Must | The show/hide button reads "Hide" with tooltip "Hide joints" while joints are shown, and "Show" with tooltip "Show joints" while they are hidden; it is shown selected while joints are hidden. Tapping it toggles visibility (JV-6). |
 | JD-4 | Must | The size buttons stay enabled while joints are hidden; the new size is used when joints are shown again. |

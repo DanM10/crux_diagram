@@ -43,8 +43,18 @@ class DrawingEditorLabels {
     this.backShort = 'Back',
     this.deleteShort = 'Delete',
     this.renameShort = 'Rename',
+    this.jointSizeSmallShort = 'Small',
+    this.jointSizeMediumShort = 'Medium',
+    this.jointSizeLargeShort = 'Large',
+    this.showJointsShort = 'Show',
+    this.hideJointsShort = 'Hide',
     this.showGrid = 'Show grid',
     this.hideGrid = 'Hide grid',
+    this.jointSizeSmall = 'Small joint labels',
+    this.jointSizeMedium = 'Medium joint labels',
+    this.jointSizeLarge = 'Large joint labels',
+    this.showJoints = 'Show joints',
+    this.hideJoints = 'Hide joints',
     this.fitToScreen = 'Fit to screen',
     this.jointModeHint = 'Tap a corner or edge point to add a joint',
     this.exitJointMode = 'Done adding joints',
@@ -158,11 +168,41 @@ class DrawingEditorLabels {
   /// Short label of the rename-joint button.
   final String renameShort;
 
+  /// Short label of the small joint label size button (spec 04, JD-1).
+  final String jointSizeSmallShort;
+
+  /// Short label of the medium joint label size button.
+  final String jointSizeMediumShort;
+
+  /// Short label of the large joint label size button.
+  final String jointSizeLargeShort;
+
+  /// Short label of the joint visibility button while joints are hidden.
+  final String showJointsShort;
+
+  /// Short label of the joint visibility button while joints are shown.
+  final String hideJointsShort;
+
   /// Tooltip of the grid toggle while the grid is hidden.
   final String showGrid;
 
   /// Tooltip of the grid toggle while the grid is shown.
   final String hideGrid;
+
+  /// Tooltip of the small joint label size button (spec 04, JD-1).
+  final String jointSizeSmall;
+
+  /// Tooltip of the medium joint label size button.
+  final String jointSizeMedium;
+
+  /// Tooltip of the large joint label size button.
+  final String jointSizeLarge;
+
+  /// Tooltip of the joint visibility button while joints are hidden.
+  final String showJoints;
+
+  /// Tooltip of the joint visibility button while joints are shown.
+  final String hideJoints;
 
   /// Button that returns the view to zoom 1× with no pan.
   final String fitToScreen;

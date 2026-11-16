@@ -337,4 +337,181 @@ void main() {
       expect(find.byTooltip('Hide grid'), findsOneWidget);
     });
   });
+
+  group('joint display bar (spec 04, JD-1 to JD-6, AC 5)', () {
+    const displayTooltips = [
+      'Small joint labels',
+      'Medium joint labels',
+      'Large joint labels',
+      'Hide joints',
+    ];
+
+    List<String> selectionTooltips(WidgetTester tester) => [
+      for (final b in tester.widgetList<ToolbarButton>(
+        _inBar(EditorToolbar.selectionBarKey),
+      ))
+        b.tooltip,
+    ];
+
+    bool? selectedOf(WidgetTester tester, String tooltip) =>
+        tester.widget<ToolbarButton>(_button(tooltip)).selected;
+
+    testWidgets('the joint tool shows the sizes and hide in the selection '
+        'bar; leaving restores it; the create bar does not move', (
+      tester,
+    ) async {
+      final c = await _pump(tester, screen: const Size(360, 800));
+      final before = _createPositions(tester);
+      final canvas = tester.getSize(find.byKey(DrawingEditor.canvasKey));
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      expect(c.tool, DrawingTool.joint);
+      expect(selectionTooltips(tester), displayTooltips);
+      expect(
+        [
+          for (final b in tester.widgetList<ToolbarButton>(
+            _inBar(EditorToolbar.selectionBarKey),
+          ))
+            b.label,
+        ],
+        ['Small', 'Medium', 'Large', 'Hide'],
+      );
+      expect(_createPositions(tester), before);
+      expect(tester.getSize(find.byKey(DrawingEditor.canvasKey)), canvas);
+
+      await tester.tap(find.byTooltip('Joint tool'));
+      await tester.pump();
+      expect(selectionTooltips(tester), isEmpty);
+      expect(_createPositions(tester), before);
+    });
+
+    testWidgets('the active size is selected and a tap applies another', (
+      tester,
+    ) async {
+      final c = await _pump(tester);
+      c.tool = DrawingTool.joint;
+      await tester.pump();
+      expect(selectedOf(tester, 'Small joint labels'), isTrue);
+      expect(selectedOf(tester, 'Medium joint labels'), isFalse);
+      expect(selectedOf(tester, 'Large joint labels'), isFalse);
+
+      await tester.tap(find.byTooltip('Large joint labels'));
+      await tester.pump();
+      expect(c.document.jointLabelSize, JointLabelSize.large);
+      expect(selectedOf(tester, 'Small joint labels'), isFalse);
+      expect(selectedOf(tester, 'Large joint labels'), isTrue);
+      expect(c.canUndo, isTrue);
+    });
+
+    testWidgets('hide and show toggle visibility, label and tooltip; sizes '
+        'stay enabled while hidden', (tester) async {
+      final c = await _pump(tester);
+      c.tool = DrawingTool.joint;
+      await tester.pump();
+      expect(selectedOf(tester, 'Hide joints'), isFalse);
+
+      await tester.tap(find.byTooltip('Hide joints'));
+      await tester.pump();
+      expect(c.document.jointsVisible, isFalse);
+      expect(c.tool, DrawingTool.joint);
+      expect(find.byTooltip('Hide joints'), findsNothing);
+      expect(selectedOf(tester, 'Show joints'), isTrue);
+      expect(
+        tester.widget<ToolbarButton>(_button('Show joints')).label,
+        'Show',
+      );
+      expect(
+        tester.widget<ToolbarButton>(_button('Joint tool')).onPressed,
+        isNotNull,
+      );
+
+      await tester.tap(find.byTooltip('Medium joint labels'));
+      await tester.pump();
+      expect(c.document.jointLabelSize, JointLabelSize.medium);
+      expect(c.document.jointsVisible, isFalse);
+
+      await tester.tap(find.byTooltip('Show joints'));
+      await tester.pump();
+      expect(c.document.jointsVisible, isTrue);
+      expect(find.byTooltip('Hide joints'), findsOneWidget);
+    });
+
+    testWidgets('a joint selected in joint mode keeps rename and delete '
+        'after the display buttons', (tester) async {
+      final c = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      final shape = c.document.shapes.single;
+      c
+        ..tool = DrawingTool.joint
+        ..addJoint(shape.id, c.anchorsOf(shape.id).first.id);
+      await tester.pump();
+      expect(selectionTooltips(tester), [
+        ...displayTooltips,
+        'Rename joint',
+        'Delete joint',
+      ]);
+    });
+
+    testWidgets('at 360 dp the display bar with rename and delete fits '
+        'without scrolling (JD-6)', (tester) async {
+      await _loadRoboto();
+      final c = await _pump(tester, screen: const Size(360, 800));
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      final shape = c.document.shapes.single;
+      c
+        ..tool = DrawingTool.joint
+        ..addJoint(shape.id, c.anchorsOf(shape.id).first.id);
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byType(EditorToolbar),
+          matching: find.byType(Scrollable),
+        ),
+        findsNothing,
+      );
+      for (final label in ['Small', 'Medium', 'Large', 'Hide', 'Rename']) {
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.text(label),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse, reason: label);
+      }
+      for (final t in [...displayTooltips, 'Rename joint', 'Delete joint']) {
+        final size = tester.getSize(_button(t));
+        expect(size.width, greaterThanOrEqualTo(48), reason: t);
+        expect(size.height, greaterThanOrEqualTo(48), reason: t);
+      }
+    });
+
+    testWidgets('custom labels replace the display texts', (tester) async {
+      final controller = DrawingEditorController(
+        idGenerator: sequentialIdGenerator(prefix: 's'),
+      )..tool = DrawingTool.joint;
+      addTearDown(controller.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: DrawingEditor(
+              controller: controller,
+              labels: const DrawingEditorLabels(
+                jointSizeSmall: 'S tip',
+                jointSizeMedium: 'M tip',
+                jointSizeLarge: 'L tip',
+                hideJoints: 'H tip',
+                jointSizeSmallShort: 'S',
+                jointSizeMediumShort: 'M',
+                jointSizeLargeShort: 'L',
+                hideJointsShort: 'H',
+              ),
+            ),
+          ),
+        ),
+      );
+      expect(selectionTooltips(tester), ['S tip', 'M tip', 'L tip', 'H tip']);
+      for (final label in ['S', 'M', 'L', 'H']) {
+        expect(find.text(label), findsOneWidget, reason: label);
+      }
+    });
+  });
 }

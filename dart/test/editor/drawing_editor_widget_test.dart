@@ -550,6 +550,27 @@ void main() {
       );
     });
 
+    testWidgets('a hidden label cannot be dragged or selected (spec 04, '
+        'JV-2, AC 3)', (tester) async {
+      final h = await _pump(tester);
+      final id = await addRectangle(h);
+      final joint = h.controller.addJoint(id, 'tr');
+      h.controller
+        ..setJointsVisible(false)
+        ..select(null);
+      await tester.pump();
+      final label = h.screenOf(tr + joint.labelOffset);
+      await tester.tapAt(label);
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.dragFrom(label, const Offset(60, 0));
+      await tester.pumpAndSettle();
+      expect(h.controller.selectedJoint, isNull);
+      expect(
+        h.controller.document.joints.single.labelOffset,
+        joint.labelOffset,
+      );
+    });
+
     testWidgets('double-tapping a label opens the rename editor (NM-2, AC 3)', (
       tester,
     ) async {

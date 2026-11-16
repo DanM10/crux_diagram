@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../model/joint_label_size.dart';
 import '../model/shape_type.dart';
 import 'drawing_editor_controller.dart';
 import 'drawing_editor_labels.dart';
@@ -29,6 +30,9 @@ const double _rowVerticalSlack = 8;
 
 /// The editor toolbar: the selection bar above the create bar
 /// (spec 03, section 4.1).
+///
+/// With the Joint tool active, the selection bar shows the joint display
+/// bar: the three label sizes and the show/hide button (spec 04, JD-1).
 ///
 /// The create bar never changes for a given configuration. The selection
 /// bar keeps its height when it is empty, so selecting never moves a
@@ -186,7 +190,47 @@ class _EditorToolbarState extends State<EditorToolbar> {
     ];
 
     final joint = controller.selectedJoint;
+    final document = controller.document;
+    final sizeButtons = {
+      JointLabelSize.small: (
+        Icons.text_decrease,
+        labels.jointSizeSmall,
+        labels.jointSizeSmallShort,
+      ),
+      JointLabelSize.medium: (
+        Icons.text_fields,
+        labels.jointSizeMedium,
+        labels.jointSizeMediumShort,
+      ),
+      JointLabelSize.large: (
+        Icons.text_increase,
+        labels.jointSizeLarge,
+        labels.jointSizeLargeShort,
+      ),
+    };
     final selection = [
+      if (jointTool) ...[
+        for (final MapEntry(key: size, value: (icon, tooltip, label))
+            in sizeButtons.entries)
+          button(
+            icon,
+            tooltip,
+            label,
+            () => controller.setJointLabelSize(size),
+            selected: document.jointLabelSize == size,
+          ),
+        button(
+          document.jointsVisible
+              ? Icons.visibility_off_outlined
+              : Icons.visibility_outlined,
+          document.jointsVisible ? labels.hideJoints : labels.showJoints,
+          document.jointsVisible
+              ? labels.hideJointsShort
+              : labels.showJointsShort,
+          () => controller.setJointsVisible(!document.jointsVisible),
+          selected: !document.jointsVisible,
+        ),
+      ],
       if (joint != null) ...[
         button(
           Icons.edit_outlined,
