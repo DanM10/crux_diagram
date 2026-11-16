@@ -22,7 +22,7 @@ import 'drawing_tool.dart';
 import 'editor_toolbar.dart';
 import 'snap_haptics.dart';
 
-enum _GestureMode { none, move, resize, rotate, pinch, labelDrag }
+enum _GestureMode { none, move, resize, rotate, pinch, pan, labelDrag }
 
 /// Anchor touch radius in the Joint tool, in dp (spec 02, JT-2).
 const double _anchorTouchRadius = 22;
@@ -538,11 +538,15 @@ class _DrawingEditorState extends State<DrawingEditor>
     } else if (jointId != null) {
       _controller.selectJoint(jointId);
       _mode = _GestureMode.labelDrag;
-    } else if (_controller.tool == DrawingTool.joint) {
-      return;
     } else {
       final shape = topmostShapeAt(_controller.document.shapes, point);
-      if (shape == null) return;
+      if (shape == null) {
+        _mode = _emptyCanvasDragMode;
+        if (_mode == _GestureMode.pan) _pinchStartZoom = _zoom;
+        return;
+      }
+      // Shapes do not move in the joint tool.
+      if (_controller.tool == DrawingTool.joint) return;
       _controller.select(shape.id);
       _mode = _GestureMode.move;
     }
@@ -552,17 +556,26 @@ class _DrawingEditorState extends State<DrawingEditor>
     setState(() {});
   }
 
+  /// What a one-finger drag that starts on empty canvas does: it pans
+  /// while zoomed in (spec 05, PN-1) and does nothing at the fitted zoom
+  /// (PN-5). This is the single place that decides it.
+  _GestureMode get _emptyCanvasDragMode =>
+      _zoom.zoom > _zoomedInThreshold ? _GestureMode.pan : _GestureMode.none;
+
   void _onScaleUpdate(ScaleUpdateDetails details) {
     switch (_mode) {
       case _GestureMode.none:
         return;
       case _GestureMode.pinch:
+      case _GestureMode.pan:
+        // A one-finger pan is a pinch at scale 1, clamped the same way
+        // (spec 05, PN-3).
         setState(() {
           _zoom = _pinchStartZoom
               .pinch(
                 startFocal: _startFocal,
                 focal: details.localFocalPoint,
-                scale: details.scale,
+                scale: _mode == _GestureMode.pan ? 1 : details.scale,
               )
               .clamped(_controller.document.canvasSize, _areaSize);
         });
@@ -604,7 +617,8 @@ class _DrawingEditorState extends State<DrawingEditor>
 
   void _onScaleEnd() {
     if (_mode == _GestureMode.none) return;
-    if (_mode == _GestureMode.pinch) {
+    // View changes never touch history or the dirty flag (PN-3, ZM-5).
+    if (_mode == _GestureMode.pinch || _mode == _GestureMode.pan) {
       _mode = _GestureMode.none;
       return;
     }

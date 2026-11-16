@@ -19,9 +19,9 @@ The spec file is the verbatim source; every requirement ID below refers to it.
 
 | ID | Specs | Task | Route | Status | Evidence |
 |---|---|---|---|---|---|
-| T1 | S1, S2 | `validate`, page error state, taken-anchor tap while hidden, semantics test | delegated | pending | |
-| T2 | S3 | Visible-step edge snapping for move and resize | delegated | pending | |
-| T3 | S4 | One-finger pan on empty canvas while zoomed | delegated | pending | |
+| T1 | S1, S2 | `validate`, page error state, taken-anchor tap while hidden, semantics test | delegated | done | `e347bfb`; RED (compile errors, initState throw, FU-1 assertion; FU-2 proven by a mutation in scratch), then 323/323 pass, analyze clean (root + example). Assess: medium, under_budget |
+| T2 | S3 | Visible-step edge snapping for move and resize | delegated | done | `9d14773`; RED (compile errors; AC 1, AC 2, GA-8 widget tests fail on the old editor), then 350/350 pass, analyze clean (root + example); old tests pass against the new lib. Assess: medium, under_budget |
+| T3 | S4 | One-finger pan on empty canvas while zoomed | delegated | done | (this commit); RED (3 pan/clamp tests off by 117-409 dp on the old editor), then 359/359 pass, analyze clean (root + example); HEAD widget tests pass against the new editor except the replaced never-pans test |
 | T4 | S5 | Groups model and schema 4 | delegated | pending | Risk: item 1 (persisted format change), own commit |
 | T5 | S6 | Multi-selection, selection mode, rectangle, group actions, UI | delegated | pending | |
 | T6 | S7 | README, CHANGELOG | inline | pending | |
@@ -31,3 +31,6 @@ Route evidence: Writer trigger (b), long-session backstop — the parent context
 ## Log
 
 - **L1** (2026-11-15, user, verbatim): "ok, go ahead" — after Spec 05 was accepted (decisions in spec §9) and phase one was fast-forwarded into `main`.
+- **L2** (2026-11-15): T1 removed the Spec 04 widget test "tapping the anchor of a hidden joint selects nothing", because FU-1 deliberately replaces that behavior; the new FU-1 test covers the same tap. `showJointsAndSelect` is the controller entry point.
+- **L3** (2026-11-15): T2 choices where the spec is silent: `visibleGridStep` in `grid.dart` is the single 8 dp rule for painter and snapping; non-quarter-turn resize snaps sizes to multiples of the step; squares and circles snap their side to the step, so edges land on lines when the fixed corner already does; an off-grid fixed edge can make the smallest size larger than one step (edge stays on a line); with the grid shown but no line drawn, snapping falls back to `gridSize`; the GA-8 test is a guard only, since zoom cannot change during a one-finger move today.
+- **L4** (2026-11-16): T3: one-finger pan reuses `ViewportZoom.pinch(...).clamped(...)` at scale 1. PN-6 extension point: private getter `_emptyCanvasDragMode` in `drawing_editor.dart`. Choices: the finger left after a pinch does not pan (existing `_multiTouch` guard); in the joint tool a drag starting on a shape does not pan; "zoomed in" uses `_zoomedInThreshold` (1.005); a pan keeps the selection. The README "One finger never pans" line is left for T6.

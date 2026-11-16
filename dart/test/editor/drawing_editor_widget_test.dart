@@ -297,18 +297,6 @@ void main() {
       expect(after.origin.dy, lessThan(before.origin.dy - 25));
     });
 
-    testWidgets('one-finger drag on empty canvas never pans, even zoomed', (
-      tester,
-    ) async {
-      final h = await _pump(tester);
-      await h.pinch(center: h.canvasCenter, fromHalf: 30, toHalf: 90);
-      final before = h.viewport;
-      await tester.dragFrom(h.canvasCenter, const Offset(-120, -80));
-      await tester.pumpAndSettle();
-      expect(h.viewport, before);
-      expect(h.controller.canUndo, isFalse);
-    });
-
     testWidgets('lifting one finger after a pinch starts no one-finger edit', (
       tester,
     ) async {
@@ -363,6 +351,217 @@ void main() {
       final shape = h.controller.document.shapes.single;
       expect(shape.size.width, lessThan(240));
       expect(shape.center, isNot(const Offset(800, 600)));
+    });
+  });
+
+  group('one-finger pan (spec 05, PN-1 to PN-5, AC 4)', () {
+    // Zooms in around the canvas center, far enough that a 120 dp pan in
+    // any direction stays inside the pan clamp.
+    Future<CanvasViewport> zoomIn(_Harness h) async {
+      await h.pinch(center: h.canvasCenter, fromHalf: 40, toHalf: 140);
+      expect(h.viewport.scale, greaterThan(h.fitScale * 2));
+      return h.viewport;
+    }
+
+    void expectPannedBy(CanvasViewport before, _Harness h, Offset delta) {
+      final after = h.viewport;
+      expect(after.scale, before.scale);
+      expect((after.origin - (before.origin + delta)).distance, lessThan(1e-6));
+    }
+
+    void expectNoEdit(_Harness h, DrawingDocument document) {
+      expect(h.controller.document, document);
+      expect(h.controller.isDirty, isFalse);
+      expect(h.controller.canUndo, isFalse);
+    }
+
+    testWidgets('zoomed in, a one-finger drag on empty canvas pans by the '
+        'drag in the select tool (PN-1, PN-3)', (tester) async {
+      final h = await _pump(tester);
+      final before = await zoomIn(h);
+      final document = h.controller.document;
+      const delta = Offset(-120, -80);
+      final start = h.canvasCenter + const Offset(10, 10);
+      final under = before.toCanvas(start);
+
+      await tester.dragFrom(start, delta);
+      await tester.pumpAndSettle();
+      expectPannedBy(before, h, delta);
+      // The canvas point under the finger stays under it.
+      expect(
+        (h.viewport.toScreen(under) - (start + delta)).distance,
+        lessThan(1e-6),
+      );
+      expectNoEdit(h, document);
+    });
+
+    testWidgets('zoomed in, a one-finger drag on empty canvas pans in the '
+        'joint tool (PN-1)', (tester) async {
+      final h = await _pump(tester);
+      h.controller.tool = DrawingTool.joint;
+      await tester.pump();
+      final before = await zoomIn(h);
+      final document = h.controller.document;
+      const delta = Offset(100, 60);
+
+      await tester.dragFrom(h.canvasCenter, delta);
+      await tester.pumpAndSettle();
+      expectPannedBy(before, h, delta);
+      expectNoEdit(h, document);
+    });
+
+    testWidgets('one-finger panning is clamped at the canvas edge (PN-3)', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await zoomIn(h);
+      final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+      for (var i = 0; i < 4; i++) {
+        await tester.dragFrom(h.canvasCenter, const Offset(400, 0));
+        await tester.pumpAndSettle();
+      }
+      // The canvas left edge stops at the area's left edge, as for pinch.
+      expect(h.viewport.origin.dx, closeTo(rect.left, 1e-6));
+      expect(h.controller.canUndo, isFalse);
+    });
+
+    testWidgets('at the fitted zoom a one-finger drag on empty canvas does '
+        'nothing (PN-5)', (tester) async {
+      final h = await _pump(tester);
+      final before = h.viewport;
+      final document = h.controller.document;
+      await tester.dragFrom(h.canvasCenter, const Offset(-120, -80));
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+      expectNoEdit(h, document);
+    });
+
+    testWidgets('zoomed in, dragging a shape still moves it and does not pan '
+        '(PN-2)', (tester) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      final square = h.controller.document.shapes.single;
+      await h.pinch(
+        center: h.screenOf(square.center),
+        fromHalf: 40,
+        toHalf: 140,
+      );
+      final before = h.viewport;
+      expect(before.scale, greaterThan(h.fitScale * 2));
+
+      await tester.dragFrom(
+        h.screenOf(square.center + const Offset(30, 30)),
+        Offset(0, 100 * before.scale),
+      );
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+      final moved = h.controller.document.shapes.single.center;
+      expect(moved.dy, greaterThan(square.center.dy + 50));
+      expect(h.controller.canUndo, isTrue);
+    });
+
+    testWidgets('zoomed in, dragging a joint label still moves the label '
+        '(PN-2)', (tester) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add rectangle'));
+      await tester.pump();
+      final id = h.controller.document.shapes.single.id;
+      final joint = h.controller.addJoint(id, 'tr');
+      await tester.pump();
+      const tr = Offset(920, 530);
+      await h.pinch(center: h.screenOf(tr), fromHalf: 40, toHalf: 140);
+      final before = h.viewport;
+      expect(before.scale, greaterThan(h.fitScale * 2));
+
+      await tester.dragFrom(
+        h.screenOf(tr + joint.labelOffset),
+        const Offset(60, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+      final moved = h.controller.document.joints.single.labelOffset;
+      expect(moved.dx, greaterThan(joint.labelOffset.dx + 30 / before.scale));
+    });
+
+    testWidgets('zoomed in, a tap on empty canvas still clears the selection '
+        'and a drag below the touch slop counts as a tap (PN-4)', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await tester.tap(find.byTooltip('Add square'));
+      await tester.pump();
+      await zoomIn(h);
+      final empty = h.viewport.toScreen(const Offset(100, 100));
+      final rect = tester.getRect(find.byKey(DrawingEditor.canvasKey));
+      final start = rect.contains(empty)
+          ? empty
+          : rect.topLeft + const Offset(20, 20);
+      h.controller.select(h.controller.document.shapes.single.id);
+      await tester.pump();
+      final before = h.viewport;
+
+      await tester.dragFrom(start, const Offset(4, 3));
+      await tester.pump(kDoubleTapTimeout * 2);
+      expect(h.controller.selectedId, isNull);
+      expect(h.viewport, before);
+    });
+
+    testWidgets('zoomed in, double-tap on empty canvas still returns to the '
+        'fitted view (PN-4)', (tester) async {
+      final h = await _pump(tester);
+      await zoomIn(h);
+      final point = h.canvasCenter + const Offset(30, 20);
+      await tester.tapAt(point);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(point);
+      await tester.pumpAndSettle();
+      expect(h.viewport.scale, closeTo(h.fitScale, 1e-9));
+    });
+
+    testWidgets('zoomed in, the finger left after a pinch does not pan', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await zoomIn(h);
+      await h.pinch(
+        center: h.canvasCenter,
+        fromHalf: 60,
+        toHalf: 60,
+        release: false,
+      );
+      final (a, b) = h.lastPinch!;
+      await b.up();
+      await tester.pump();
+      final before = h.viewport;
+      for (var i = 0; i < 5; i++) {
+        await a.moveBy(const Offset(-30, -20));
+        await tester.pump();
+      }
+      await a.up();
+      await tester.pumpAndSettle();
+      expect(h.viewport, before);
+    });
+
+    testWidgets('a two-finger drag still pans after a one-finger pan', (
+      tester,
+    ) async {
+      final h = await _pump(tester);
+      await zoomIn(h);
+      await tester.dragFrom(h.canvasCenter, const Offset(-40, -30));
+      await tester.pumpAndSettle();
+      final before = h.viewport;
+      await h.pinch(
+        center: h.canvasCenter,
+        fromHalf: 60,
+        toHalf: 60,
+        shift: const Offset(-60, -40),
+        steps: 60,
+      );
+      final after = h.viewport;
+      expect(after.scale, closeTo(before.scale, before.scale * 0.03));
+      expect(after.origin.dx, lessThan(before.origin.dx - 25));
+      expect(after.origin.dy, lessThan(before.origin.dy - 15));
     });
   });
 
