@@ -39,7 +39,7 @@ void main() {
     expect(find.byType(DrawingEditorPage), findsNothing);
     expect(find.byKey(ExampleHome.previewKey), findsOneWidget);
     expect(find.byKey(ExampleHome.viewKey), findsOneWidget);
-    expect(find.textContaining('"schemaVersion":4'), findsOneWidget);
+    expect(find.textContaining('"schemaVersion":1'), findsOneWidget);
 
     await tester.tap(find.text('Reopen drawing'));
     await tester.pumpAndSettle();
