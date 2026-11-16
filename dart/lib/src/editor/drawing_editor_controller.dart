@@ -569,7 +569,11 @@ extension DrawingEditorGestures on DrawingEditorController {
 
   /// Selects the joint with [id], or clears the selection with null.
   /// Clears any shape selection.
+  ///
+  /// While joints are hidden, no joint can be selected: [id] counts as null
+  /// (spec 04, JV-2).
   void selectJoint(String? id) {
+    if (!_document.jointsVisible) id = null;
     if (_selectedJointId == id && _selectedId == null) return;
     _selectedJointId = id;
     _selectedId = null;

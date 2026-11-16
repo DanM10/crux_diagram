@@ -97,6 +97,13 @@ void main() {
       expect(c.selectedId, shapeId);
     });
 
+    test('a hidden joint cannot be selected', () {
+      final c = _controller();
+      c.setJointsVisible(false);
+      c.selectJoint(c.document.joints.single.id);
+      expect(c.selectedJoint, isNull);
+    });
+
     test('undo back to hidden drops a joint selection', () {
       final c = _controller();
       c.setJointsVisible(false);
