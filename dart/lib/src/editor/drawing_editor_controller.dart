@@ -15,6 +15,7 @@ import '../geometry/transforms.dart';
 import '../model/drawing_document.dart';
 import '../model/id_generator.dart';
 import '../model/joint.dart';
+import '../model/joint_label_size.dart';
 import '../model/joint_names.dart';
 import '../model/shape_element.dart';
 import '../model/shape_type.dart';
@@ -169,10 +170,34 @@ class DrawingEditorController extends ChangeNotifier {
   Joint addJoint(String shapeId, String anchorId, {String? name}) {
     final joint = _newJoint(shapeId, anchorId, name: name);
     _commit(
-      _document.copyWith(joints: [..._document.joints, joint]),
+      _document.copyWith(
+        joints: [..._document.joints, joint],
+        jointsVisible: true,
+      ),
       selectJoint: joint.id,
     );
     return joint;
+  }
+
+  /// Sets the size of every joint label as one history entry (spec 04,
+  /// JS-4). Choosing the current size does nothing.
+  void setJointLabelSize(JointLabelSize size) {
+    if (_document.jointLabelSize == size) return;
+    _commit(_document.copyWith(jointLabelSize: size));
+  }
+
+  /// Shows or hides every joint as one history entry (spec 04, JV-6).
+  /// Hiding clears a joint selection and keeps a shape selection (JV-3);
+  /// setting the current visibility does nothing.
+  ///
+  /// Hidden joints stay in the document. Adding a joint shows them again in
+  /// the same history entry (JV-4).
+  void setJointsVisible(bool visible) {
+    if (_document.jointsVisible == visible) return;
+    _commit(
+      _document.copyWith(jointsVisible: visible),
+      selectJoint: visible ? _keepSelection : null,
+    );
   }
 
   /// Renames the joint with [jointId] to [name], trimmed and limited to
@@ -509,7 +534,9 @@ class DrawingEditorController extends ChangeNotifier {
 
   void _dropStaleSelection() {
     if (_selected == null) _selectedId = null;
-    if (selectedJoint == null) _selectedJointId = null;
+    if (selectedJoint == null || !_document.jointsVisible) {
+      _selectedJointId = null;
+    }
   }
 
   void _cancelGestureSilently() {
@@ -557,7 +584,10 @@ extension DrawingEditorGestures on DrawingEditorController {
   Joint beginJointCreation(String shapeId, String anchorId) {
     final joint = _newJoint(shapeId, anchorId);
     beginGesture();
-    _document = _document.copyWith(joints: [..._document.joints, joint]);
+    _document = _document.copyWith(
+      joints: [..._document.joints, joint],
+      jointsVisible: true,
+    );
     _selectedJointId = joint.id;
     _selectedId = null;
     _notify();
