@@ -638,6 +638,63 @@ void main() {
     });
   });
 
+  group('non-finite numbers', () {
+    // jsonEncode cannot write infinity, so the overflowing literal is
+    // spliced into the encoded text in place of a sentinel number.
+    const sentinel = 123456.789;
+    final fields = <String, void Function(Map<String, Object?> json)>{
+      'width': (j) => (j['canvas'] as Map)['width'] = sentinel,
+      'height': (j) => (j['canvas'] as Map)['height'] = sentinel,
+      'x': (j) => ((j['shapes'] as List)[0] as Map)['center'] = {
+        'x': sentinel,
+        'y': 600,
+      },
+      'y': (j) => ((j['shapes'] as List)[0] as Map)['center'] = {
+        'x': 800,
+        'y': sentinel,
+      },
+      'rotation': (j) =>
+          ((j['shapes'] as List)[0] as Map)['rotation'] = sentinel,
+      'strokeWidth': (j) =>
+          ((j['shapes'] as List)[0] as Map)['strokeWidth'] = sentinel,
+      'dx': (j) => ((j['joints'] as List)[0] as Map)['labelOffset'] = {
+        'dx': sentinel,
+        'dy': -50,
+      },
+      'dy': (j) => ((j['joints'] as List)[0] as Map)['labelOffset'] = {
+        'dx': 70,
+        'dy': sentinel,
+      },
+    };
+
+    for (final MapEntry(key: field, value: edit) in fields.entries) {
+      for (final literal in ['1e400', '-1e400']) {
+        test('$field = $literal is rejected by fromJson and validate', () {
+          final json =
+              jsonDecode(jsonEncode(_validV2Json())) as Map<String, Object?>;
+          edit(json);
+          final text = jsonEncode(json).replaceFirst('$sentinel', literal);
+          expect(text, contains(literal));
+          expect(
+            () => DrawingDocument.fromJson(text),
+            _formatError('$field must be a finite number.'),
+          );
+          expect(
+            DrawingDocument.validate(text)?.message,
+            contains('$field must be a finite number.'),
+          );
+        });
+      }
+    }
+
+    test('a finite value written with an exponent still opens', () {
+      final text = jsonEncode(
+        _validV2Json(),
+      ).replaceFirst('"rotation":0.0', '"rotation":1e-3');
+      expect(DrawingDocument.fromJson(text).shapes.single.rotation, 1e-3);
+    });
+  });
+
   group('validate (spec 05, JX-1)', () {
     test('returns null for JSON that opens', () {
       expect(DrawingDocument.validate(jsonEncode(_validJson())), isNull);

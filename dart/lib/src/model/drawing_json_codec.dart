@@ -329,6 +329,11 @@ double _double(Map<String, Object?> json, String key, String path) {
   if (value is! num) {
     throw DrawingFormatException('$path.$key must be a number.');
   }
+  // JSON has no infinity, but an overflowing literal such as 1e400 decodes
+  // to one, and such a document could not be encoded again.
+  if (!value.isFinite) {
+    throw DrawingFormatException('$path.$key must be a finite number.');
+  }
   return value.toDouble();
 }
 
