@@ -7,6 +7,7 @@ import 'drawing_format_exception.dart';
 import 'joint.dart';
 import 'joint_label_size.dart';
 import 'shape_element.dart';
+import 'shape_group.dart';
 import 'shape_type.dart';
 import 'shape_type_defaults.dart';
 
@@ -22,6 +23,7 @@ String encodeDrawingDocument(DrawingDocument document) {
       'labelSize': document.jointLabelSize.name,
       'visible': document.jointsVisible,
     },
+    'groups': [for (final group in document.groups) _groupToJson(group)],
   });
 }
 
@@ -71,14 +73,81 @@ DrawingDocument decodeDrawingDocument(String source) {
   final (labelSize, visible) = version >= 3
       ? _jointDisplayFromJson(json)
       : (JointLabelSize.small, true);
+  // Versions 1 to 3 have no groups; a stray `groups` field there is ignored
+  // (spec 05, PS-5).
+  final groups = version >= 4 ? _groupsFromJson(json, ids) : <ShapeGroup>[];
   return DrawingDocument(
     canvasSize: canvasSize,
     shapes: shapes,
     joints: joints,
     jointLabelSize: labelSize,
     jointsVisible: visible,
+    groups: groups,
   );
 }
+
+List<ShapeGroup> _groupsFromJson(
+  Map<String, Object?> json,
+  Set<String> shapeIds,
+) {
+  final rawGroups = _required(json, 'groups', 'document');
+  if (rawGroups is! List) {
+    throw const DrawingFormatException('document.groups must be a list.');
+  }
+  final groupIds = <String>{};
+  final groupOfShape = <String, String>{};
+  final groups = <ShapeGroup>[];
+  for (var i = 0; i < rawGroups.length; i++) {
+    final path = 'groups[$i]';
+    final group = _object(rawGroups[i], path);
+    final id = _string(group, 'id', path);
+    if (!groupIds.add(id)) {
+      throw DrawingFormatException('$path: duplicate group id "$id".');
+    }
+    final rawMembers = _required(group, 'shapeIds', path);
+    if (rawMembers is! List) {
+      throw DrawingFormatException('$path.shapeIds must be a list.');
+    }
+    if (rawMembers.length < 2) {
+      throw DrawingFormatException(
+        '$path.shapeIds: a group needs at least two shapes.',
+      );
+    }
+    final members = <String>[];
+    for (var j = 0; j < rawMembers.length; j++) {
+      final memberPath = '$path.shapeIds[$j]';
+      final member = rawMembers[j];
+      if (member is! String || member.isEmpty) {
+        throw DrawingFormatException('$memberPath must be a non-empty string.');
+      }
+      if (members.contains(member)) {
+        throw DrawingFormatException(
+          '$memberPath: duplicate shape id "$member".',
+        );
+      }
+      if (!shapeIds.contains(member)) {
+        throw DrawingFormatException(
+          '$memberPath: no shape with id "$member".',
+        );
+      }
+      final owner = groupOfShape[member];
+      if (owner != null) {
+        throw DrawingFormatException(
+          '$memberPath: shape "$member" is already in group "$owner".',
+        );
+      }
+      groupOfShape[member] = id;
+      members.add(member);
+    }
+    groups.add(ShapeGroup(id: id, shapeIds: members));
+  }
+  return groups;
+}
+
+Map<String, Object?> _groupToJson(ShapeGroup group) => {
+  'id': group.id,
+  'shapeIds': group.shapeIds,
+};
 
 (JointLabelSize, bool) _jointDisplayFromJson(Map<String, Object?> json) {
   const path = 'jointDisplay';

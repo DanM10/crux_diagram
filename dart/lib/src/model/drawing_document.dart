@@ -7,9 +7,10 @@ import 'drawing_json_codec.dart';
 import 'joint.dart';
 import 'joint_label_size.dart';
 import 'shape_element.dart';
+import 'shape_group.dart';
 
-/// An immutable drawing: a canvas size, shapes in z-order and the joints
-/// attached to them.
+/// An immutable drawing: a canvas size, shapes in z-order, the joints
+/// attached to them and the groups they form.
 ///
 /// Serializes to and from JSON with [toJson] and [DrawingDocument.fromJson].
 @immutable
@@ -19,25 +20,31 @@ class DrawingDocument {
   /// Every joint should refer to an existing shape and a valid anchor, with
   /// at most one joint per shape anchor. [DrawingEditorController] and
   /// [DrawingDocument.fromJson] enforce this; the constructor does not.
+  /// The same holds for the invariants of [groups].
   DrawingDocument({
     this.canvasSize = defaultCanvasSize,
     List<ShapeElement> shapes = const [],
     List<Joint> joints = const [],
     this.jointLabelSize = JointLabelSize.small,
     this.jointsVisible = true,
+    List<ShapeGroup> groups = const [],
   }) : shapes = List.unmodifiable(shapes),
-       joints = List.unmodifiable(joints);
+       joints = List.unmodifiable(joints),
+       groups = List.unmodifiable(groups);
 
   /// Decodes a document from a JSON string.
   ///
-  /// Accepts schema versions 1 to 3; a version 1 document has no joints,
-  /// and versions 1 and 2 open with small, visible joints.
+  /// Accepts schema versions 1 to 4; a version 1 document has no joints,
+  /// versions 1 and 2 open with small, visible joints, and versions 1 to 3
+  /// open with no groups.
   ///
   /// Throws [DrawingFormatException] when the input is malformed, misses a
   /// required field, uses an unknown shape type or a newer schema version,
   /// or has a joint whose shape or anchor does not exist or that repeats a
-  /// shape anchor, or a version 3 document with a missing or malformed
-  /// `jointDisplay`.
+  /// shape anchor, or a version 3 or 4 document with a missing or malformed
+  /// `jointDisplay`, or a version 4 document with a missing or malformed
+  /// `groups` list: a group with fewer than two shapes, a repeated or
+  /// unknown shape id, a shape in two groups or a duplicate group id.
   factory DrawingDocument.fromJson(String source) =>
       decodeDrawingDocument(source);
 
@@ -56,7 +63,7 @@ class DrawingDocument {
   }
 
   /// The schema version written by [toJson] and the newest one accepted.
-  static const int currentSchemaVersion = 3;
+  static const int currentSchemaVersion = 4;
 
   /// Default canvas size in logical units (4:3).
   static const Size defaultCanvasSize = Size(1600, 1200);
@@ -80,6 +87,14 @@ class DrawingDocument {
   /// Hidden joints stay in [joints].
   final bool jointsVisible;
 
+  /// Groups of shapes (spec 05, MS-6, PS-5). Unmodifiable.
+  ///
+  /// Every group should hold at least two shape ids, each naming a shape in
+  /// [shapes], and a shape should be in at most one group. Like the joint
+  /// invariants, [DrawingDocument.fromJson] enforces this; the constructor
+  /// does not.
+  final List<ShapeGroup> groups;
+
   /// Returns a copy with the given fields replaced.
   DrawingDocument copyWith({
     Size? canvasSize,
@@ -87,12 +102,14 @@ class DrawingDocument {
     List<Joint>? joints,
     JointLabelSize? jointLabelSize,
     bool? jointsVisible,
+    List<ShapeGroup>? groups,
   }) => DrawingDocument(
     canvasSize: canvasSize ?? this.canvasSize,
     shapes: shapes ?? this.shapes,
     joints: joints ?? this.joints,
     jointLabelSize: jointLabelSize ?? this.jointLabelSize,
     jointsVisible: jointsVisible ?? this.jointsVisible,
+    groups: groups ?? this.groups,
   );
 
   /// Encodes this document as a JSON string.
@@ -106,7 +123,8 @@ class DrawingDocument {
           listEquals(other.shapes, shapes) &&
           listEquals(other.joints, joints) &&
           other.jointLabelSize == jointLabelSize &&
-          other.jointsVisible == jointsVisible;
+          other.jointsVisible == jointsVisible &&
+          listEquals(other.groups, groups);
 
   @override
   int get hashCode => Object.hash(
@@ -115,5 +133,6 @@ class DrawingDocument {
     Object.hashAll(joints),
     jointLabelSize,
     jointsVisible,
+    Object.hashAll(groups),
   );
 }

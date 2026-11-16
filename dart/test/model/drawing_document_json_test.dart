@@ -48,7 +48,7 @@ void main() {
   group('DrawingDocument defaults', () {
     test('empty document has a 1600 × 1200 canvas and no shapes', () {
       final document = DrawingDocument();
-      expect(document.schemaVersion, 3);
+      expect(document.schemaVersion, 4);
       expect(document.jointLabelSize, JointLabelSize.small);
       expect(document.jointsVisible, isTrue);
       expect(document.canvasSize, const Size(1600, 1200));
@@ -86,7 +86,7 @@ void main() {
       );
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
       expect(encoded, {
-        'schemaVersion': 3,
+        'schemaVersion': 4,
         'canvas': {'width': 1600.0, 'height': 1200.0},
         'shapes': [
           {
@@ -102,6 +102,7 @@ void main() {
         ],
         'joints': <Object?>[],
         'jointDisplay': {'labelSize': 'small', 'visible': true},
+        'groups': <Object?>[],
       });
     });
   });
@@ -177,7 +178,7 @@ void main() {
     test('newer schemaVersion', () {
       expect(
         () =>
-            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 4)),
+            DrawingDocument.fromJson(encodeWith((j) => j['schemaVersion'] = 5)),
         _formatError('schemaVersion'),
       );
     });
@@ -286,7 +287,7 @@ void main() {
     test('encodes joints in the spec format', () {
       final document = DrawingDocument.fromJson(jsonEncode(_validV2Json()));
       final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(encoded['schemaVersion'], 3);
+      expect(encoded['schemaVersion'], 4);
       expect(encoded['joints'], [
         {
           'id': 'j_01',
@@ -343,12 +344,12 @@ void main() {
       expect(decoded.joints.map((j) => j.id), ['j2', 'j1', 'j3']);
     });
 
-    test('a version 1 document opens with no joints and saves as 3 (AC 9)', () {
+    test('a version 1 document opens with no joints and saves as 4 (AC 9)', () {
       final document = DrawingDocument.fromJson(jsonEncode(_validJson()));
       expect(document.shapes, hasLength(1));
       expect(document.joints, isEmpty);
       final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
-      expect(saved['schemaVersion'], 3);
+      expect(saved['schemaVersion'], 4);
       expect(saved['joints'], isEmpty);
     });
 
@@ -676,6 +677,258 @@ void main() {
         expect(result, isA<DrawingFormatException>(), reason: json);
         expect(result!.message, thrown!.message, reason: json);
       }
+    });
+  });
+
+  group('schemaVersion 4 (spec 05, PS-5, PS-6)', () {
+    Map<String, Object?> shapeJson(String id) => {
+      ...(_validJson()['shapes'] as List).single as Map<String, Object?>,
+      'id': id,
+    };
+
+    Map<String, Object?> v4Json(Object? groups) => {
+      ..._validV2Json(),
+      'schemaVersion': 4,
+      'shapes': [
+        for (final id in ['s_01', 's_02', 's_03', 's_04']) shapeJson(id),
+      ],
+      'jointDisplay': {'labelSize': 'medium', 'visible': false},
+      'groups': groups,
+    };
+
+    Map<String, Object?> groupJson(String id, List<Object?> shapeIds) => {
+      'id': id,
+      'shapeIds': shapeIds,
+    };
+
+    ShapeElement shape(String id) => ShapeElement(
+      id: id,
+      type: ShapeType.rectangle,
+      center: const Offset(800, 600),
+      size: const Size(240, 140),
+    );
+
+    test('encodes groups in the spec format', () {
+      final document = DrawingDocument(
+        shapes: [shape('s_01'), shape('s_02')],
+        groups: [
+          ShapeGroup(id: 'g_01', shapeIds: ['s_01', 's_02']),
+        ],
+      );
+      final encoded = jsonDecode(document.toJson()) as Map<String, Object?>;
+      expect(encoded['schemaVersion'], 4);
+      expect(encoded['groups'], [
+        {
+          'id': 'g_01',
+          'shapeIds': ['s_01', 's_02'],
+        },
+      ]);
+      expect(
+        (jsonDecode(DrawingDocument().toJson()) as Map)['groups'],
+        isEmpty,
+      );
+    });
+
+    test('round trip keeps every group, its order and member order', () {
+      final document = DrawingDocument.fromJson(
+        jsonEncode(
+          v4Json([
+            groupJson('g_02', ['s_03', 's_01']),
+            groupJson('g_01', ['s_02', 's_04']),
+          ]),
+        ),
+      );
+      expect(document.groups, [
+        ShapeGroup(id: 'g_02', shapeIds: ['s_03', 's_01']),
+        ShapeGroup(id: 'g_01', shapeIds: ['s_02', 's_04']),
+      ]);
+      final decoded = DrawingDocument.fromJson(document.toJson());
+      expect(decoded, document);
+      expect(decoded.groups.map((g) => g.id), ['g_02', 'g_01']);
+      expect(decoded.groups.first.shapeIds, ['s_03', 's_01']);
+      expect(decoded.jointLabelSize, JointLabelSize.medium);
+      expect(decoded.jointsVisible, isFalse);
+    });
+
+    test('versions 1 to 3 open with no groups', () {
+      final v3 = {
+        ..._validV2Json(),
+        'schemaVersion': 3,
+        'jointDisplay': {'labelSize': 'small', 'visible': true},
+      };
+      for (final json in [_validJson(), _validV2Json(), v3]) {
+        expect(DrawingDocument.fromJson(jsonEncode(json)).groups, isEmpty);
+      }
+    });
+
+    test('versions 1 to 3 ignore a stray groups field', () {
+      final v3 = {
+        ..._validV2Json(),
+        'schemaVersion': 3,
+        'jointDisplay': {'labelSize': 'small', 'visible': true},
+      };
+      for (final json in [_validJson(), _validV2Json(), v3]) {
+        json['groups'] = 'not a list';
+        expect(DrawingDocument.fromJson(jsonEncode(json)).groups, isEmpty);
+      }
+    });
+
+    test('a version 3 document opens unchanged and saves as 4', () {
+      final v3 = {
+        ..._validV2Json(),
+        'schemaVersion': 3,
+        'jointDisplay': {'labelSize': 'large', 'visible': false},
+      };
+      final document = DrawingDocument.fromJson(jsonEncode(v3));
+      expect(document.joints.single.id, 'j_01');
+      expect(document.jointLabelSize, JointLabelSize.large);
+      expect(document.jointsVisible, isFalse);
+      final saved = jsonDecode(document.toJson()) as Map<String, Object?>;
+      expect(saved['schemaVersion'], 4);
+      expect(saved['jointDisplay'], {'labelSize': 'large', 'visible': false});
+      expect(saved['joints'], v3['joints']);
+      expect(saved['groups'], isEmpty);
+      expect(DrawingDocument.fromJson(document.toJson()), document);
+    });
+
+    test('groups take part in equality, hashCode and copyWith', () {
+      final base = DrawingDocument(shapes: [shape('s_01'), shape('s_02')]);
+      final grouped = base.copyWith(
+        groups: [
+          ShapeGroup(id: 'g_01', shapeIds: ['s_01', 's_02']),
+        ],
+      );
+      expect(base.groups, isEmpty);
+      expect(grouped, isNot(base));
+      expect(grouped.shapes, base.shapes);
+      final same = base.copyWith(
+        groups: [
+          ShapeGroup(id: 'g_01', shapeIds: ['s_01', 's_02']),
+        ],
+      );
+      expect(same, grouped);
+      expect(same.hashCode, grouped.hashCode);
+      expect(grouped.copyWith(jointsVisible: false).groups, grouped.groups);
+    });
+
+    test('groups and their shape ids are unmodifiable', () {
+      final ids = ['s_01', 's_02'];
+      final groups = [ShapeGroup(id: 'g_01', shapeIds: ids)];
+      final document = DrawingDocument(groups: groups);
+      ids.add('s_03');
+      groups.clear();
+      expect(document.groups.single.shapeIds, ['s_01', 's_02']);
+      expect(() => document.groups.clear(), throwsUnsupportedError);
+      expect(
+        () => document.groups.single.shapeIds.add('x'),
+        throwsUnsupportedError,
+      );
+    });
+
+    group('decoding errors (PS-6)', () {
+      void expectError(Object? groups, String messagePart) => expect(
+        () => DrawingDocument.fromJson(jsonEncode(v4Json(groups))),
+        _formatError(messagePart),
+      );
+
+      test('missing groups', () {
+        final json = v4Json(null)..remove('groups');
+        expect(
+          () => DrawingDocument.fromJson(jsonEncode(json)),
+          _formatError('groups'),
+        );
+      });
+
+      test('groups is not a list', () {
+        expectError('g_01', 'document.groups must be a list');
+        expectError(null, 'document.groups must be a list');
+      });
+
+      test('group is not an object', () {
+        expectError(['g_01'], 'groups[0] must be a JSON object');
+      });
+
+      test('missing or empty id', () {
+        expectError([
+          {
+            'shapeIds': ['s_01', 's_02'],
+          },
+        ], 'groups[0]: missing required field "id"');
+        expectError([
+          groupJson('', ['s_01', 's_02']),
+        ], 'groups[0].id must be a non-empty string');
+        expectError([
+          {
+            'id': 7,
+            'shapeIds': ['s_01', 's_02'],
+          },
+        ], 'groups[0].id must be a non-empty string');
+      });
+
+      test('shapeIds missing or not a list of non-empty strings', () {
+        expectError([
+          {'id': 'g_01'},
+        ], 'groups[0]: missing required field "shapeIds"');
+        expectError([
+          {'id': 'g_01', 'shapeIds': 's_01'},
+        ], 'groups[0].shapeIds must be a list');
+        expectError([
+          groupJson('g_01', ['s_01', 2]),
+        ], 'groups[0].shapeIds[1] must be a non-empty string');
+        expectError([
+          groupJson('g_01', ['', 's_01']),
+        ], 'groups[0].shapeIds[0] must be a non-empty string');
+      });
+
+      test('fewer than two shapes', () {
+        expectError([
+          groupJson('g_01', ['s_01']),
+        ], 'groups[0].shapeIds: a group needs at least two shapes');
+        expectError([
+          groupJson('g_01', []),
+        ], 'groups[0].shapeIds: a group needs at least two shapes');
+      });
+
+      test('duplicate shape id inside one group', () {
+        expectError([
+          groupJson('g_01', ['s_01', 's_01']),
+        ], 'groups[0].shapeIds[1]: duplicate shape id "s_01"');
+      });
+
+      test('unknown shape id', () {
+        expectError([
+          groupJson('g_01', ['s_01', 'nope']),
+        ], 'groups[0].shapeIds[1]: no shape with id "nope"');
+      });
+
+      test('a shape in two groups', () {
+        expectError([
+          groupJson('g_01', ['s_01', 's_02']),
+          groupJson('g_02', ['s_03', 's_02']),
+        ], 'groups[1].shapeIds[1]: shape "s_02" is already in group "g_01"');
+      });
+
+      test('duplicate group id', () {
+        expectError([
+          groupJson('g_01', ['s_01', 's_02']),
+          groupJson('g_01', ['s_03', 's_04']),
+        ], 'groups[1]: duplicate group id "g_01"');
+      });
+
+      test('validate returns the exception fromJson throws', () {
+        final json = jsonEncode(
+          v4Json([
+            groupJson('g_01', ['s_01']),
+          ]),
+        );
+        final result = DrawingDocument.validate(json);
+        expect(result, isA<DrawingFormatException>());
+        expect(
+          result!.message,
+          'groups[0].shapeIds: a group needs at least two shapes.',
+        );
+        expect(DrawingDocument.validate(jsonEncode(v4Json([]))), isNull);
+      });
     });
   });
 }
