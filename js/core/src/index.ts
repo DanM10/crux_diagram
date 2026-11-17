@@ -12,3 +12,10 @@ export * from './geometry/placement.js';
 export * from './names.js';
 export * from './ops.js';
 export { generateId, uniqueId } from './ids.js';
+// Editor geometry ported from Flutter (REC-077).
+export * from './geometry/hit-testing.js';
+export * from './geometry/resize.js';
+export * from './geometry/grid.js';
+export * from './geometry/anchor-snapping.js';
+export * from './geometry/rotation.js';
+export * from './geometry/viewport.js';
