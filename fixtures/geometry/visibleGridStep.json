@@ -1,0 +1,42 @@
+{
+  "function": "visibleGridStep",
+  "description": "Finest drawn grid spacing: minor lines at 8 dp or more, else major lines, else null (REC-077).",
+  "cases": [
+    {
+      "name": "minor lines readable",
+      "input": {
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 1.0
+      },
+      "expected": 20.0
+    },
+    {
+      "name": "minor lines exactly 8 dp",
+      "input": {
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 0.4
+      },
+      "expected": 20.0
+    },
+    {
+      "name": "only major lines readable",
+      "input": {
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 0.2
+      },
+      "expected": 100.0
+    },
+    {
+      "name": "nothing readable",
+      "input": {
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 0.05
+      },
+      "expected": null
+    }
+  ]
+}
