@@ -1,7 +1,7 @@
 # js-core — `@diagrama-kit/core` (TypeScript port of the format and model)
 
 Objective: implement `spec/04-spec-react-core.md` in `js/core`. Branch: `feat/js-core`.
-Delivery: ask-on-risk, one work-unit commit per task. Test runner: `cd js && npm test` (vitest), `npm run typecheck`.
+Delivery: ask-on-risk, chain strategy feature-branch-chain (user, 2026-11-17), one work-unit commit per task. Test runner: `cd js && npm test` (vitest), `npm run typecheck`.
 
 ## Specs
 
@@ -27,7 +27,7 @@ Source of truth: `spec/04-spec-react-core.md` (REC-xxx) and `spec/02-spec-format
 | T4 | S4 | inline | done (RED 24 → GREEN 210; all 8 geometry fixtures covered) | 69f475c |
 | T5 | S5 | inline (explorer mapped Dart controller first) | done (RED 24 → GREEN 239) | 5751e87 |
 | T6 | S6 | inline | done (RED 109 → GREEN 166 geometry cases; 356 TS, 723 Dart) | c8c831f + `feat(core): port editor geometry modules from Flutter` |
-| T7 | S7 | inline | pending | |
+| T7 | S7 | inline | done (RED: build script missing → GREEN 7 packaging tests; 363 TS) | `feat(core): build ESM and CJS outputs with types` |
 
 Route evidence: sequential dependent units, no writer reason (no parallel independent units yet).
 
@@ -47,3 +47,5 @@ Route evidence: sequential dependent units, no writer reason (no parallel indepe
 - L12 (2026-11-17) T6: 21 new geometry fixtures generated from Dart (shapeContains, topmostShapeAt, handlesFor, sizeLimitsForCanvas, resizeByHandle, snapPointToGrid, visibleGridStep, gridLinesAlong, snapMoveToGrid, snapBoxShiftToGrid, nearestAnchorSnap, anchorIdForHandle, pickAnchor, softSnap, rotationFromPointer, fitViewport, viewportToCanvas, visibleCenter, applyZoom, pinchZoom, clampZoom); existing fixtures unchanged. TS modules in js/core/src/geometry/ (hit-testing, resize, grid, anchor-snapping, rotation, viewport, round). Decisions (assumptions): Dart's `resizeShape` is exported as `resizeByHandle` because `resizeShape` is the document op (REC-070); an edge handle on a square or circle throws `RangeError` (Dart only asserts in debug); CanvasViewport/ViewportZoom are plain data plus functions; `snapBoxShiftToGrid` takes the TS `Rect` (left, top, width, height). The geometry conformance runner now fails on a fixture without an adapter instead of marking it todo.
 - L13 (2026-11-17) RDD assess of 5751e87..T6 (committed only): risk medium, review not due (`under_budget`); the slice stays pending until a later commit reaches the budget. Authored lines exceed ~400 (generator cases + TS port); the chain strategy question for PRs is open for the user.
 - L14 (2026-11-17) The review of f9969f7..HEAD was too big (`lens_context_budget_exceeded`). User chose option 1: two reviews. T5 (69f475c..5751e87, temporary worktree, readability + reliability) was approved and acknowledged, with 11 non-blocking advisories: R2-describe-quotes-non-strings, R2-empty-id-message, R2-micros-name, R2-noop-identity-contract, R3-addshape-values, R3-describe-ambiguous, R3-dup-empty-id, R3-jointdisplay-unvalidated, R3-move-nan-delta, R3-noop-identity, R3-purity-coverage. T6 (5751e87..dba4da6, readability + reliability) was approved and acknowledged, with 6 non-blocking advisories: R2-duplicated-quarter-turn-tolerance (rotation.ts), R2-misleading-quarter-turn-fixture and R2-misleading-rotated-rectangle-fixture (generator case names), R3-001 (snapMoveToGrid.json), R3-002 (resizeByHandle.json), R3-003 (grid.ts gridLinesAlong). These are follow-ups, not blockers.
+- L15 (2026-11-17) User: "feature-branch-chain" (answer to the PR chain strategy question). Slice boundaries get planned when the PRs are prepared. T7 started: build with two `tsc` passes (ESM and CJS, with declarations), no new dependencies.
+- L16 (2026-11-17) T7: `npm run build` (core/scripts/build.mjs) runs `tsc -p tsconfig.build.json` twice: ESM to dist/esm and CJS (`--module commonjs`) to dist/cjs, with declarations, plus dist/cjs/package.json `{"type":"commonjs"}`. `exports` has import/require conditions, each with its types; `files: ["dist"]`; `sideEffects: false` was already set. Assumption (REC-082): "Node LTS vigentes" means `engines.node >=22` (Node 20 reached end of life in April 2026); the root js/package.json and the lockfile metadata follow. The build lib is ES2022 + DOM with no Node types, and a test checks that the output has no Node built-ins. The packaging test builds into a temporary directory and loads both outputs from a fresh Node process. `npm pack --dry-run`: 90 files, 34.0 kB, only dist. REC-083 (provenance) stays deferred to publishing. Risk: item 5 (packaging and engines), so an independent verifier runs.
