@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1600.0,
+    "height": 1200.0
+  },
+  "shapes": [
+    {
+      "id": "s_01",
+      "type": "rectangle",
+      "center": {
+        "x": 400.0,
+        "y": 300.0
+      },
+      "size": {
+        "width": 240.0,
+        "height": 140.0
+      },
+      "rotation": 0.5236,
+      "fill": 16777215,
+      "stroke": 4285887861,
+      "strokeWidth": 2.0
+    }
+  ],
+  "joints": [],
+  "jointDisplay": {
+    "labelSize": "small",
+    "visible": true
+  },
+  "groups": []
+}

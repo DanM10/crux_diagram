@@ -1,0 +1,129 @@
+{
+  "function": "leaderLineStart",
+  "description": "Where the leader line leaves the label rectangle; null when the anchor is inside (FMT-043).",
+  "cases": [
+    {
+      "name": "anchor straight right (dy = 0)",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 700.0,
+          "y": 400.0
+        }
+      },
+      "expected": {
+        "x": 540.0,
+        "y": 400.0
+      }
+    },
+    {
+      "name": "anchor straight above (dx = 0)",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 500.0,
+          "y": 100.0
+        }
+      },
+      "expected": {
+        "x": 500.0,
+        "y": 380.0
+      }
+    },
+    {
+      "name": "anchor down and to the right",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 600.0,
+          "y": 500.0
+        }
+      },
+      "expected": {
+        "x": 520.0,
+        "y": 420.0
+      }
+    },
+    {
+      "name": "anchor far up and to the left",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 100.0,
+          "y": 100.0
+        }
+      },
+      "expected": {
+        "x": 473.3333333333333,
+        "y": 380.0
+      }
+    },
+    {
+      "name": "anchor inside the rectangle",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 510.0,
+          "y": 405.0
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "anchor on the rectangle edge",
+      "input": {
+        "labelCenter": {
+          "x": 500.0,
+          "y": 400.0
+        },
+        "labelSize": {
+          "width": 80.0,
+          "height": 40.0
+        },
+        "anchor": {
+          "x": 540.0,
+          "y": 400.0
+        }
+      },
+      "expected": {
+        "x": 540.0,
+        "y": 400.0
+      }
+    }
+  ]
+}

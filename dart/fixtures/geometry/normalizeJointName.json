@@ -1,0 +1,78 @@
+{
+  "function": "normalizeJointName",
+  "description": "Trims and cuts a name by grapheme clusters (FMT-022). Null when nothing is left.",
+  "cases": [
+    {
+      "name": "trims spaces",
+      "input": {
+        "raw": "  J1 ",
+        "maxLength": 12
+      },
+      "expected": "J1"
+    },
+    {
+      "name": "blank becomes null",
+      "input": {
+        "raw": "   ",
+        "maxLength": 12
+      },
+      "expected": null
+    },
+    {
+      "name": "empty becomes null",
+      "input": {
+        "raw": "",
+        "maxLength": 12
+      },
+      "expected": null
+    },
+    {
+      "name": "cut to the limit",
+      "input": {
+        "raw": "ABCDEFGHIJKLMNOP",
+        "maxLength": 12
+      },
+      "expected": "ABCDEFGHIJKL"
+    },
+    {
+      "name": "shorter than the limit",
+      "input": {
+        "raw": "J1",
+        "maxLength": 12
+      },
+      "expected": "J1"
+    },
+    {
+      "name": "emoji count as one",
+      "input": {
+        "raw": "😀😀😀😀",
+        "maxLength": 2
+      },
+      "expected": "😀😀"
+    },
+    {
+      "name": "decomposed accents count as one",
+      "input": {
+        "raw": "ééé",
+        "maxLength": 2
+      },
+      "expected": "éé"
+    },
+    {
+      "name": "a family emoji is one grapheme",
+      "input": {
+        "raw": "👨‍👩‍👧‍👦abc",
+        "maxLength": 2
+      },
+      "expected": "👨‍👩‍👧‍👦a"
+    },
+    {
+      "name": "trailing spaces after the cut are trimmed",
+      "input": {
+        "raw": "AB   CD",
+        "maxLength": 4
+      },
+      "expected": "AB"
+    }
+  ]
+}

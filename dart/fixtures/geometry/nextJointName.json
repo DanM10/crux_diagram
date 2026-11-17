@@ -1,0 +1,94 @@
+{
+  "function": "nextJointName",
+  "description": "Next automatic joint name (FMT-046).",
+  "cases": [
+    {
+      "name": "no names",
+      "input": {
+        "prefix": "J",
+        "names": []
+      },
+      "expected": "J1"
+    },
+    {
+      "name": "consecutive",
+      "input": {
+        "prefix": "J",
+        "names": [
+          "J1",
+          "J2",
+          "J3"
+        ]
+      },
+      "expected": "J4"
+    },
+    {
+      "name": "with a gap",
+      "input": {
+        "prefix": "J",
+        "names": [
+          "J1",
+          "J2",
+          "J5"
+        ]
+      },
+      "expected": "J6"
+    },
+    {
+      "name": "names that do not match the pattern",
+      "input": {
+        "prefix": "J",
+        "names": [
+          "J1",
+          "Jx",
+          "J-3",
+          "J2a",
+          "j9"
+        ]
+      },
+      "expected": "J2"
+    },
+    {
+      "name": "leading zeros",
+      "input": {
+        "prefix": "J",
+        "names": [
+          "J02"
+        ]
+      },
+      "expected": "J3"
+    },
+    {
+      "name": "another prefix",
+      "input": {
+        "prefix": "P",
+        "names": [
+          "J1",
+          "J2"
+        ]
+      },
+      "expected": "P1"
+    },
+    {
+      "name": "suffix beyond 64 bits",
+      "input": {
+        "prefix": "J",
+        "names": [
+          "J99999999999999999999"
+        ]
+      },
+      "expected": "J100000000000000000000"
+    },
+    {
+      "name": "prefix with a regular expression character",
+      "input": {
+        "prefix": "J.",
+        "names": [
+          "J.1",
+          "Jx7"
+        ]
+      },
+      "expected": "J.2"
+    }
+  ]
+}

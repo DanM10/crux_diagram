@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1600.0,
+    "height": 1200.0
+  },
+  "shapes": [],
+  "joints": [],
+  "jointDisplay": {
+    "labelSize": "huge",
+    "visible": true
+  },
+  "groups": []
+}

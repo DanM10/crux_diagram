@@ -1,0 +1,83 @@
+{
+  "function": "normalizeAngle",
+  "description": "Normalizes radians to [0, 2π) (FMT-003).",
+  "cases": [
+    {
+      "name": "zero",
+      "input": {
+        "radians": 0.0
+      },
+      "expected": 0.0
+    },
+    {
+      "name": "inside the range",
+      "input": {
+        "radians": 1.0
+      },
+      "expected": 1.0
+    },
+    {
+      "name": "negative",
+      "input": {
+        "radians": -1.0
+      },
+      "expected": 5.283185307179586
+    },
+    {
+      "name": "exactly a full turn",
+      "input": {
+        "radians": 6.283185307179586
+      },
+      "expected": 0.0
+    },
+    {
+      "name": "negative half turn",
+      "input": {
+        "radians": -3.141592653589793
+      },
+      "expected": 3.141592653589793
+    },
+    {
+      "name": "seven radians",
+      "input": {
+        "radians": 7.0
+      },
+      "expected": 0.7168146928204138
+    },
+    {
+      "name": "minus seven radians",
+      "input": {
+        "radians": -7.0
+      },
+      "expected": 5.5663706143591725
+    },
+    {
+      "name": "three quarters of a turn",
+      "input": {
+        "radians": 4.71238898038469
+      },
+      "expected": 4.71238898038469
+    },
+    {
+      "name": "large positive",
+      "input": {
+        "radians": 1000.0
+      },
+      "expected": 0.9735361584457891
+    },
+    {
+      "name": "large negative",
+      "input": {
+        "radians": -1000.0
+      },
+      "expected": 5.309649148733797
+    },
+    {
+      "name": "very large",
+      "input": {
+        "radians": 1000000.0
+      },
+      "expected": 5.925621140132833
+    }
+  ]
+}
