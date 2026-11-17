@@ -24,8 +24,8 @@ Source of truth: `spec/04-spec-react-core.md` (REC-xxx) and `spec/02-spec-format
 | T1 | S1 | inline | done (30 tests, tsc clean) | c124e63 |
 | T2 | S2, S8 | inline | done (129 tests: 24 valid, 58 invalid, 6 roundtrip; tsc clean) | f9969f7, fix 19efe6c |
 | T3 | S3 | inline | done (RED 43 → GREEN 186; geometry fixtures for anchors and leader arrow pass) | 7ad93bf |
-| T4 | S4 | inline | done (RED 24 → GREEN 210; all 8 geometry fixtures covered) | see L8 |
-| T5 | S5 | inline | pending | |
+| T4 | S4 | inline | done (RED 24 → GREEN 210; all 8 geometry fixtures covered) | 69f475c |
+| T5 | S5 | inline (explorer mapped Dart controller first) | done (RED 24 → GREEN 239) | see L10 |
 | T6 | S6 | inline | pending | |
 | T7 | S7 | inline | pending | |
 
@@ -42,3 +42,4 @@ Route evidence: sequential dependent units, no writer reason (no parallel indepe
 - L7 (2026-11-17) T3: anchorsOf/anchorPositionOf, transforms, defaultLabelOffset, clampLabelOffset, leaderLineStart (half-open), arrowheadPoints, JointStyle (spec 02 §12), TextMeasurer with CanvasTextMeasurer and ApproximateTextMeasurer (Node; boxes approximate, FMT-050), placeJoints. Assumption: `Rect` is `{left, top, width, height}`; CanvasTextMeasurer height uses font bounding box metrics, else 1.2 × font size.
 - L8 (2026-11-17) T4: nextJointName (BigInt, ASCII digits, escaped prefix) and normalizeJointName (Intl.Segmenter graphemes, trim before and after the cut, like Dart).
 - L9 (2026-11-17) Native review of f9969f7..69f475c (granted by the user): approved and acknowledged, 4 advisories. Fixed: messages keep number/boolean values; the CanvasTextMeasurer no-canvas test now stubs globals instead of asserting conditionally. Kept for Dart parity: arrowheadPoints returns NaN when from == tip (callers skip it because leaderLineStart is null); normalizeJointName returns '' for maxLength <= 0.
+- L10 (2026-11-17) T5: pure ops in js/core/src/ops.ts, lifted from Flutter's selection-based controller methods (explorer map). Decisions (assumptions, Flutter has no id-based API): invalid input or unknown ids throw `DrawingOperationError`; no-change edits return the same instance; `moveShape`/`removeShape`/`bringToFront`/`sendToBack` accept one id or a list (rigid move clamped like `_clampShift`); `rotateShape` takes `{by}` or `{to}`; `resizeShape` sets max(w, h) on both sides for square/circle; `duplicateShape` offsets (20, 20), clamps, copies no joints or group; `addJoint` uses the unclamped `defaultLabelOffset` and sets `visible: true` (Flutter parity); `groupShapes` pulls in group mates and merges touched groups; ids default to `prefix_<µs base36>_<counter base36>` with prefixes s/j/g. `setShapeStyle` and `setJointDisplay` have no Flutter counterpart and follow spec 04 only.

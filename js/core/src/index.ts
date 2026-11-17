@@ -10,3 +10,5 @@ export { rotateVector, worldFromLocal, localFromWorld, clampToCanvas } from './g
 export * from './geometry/joints.js';
 export * from './geometry/placement.js';
 export * from './names.js';
+export * from './ops.js';
+export { generateId, uniqueId } from './ids.js';
