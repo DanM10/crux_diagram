@@ -1,0 +1,36 @@
+# js-core — `@diagrama-kit/core` (TypeScript port of the format and model)
+
+Objective: implement `spec/04-spec-react-core.md` in `js/core`. Branch: `feat/js-core`.
+Delivery: ask-on-risk, one work-unit commit per task. Test runner: `cd js && npm test` (vitest), `npm run typecheck`.
+
+## Specs
+
+Source of truth: `spec/04-spec-react-core.md` (REC-xxx) and `spec/02-spec-formato-json.md` (FMT-xxx). Each S# points to those requirement IDs verbatim; read them there.
+
+- S1 Types, color, angles: REC-010, REC-030, REC-031, REC-040, REC-041.
+- S2 Validation and I/O: REC-011, REC-012, REC-013, REC-014, REC-020, REC-021, REC-022, REC-023; conformance runner for `valid/`, `invalid/`, `roundtrip/` (FMT-080 to FMT-082).
+- S3 Anchors and joint geometry: REC-050 to REC-054; `geometry/` fixtures (FMT-083).
+- S4 Names: REC-060, REC-061.
+- S5 Pure edit operations: REC-070 to REC-076.
+- S6 Ported editor modules: REC-077 (new fixtures generated from Dart, never by hand).
+- S7 Packaging: REC-080 to REC-082 (REC-083 deferred to publishing).
+- S8 Decision: validation is hand-written, with no Ajv/Zod; `invalid/` fixtures act as the cross-check (spec 04, section 8, open question 1).
+- Assumption (S1): `cssToArgb` accepts the output of `argbToCss` (`rgba(...)`) and `rgb(...)`; alpha is rounded to the nearest 1/255; invalid input throws `RangeError`.
+
+## Tasks
+
+| ID | Specs | Route | Status | Commit |
+|---|---|---|---|---|
+| T1 | S1 | inline | done (30 tests, tsc clean) | this commit |
+| T2 | S2, S8 | inline | pending | |
+| T3 | S3 | inline | pending | |
+| T4 | S4 | inline | pending | |
+| T5 | S5 | inline | pending | |
+| T6 | S6 | inline | pending | |
+| T7 | S7 | inline | pending | |
+
+Route evidence: sequential dependent units, no writer reason (no parallel independent units yet).
+
+## Log
+
+- L1 (2026-11-16) User: "ok, arranquemos con el core, dame un resumen de lo que vas a hacer" → plan accepted with "arranca como sugieres" (2026-11-17), including hand-written validation.
