@@ -103,6 +103,13 @@ describe('REC-014 schemaVersion', () => {
     expect(serialize(parse(base()))).toMatch(/^\{"schemaVersion":1,/);
   });
 
+  it('FMT-005a accepts 1.0 in the text, which JSON.parse cannot tell from 1', () => {
+    const text = JSON.stringify(base()).replace('"schemaVersion":1,', '"schemaVersion":1.0,');
+    expect(text).toContain('"schemaVersion":1.0,');
+    expect(validate(text)).toEqual([]);
+    expect(serialize(parse(text))).toMatch(/^\{"schemaVersion":1,/);
+  });
+
   it('rejects other versions', () => {
     for (const v of [0, 2, 1.5, '1', null]) {
       expect(validate({ ...base(), schemaVersion: v }).map((e) => e.path), String(v)).toEqual(['schemaVersion']);
