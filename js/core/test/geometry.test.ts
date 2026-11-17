@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   anchorPositionOf,
   anchorsOf,
@@ -138,8 +138,14 @@ describe('REC-052 TextMeasurer is injectable', () => {
   });
 
   it('CanvasTextMeasurer without a context fails clearly outside the browser', () => {
-    if (typeof document === 'undefined' && typeof OffscreenCanvas === 'undefined') {
+    vi.stubGlobal('OffscreenCanvas', undefined);
+    vi.stubGlobal('document', undefined);
+    try {
       expect(() => new CanvasTextMeasurer()).toThrow(/canvas/i);
+      vi.stubGlobal('OffscreenCanvas', class { getContext() { return null; } });
+      expect(() => new CanvasTextMeasurer()).toThrow(/canvas/i);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
 
