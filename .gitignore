@@ -1,0 +1,10 @@
+# Editors and OS
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
