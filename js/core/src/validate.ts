@@ -110,6 +110,11 @@ function join(path: string, key: string): string {
   return path ? `${path}.${key}` : key;
 }
 
+/** Describes an arbitrary JSON value for a message without ever throwing (REC-021). */
+function describe(value: unknown): string {
+  return typeof value === 'string' ? `"${value}"` : `a ${value === null ? 'null' : Array.isArray(value) ? 'list' : typeof value}`;
+}
+
 function isOneOf<T extends string>(values: readonly T[], value: unknown): value is T {
   return typeof value === 'string' && (values as readonly string[]).includes(value);
 }
@@ -122,7 +127,7 @@ function readShape(r: Reader, raw: unknown, path: string): Shape | undefined {
   let type: ShapeType | undefined;
   if (typeName !== MISSING) {
     if (isOneOf(SHAPE_TYPES, typeName)) type = typeName;
-    else r.fail(join(path, 'type'), `unknown shape type "${String(typeName)}"`);
+    else r.fail(join(path, 'type'), `unknown shape type ${describe(typeName)}`);
   }
 
   let center: Point | undefined;
@@ -235,7 +240,7 @@ function readJointDisplay(r: Reader, root: Json): JointDisplay | undefined {
   let labelSize: JointLabelSize | undefined;
   if (sizeName !== MISSING) {
     if (isOneOf(JOINT_LABEL_SIZES, sizeName)) labelSize = sizeName;
-    else r.fail('jointDisplay.labelSize', `unknown joint label size "${String(sizeName)}"`);
+    else r.fail('jointDisplay.labelSize', `unknown joint label size ${describe(sizeName)}`);
   }
   const visible = r.required(display, 'visible', 'jointDisplay');
   if (visible !== MISSING && typeof visible !== 'boolean') r.fail('jointDisplay.visible', 'must be a boolean');

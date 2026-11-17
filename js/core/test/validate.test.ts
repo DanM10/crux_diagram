@@ -39,6 +39,15 @@ describe('REC-021 validate never throws', () => {
       expect(errors.length, String(typeof input)).toBeGreaterThan(0);
     }
   });
+
+  it('does not throw on values that cannot be turned into a string', () => {
+    const hostile = [Object.create(null), { toString: () => { throw new Error('boom'); } }];
+    for (const value of hostile) {
+      expect(validate(doc({ ...square(10, 10), type: value })).map((e) => e.path)).toEqual(['shapes[0].type']);
+      const display = { ...doc(square(10, 10)), jointDisplay: { labelSize: value, visible: true } };
+      expect(validate(display).map((e) => e.path)).toEqual(['jointDisplay.labelSize']);
+    }
+  });
 });
 
 describe('REC-022 square and circle side tolerance', () => {
