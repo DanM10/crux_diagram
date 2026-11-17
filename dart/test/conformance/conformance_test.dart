@@ -7,11 +7,12 @@ import 'package:soft_drawer_service/soft_drawer_service.dart';
 import 'geometry_cases.dart';
 
 /// Shared-format conformance (spec 02, section 15): every fixture under
-/// `fixtures/` must behave as its folder says. The same fixtures are run by
+/// `fixtures/` (at the monorepo root) must behave as its folder says. The same fixtures are run by
 /// the TypeScript implementation.
 const double _tolerance = 1e-6;
 
-final Directory _fixtures = Directory('fixtures');
+/// The fixtures live at the monorepo root, shared with the other packages.
+final Directory _fixtures = Directory('../fixtures');
 
 List<File> _files(String folder, {bool expected = false}) {
   final dir = Directory('${_fixtures.path}/$folder');
@@ -63,7 +64,7 @@ void main() {
     expect(
       _fixtures.existsSync(),
       isTrue,
-      reason: 'run `flutter test tool/generate_fixtures.dart` first',
+      reason: 'run `flutter test tool/generate_fixtures.dart` in dart/ first',
     );
   });
 

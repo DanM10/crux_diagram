@@ -1,6 +1,6 @@
 # editing-and-navigation
 
-Objective: implement `doc/specs/05-spec-editing-and-navigation.md`. Branch: `feat/editing-and-navigation` (off `main` at `f9b9338`).
+Objective: implement `docs/flutter-specs/05-spec-editing-and-navigation.md`. Branch: `feat/editing-and-navigation` (off `main` at `f9b9338`).
 Delivery strategy: `feature-branch-chain` (inherited). Test runner: `flutter test`; static checks: `flutter analyze` (root + example).
 
 ## Specs

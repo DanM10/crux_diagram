@@ -33,3 +33,6 @@ migrate_working_dir/
 
 # Development task tracking, not part of the published package.
 odd/
+
+# Generator for the shared fixtures, which live outside the package.
+tool/

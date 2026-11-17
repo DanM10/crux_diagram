@@ -1,6 +1,6 @@
 # joint-display
 
-Objective: implement `doc/specs/04-spec-joint-display.md`. Branch: `feat/joint-display` (off `feat/quality-of-life` at `836f6e2`).
+Objective: implement `docs/flutter-specs/04-spec-joint-display.md`. Branch: `feat/joint-display` (off `feat/quality-of-life` at `836f6e2`).
 Delivery strategy: `feature-branch-chain` (inherited). Test runner: `flutter test`; static checks: `flutter analyze` (root + example).
 
 ## Specs

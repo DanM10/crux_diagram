@@ -1,8 +1,9 @@
-// Generates the shared conformance fixtures under `fixtures/` (spec 02,
-// section 15). Run it from the package root:
+// Generates the shared conformance fixtures under `../fixtures/` (spec 02,
+// section 15). Run it from the `dart/` package root:
 //
 //   flutter test tool/generate_fixtures.dart
 //
+// The fixtures live at the monorepo root, shared with the other packages.
 // Documents are written from the maps below. Geometry inputs are chosen by
 // hand and their expected values come from this package, so review the
 // generated files once, then commit them: from then on they are the
@@ -89,12 +90,12 @@ Json _sample() => _doc(
 );
 
 void _write(String path, Object? json) {
-  final file = File('fixtures/$path')..createSync(recursive: true);
+  final file = File('../fixtures/$path')..createSync(recursive: true);
   file.writeAsStringSync('${_encoder.convert(json)}\n');
 }
 
 void _writeRaw(String path, String text) {
-  File('fixtures/$path')
+  File('../fixtures/$path')
     ..createSync(recursive: true)
     ..writeAsStringSync(text);
 }
@@ -782,7 +783,7 @@ void _geometryFixtures() {
 void main() {
   test('generate the conformance fixtures', () {
     for (final folder in ['valid', 'invalid', 'roundtrip', 'geometry']) {
-      final dir = Directory('fixtures/$folder');
+      final dir = Directory('../fixtures/$folder');
       if (dir.existsSync()) dir.deleteSync(recursive: true);
     }
     _valid();

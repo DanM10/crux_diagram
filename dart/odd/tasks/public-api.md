@@ -1,6 +1,6 @@
 # public-api
 
-Objective: implement `doc/specs/06-spec-public-api.md` for 0.1.0, before the first publish. Branch: `feat/public-api`.
+Objective: implement `docs/flutter-specs/06-spec-public-api.md` for 0.1.0, before the first publish. Branch: `feat/public-api`.
 Delivery strategy: `feature-branch-chain` (inherited). Test runner: `flutter test`; static checks: `flutter analyze` (root + example).
 
 ## Specs

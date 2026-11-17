@@ -1,6 +1,6 @@
 # quality-of-life
 
-Objective: implement `doc/specs/03-spec-quality-of-life.md` for 0.1.0, before the first publish. Branch: `feat/quality-of-life` (off `feat/soft-drawer-0-1-0` at `ffddf9f`).
+Objective: implement `docs/flutter-specs/03-spec-quality-of-life.md` for 0.1.0, before the first publish. Branch: `feat/quality-of-life` (off `feat/soft-drawer-0-1-0` at `ffddf9f`).
 Delivery strategy: `feature-branch-chain` (inherited from soft-drawer-0-1-0). Test runner: `flutter test`; static checks: `flutter analyze` (root + example).
 
 ## Specs
