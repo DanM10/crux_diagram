@@ -21,8 +21,8 @@ Source of truth: `spec/04-spec-react-core.md` (REC-xxx) and `spec/02-spec-format
 
 | ID | Specs | Route | Status | Commit |
 |---|---|---|---|---|
-| T1 | S1 | inline | done (30 tests, tsc clean) | this commit |
-| T2 | S2, S8 | inline | pending | |
+| T1 | S1 | inline | done (30 tests, tsc clean) | c124e63 |
+| T2 | S2, S8 | inline | done (129 tests: 24 valid, 58 invalid, 6 roundtrip; tsc clean) | see git log |
 | T3 | S3 | inline | pending | |
 | T4 | S4 | inline | pending | |
 | T5 | S5 | inline | pending | |
@@ -34,3 +34,6 @@ Route evidence: sequential dependent units, no writer reason (no parallel indepe
 ## Log
 
 - L1 (2026-11-16) User: "ok, arranquemos con el core, dame un resumen de lo que vas a hacer" → plan accepted with "arranca como sugieres" (2026-11-17), including hand-written validation.
+- L2 (2026-11-17) T1 done in c124e63 (RED observed: 24 failing before implementation).
+- L3 (2026-11-17) T2: `parse`/`validate` accept a JSON string or a parsed value (assumption: spec 04 types the input as `unknown`). `validate` collects every error; `parse` throws the first, with all of them in `errors`. RED was observed by running the tests before exporting the module (104 failing); the implementation was written before the tests, a deviation from test-first.
+- L4 (2026-11-17) Known divergence, no fixture covers it: Flutter rejects `"schemaVersion": 1.0` (and `1.0` colors) because `jsonDecode` keeps it as a double; JS `JSON.parse` turns it into `1`, so the TS reader accepts it. Fixing it needs a custom JSON tokenizer; left open for the user.
