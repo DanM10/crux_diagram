@@ -1,0 +1,91 @@
+{
+  "function": "defaultLabelOffset",
+  "description": "Default label offset: unit vector center to anchor times 64 (FMT-040).",
+  "cases": [
+    {
+      "name": "anchor up and to the right",
+      "input": {
+        "center": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "anchor": {
+          "x": 520.0,
+          "y": 230.0
+        }
+      },
+      "expected": {
+        "dx": 55.28184965749974,
+        "dy": -32.24774563354151
+      }
+    },
+    {
+      "name": "anchor straight right",
+      "input": {
+        "center": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "anchor": {
+          "x": 520.0,
+          "y": 300.0
+        }
+      },
+      "expected": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "name": "anchor straight down",
+      "input": {
+        "center": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "anchor": {
+          "x": 400.0,
+          "y": 380.0
+        }
+      },
+      "expected": {
+        "dx": 0.0,
+        "dy": 64.0
+      }
+    },
+    {
+      "name": "anchor down and to the left",
+      "input": {
+        "center": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "anchor": {
+          "x": 300.0,
+          "y": 400.0
+        }
+      },
+      "expected": {
+        "dx": -45.25483399593904,
+        "dy": 45.25483399593904
+      }
+    },
+    {
+      "name": "anchor at the center",
+      "input": {
+        "center": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "anchor": {
+          "x": 400.0,
+          "y": 300.0
+        }
+      },
+      "expected": {
+        "dx": 0.0,
+        "dy": -64.0
+      }
+    }
+  ]
+}

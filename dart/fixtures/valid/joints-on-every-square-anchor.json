@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 1600.0,
+    "height": 1200.0
+  },
+  "shapes": [
+    {
+      "id": "s_01",
+      "type": "square",
+      "center": {
+        "x": 400.0,
+        "y": 300.0
+      },
+      "size": {
+        "width": 160.0,
+        "height": 160.0
+      },
+      "rotation": 0.0,
+      "fill": 16777215,
+      "stroke": 4285887861,
+      "strokeWidth": 2.0
+    }
+  ],
+  "joints": [
+    {
+      "id": "j_0",
+      "shapeId": "s_01",
+      "anchorId": "tl",
+      "name": "J1",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_1",
+      "shapeId": "s_01",
+      "anchorId": "tr",
+      "name": "J2",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_2",
+      "shapeId": "s_01",
+      "anchorId": "br",
+      "name": "J3",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_3",
+      "shapeId": "s_01",
+      "anchorId": "bl",
+      "name": "J4",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_4",
+      "shapeId": "s_01",
+      "anchorId": "tc",
+      "name": "J5",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_5",
+      "shapeId": "s_01",
+      "anchorId": "rc",
+      "name": "J6",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_6",
+      "shapeId": "s_01",
+      "anchorId": "bc",
+      "name": "J7",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "id": "j_7",
+      "shapeId": "s_01",
+      "anchorId": "lc",
+      "name": "J8",
+      "labelOffset": {
+        "dx": 64.0,
+        "dy": 0.0
+      }
+    }
+  ],
+  "jointDisplay": {
+    "labelSize": "small",
+    "visible": true
+  },
+  "groups": []
+}

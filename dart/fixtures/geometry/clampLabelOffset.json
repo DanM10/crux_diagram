@@ -1,0 +1,111 @@
+{
+  "function": "clampLabelOffset",
+  "description": "Keeps the label center inside the canvas (FMT-041).",
+  "cases": [
+    {
+      "name": "already inside",
+      "input": {
+        "anchor": {
+          "x": 800.0,
+          "y": 600.0
+        },
+        "offset": {
+          "dx": 70.0,
+          "dy": -50.0
+        },
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "dx": 70.0,
+        "dy": -50.0
+      }
+    },
+    {
+      "name": "left of the canvas",
+      "input": {
+        "anchor": {
+          "x": 100.0,
+          "y": 600.0
+        },
+        "offset": {
+          "dx": -200.0,
+          "dy": 0.0
+        },
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "dx": -100.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "name": "above the canvas",
+      "input": {
+        "anchor": {
+          "x": 800.0,
+          "y": 100.0
+        },
+        "offset": {
+          "dx": 0.0,
+          "dy": -300.0
+        },
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "dx": 0.0,
+        "dy": -100.0
+      }
+    },
+    {
+      "name": "past the bottom right corner",
+      "input": {
+        "anchor": {
+          "x": 1500.0,
+          "y": 1100.0
+        },
+        "offset": {
+          "dx": 500.0,
+          "dy": 500.0
+        },
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "dx": 100.0,
+        "dy": 100.0
+      }
+    },
+    {
+      "name": "exactly on the edge",
+      "input": {
+        "anchor": {
+          "x": 100.0,
+          "y": 600.0
+        },
+        "offset": {
+          "dx": -100.0,
+          "dy": 0.0
+        },
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "dx": -100.0,
+        "dy": 0.0
+      }
+    }
+  ]
+}
