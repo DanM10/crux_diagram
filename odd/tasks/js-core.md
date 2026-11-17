@@ -23,8 +23,8 @@ Source of truth: `spec/04-spec-react-core.md` (REC-xxx) and `spec/02-spec-format
 |---|---|---|---|---|
 | T1 | S1 | inline | done (30 tests, tsc clean) | c124e63 |
 | T2 | S2, S8 | inline | done (129 tests: 24 valid, 58 invalid, 6 roundtrip; tsc clean) | f9969f7, fix 19efe6c |
-| T3 | S3 | inline | done (RED 43 → GREEN 186; geometry fixtures for anchors and leader arrow pass) | see L7 |
-| T4 | S4 | inline | pending | |
+| T3 | S3 | inline | done (RED 43 → GREEN 186; geometry fixtures for anchors and leader arrow pass) | 7ad93bf |
+| T4 | S4 | inline | done (RED 24 → GREEN 210; all 8 geometry fixtures covered) | see L8 |
 | T5 | S5 | inline | pending | |
 | T6 | S6 | inline | pending | |
 | T7 | S7 | inline | pending | |
@@ -40,3 +40,4 @@ Route evidence: sequential dependent units, no writer reason (no parallel indepe
 - L5 (2026-11-17) Native review of c124e63..f9969f7 (granted by the user): approved and acknowledged, with two non-blocking advisories. R3-never-throws-string-coercion fixed with a RED test (`String()` threw on `Object.create(null)`). R3-invalid-fixtures-assert-only-rejection stays a follow-up: add unit tests with exact paths for the referential rules (joint shape/anchor, groups); the fixtures only check accept/reject by design (FMT-060).
 - L6 (2026-11-17) User: "sip documentalo y continua". Added FMT-005a to spec/02 (integral decimals such as `1.0` are an unfixed edge case: Dart rejects, TS accepts, writers never emit them), a row in the portability traps table, and a note on REC-014.
 - L7 (2026-11-17) T3: anchorsOf/anchorPositionOf, transforms, defaultLabelOffset, clampLabelOffset, leaderLineStart (half-open), arrowheadPoints, JointStyle (spec 02 §12), TextMeasurer with CanvasTextMeasurer and ApproximateTextMeasurer (Node; boxes approximate, FMT-050), placeJoints. Assumption: `Rect` is `{left, top, width, height}`; CanvasTextMeasurer height uses font bounding box metrics, else 1.2 × font size.
+- L8 (2026-11-17) T4: nextJointName (BigInt, ASCII digits, escaped prefix) and normalizeJointName (Intl.Segmenter graphemes, trim before and after the cut, like Dart).

@@ -9,3 +9,4 @@ export { anchorIdsFor, anchorsOf, anchorPositionOf, type Anchor, type AnchorKind
 export { rotateVector, worldFromLocal, localFromWorld, clampToCanvas } from './geometry/transforms.js';
 export * from './geometry/joints.js';
 export * from './geometry/placement.js';
+export * from './names.js';

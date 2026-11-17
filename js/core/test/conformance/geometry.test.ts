@@ -7,7 +7,9 @@ import {
   clampLabelOffset,
   defaultLabelOffset,
   leaderLineStart,
+  nextJointName,
   normalizeAngle,
+  normalizeJointName,
   type Shape,
 } from '../../src/index.js';
 import { fixtureFiles, numericMismatch, readFixture } from './helpers.js';
@@ -43,6 +45,8 @@ const adapters: Record<string, Adapter> = {
       i.anchor,
     ),
   arrowheadPoints: (i) => ({ points: arrowheadPoints(i) }),
+  nextJointName: (i) => nextJointName(i.prefix, i.names),
+  normalizeJointName: (i) => normalizeJointName(i.raw, i.maxLength),
 };
 
 describe('FMT-083 geometry/ matches within 1e-6', () => {
