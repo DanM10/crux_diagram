@@ -70,6 +70,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-013** Rotar con una asa sobre el borde superior, con ajuste suave a múltiplos de 15° dentro de 5° (configurable), y la acción "girar 90°".
 - **REA-014** `Supr` y `Backspace` eliminan. Eliminar una figura elimina sus juntas (REC-071).
 - **REA-015** Atajos: `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+D` (duplicar con nuevo `id`), flechas del teclado para mover 1 unidad (`Shift` = 10).
+- **REA-018** *Supuesto (2026-11-18), Flutter no tiene atajos:* los atajos y las flechas actúan solo cuando el editor tiene el foco (contenedor enfocable con `tabIndex`) y nunca mientras un campo de texto tiene el foco. Cada pulsación de flecha es una entrada de historial, mueve la selección sin ajuste a cuadrícula y con el centro restringido al lienzo (FR-10). `Ctrl/Cmd+D` duplica como FR-20 (copias desplazadas 20 unidades y seleccionadas). La selección no entra en el historial.
 - **REA-016** Zoom con la rueda del ratón y con el pellizco del trackpad (evento `wheel` con `ctrlKey`) entre 1× y 4×; pan con arrastre en fondo cuando el zoom supera el ajustado, o con barra espaciadora. Las coordenadas del puntero se convierten a coordenadas del lienzo. Botón "ajustar a pantalla" con indicador de porcentaje (Spec 03, ZM-1, ZM-2).
 - **REA-017** Un cambio de zoom, pan o cuadrícula no crea entrada de historial ni marca el documento como modificado.
 
