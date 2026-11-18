@@ -114,9 +114,14 @@ describe('REC-078 duplicateShapes', () => {
 
   it('does not copy joints and does not mutate the input', () => {
     const before = sample();
+    const snapshot = structuredClone(before);
     const doc = duplicateShapes(before, ['a', 'b'], { ids: ['a2', 'b2'] });
     expect(doc.joints).toEqual(before.joints);
-    expect(before.shapes).toHaveLength(4);
+    expect(before).toEqual(snapshot);
+  });
+
+  it('rejects copy ids when there is nothing to copy', () => {
+    expect(() => duplicateShapes(sample(), [], { ids: ['x'] })).toThrow(DrawingOperationError);
   });
 
   it('generates new unique ids when none are given', () => {

@@ -274,10 +274,10 @@ export function duplicateShapes(
   options: { ids?: readonly string[] } = {},
 ): DrawingDocument {
   const sources = [...requireShapes(doc, ids)];
-  if (sources.length === 0) return doc;
   if (options.ids && options.ids.length !== sources.length) {
     throw new DrawingOperationError(`one copy id per shape is required (${sources.length})`);
   }
+  if (sources.length === 0) return doc;
   const taken = new Set(doc.shapes.map((s) => s.id));
   const copyIds = new Map<string, string>();
   sources.forEach((source, i) => {

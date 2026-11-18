@@ -880,6 +880,10 @@ void _editorGeometryFixtures() {
         'circle rotated 45 degrees',
         {'shape': shape('circle', 100, 100, rotation: math.pi / 4)},
       ),
+      (
+        'square rotated 30 degrees',
+        {'shape': shape('square', 120, 120, rotation: math.pi / 6)},
+      ),
     ],
   );
 
