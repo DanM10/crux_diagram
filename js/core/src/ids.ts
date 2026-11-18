@@ -6,8 +6,10 @@ let counter = 0;
 /** A new id such as `s_lq2x3k9c0_1`. Unique within this process, not across processes. */
 export function generateId(prefix: string): string {
   counter++;
-  const micros = BigInt(Date.now()) * 1000n;
-  return `${prefix}_${micros.toString(36)}_${counter.toString(36)}`;
+  // Flutter uses microseconds since the epoch; JS only has milliseconds, so they are scaled
+  // to keep the same id shape. The counter, not the clock, guarantees uniqueness.
+  const epochMicros = BigInt(Date.now()) * 1000n;
+  return `${prefix}_${epochMicros.toString(36)}_${counter.toString(36)}`;
 }
 
 /** `generateId(prefix)` retried until it is not in `taken`. */

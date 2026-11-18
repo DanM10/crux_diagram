@@ -47,8 +47,13 @@ export interface GridLine {
 /**
  * Grid lines to draw along an axis of `extent` canvas units. A position on a major line
  * is reported once, as major. Positions are `i × step`, so they do not drift.
+ * Throws `RangeError` for a non-finite `extent` or a `majorEvery` that is not a positive integer.
  */
 export function gridLinesAlong(extent: number, grid: GridScale): GridLine[] {
+  // Dart throws on both (a non-finite floor, an integer modulo by zero); without the guard
+  // an infinite extent would loop forever here.
+  if (!Number.isFinite(extent)) throw new RangeError('extent must be finite');
+  if (!Number.isInteger(grid.majorEvery) || grid.majorEvery < 1) throw new RangeError('majorEvery must be a positive integer');
   const step = visibleGridStep(grid);
   if (step === null) return [];
   const minor = step === grid.gridSize;

@@ -6,6 +6,7 @@ import {
   RESIZE_HANDLES,
   applyZoom,
   fitViewport,
+  gridLinesAlong,
   resizeByHandle,
   snapToMultiple,
   softSnapAngle,
@@ -29,6 +30,15 @@ const rectangle: Shape = { ...square, id: 's_02', type: 'rectangle' };
 const limits = { min: 20, max: 1600 };
 
 describe('REC-077 editor geometry', () => {
+  it('gridLinesAlong rejects inputs that never end or divide by zero (Dart throws on both)', () => {
+    const grid = { gridSize: 20, majorEvery: 5, scale: 1 };
+    expect(() => gridLinesAlong(Number.POSITIVE_INFINITY, grid)).toThrow(RangeError);
+    expect(() => gridLinesAlong(Number.NaN, grid)).toThrow(RangeError);
+    expect(() => gridLinesAlong(100, { ...grid, majorEvery: 0 })).toThrow(RangeError);
+    expect(() => gridLinesAlong(100, { ...grid, majorEvery: 2.5 })).toThrow(RangeError);
+    expect(gridLinesAlong(40, grid).map((l) => l.at)).toEqual([0, 20, 40]);
+  });
+
   it('rounds halves away from zero, like Dart', () => {
     expect(snapToMultiple(-15, 10)).toBe(-20);
     expect(snapToMultiple(15, 10)).toBe(20);

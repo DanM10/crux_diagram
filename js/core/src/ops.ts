@@ -3,7 +3,9 @@
 // document transforms here follow those method bodies.
 //
 // Invalid input (unknown id, occupied anchor, bad value) throws `DrawingOperationError`.
-// An edit that changes nothing returns the same document instance.
+// Every operation returns the same document instance when the edit changes nothing (a style
+// set to its current values, a shape already on top, a rotation by 0), so callers can skip
+// re-rendering and history entries with a `===` check.
 
 import { normalizeAngle } from './angle.js';
 import { isArgb } from './color.js';
@@ -11,8 +13,8 @@ import { anchorPositionOf } from './geometry/anchors.js';
 import { clampLabelOffset, defaultLabelOffset } from './geometry/joints.js';
 import { uniqueId } from './ids.js';
 import { nextJointName, normalizeJointName } from './names.js';
-import type { DrawingDocument, Group, Joint, JointDisplay, Shape, Size, Vector } from './types.js';
-import { SIDE_TOLERANCE } from './validate.js';
+import { JOINT_LABEL_SIZES, type DrawingDocument, type Group, type Joint, type JointDisplay, type Shape, type Size, type Vector } from './types.js';
+import { SIDE_TOLERANCE, validate } from './validate.js';
 
 export class DrawingOperationError extends Error {
   constructor(message: string) {
@@ -50,13 +52,22 @@ function jointIndex(doc: DrawingDocument, id: string): number {
   return index;
 }
 
+/** Structural equality of plain document values (finite numbers, strings, booleans, nested objects). */
+const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
+
+const isFiniteVector = (v: Vector) => Number.isFinite(v.dx) && Number.isFinite(v.dy);
+
+/** Replaces the shape at `index`; returns `doc` itself when nothing changes. */
 function replaceShape(doc: DrawingDocument, index: number, shape: Shape): DrawingDocument {
+  if (same(doc.shapes[index], shape)) return doc;
   const shapes = doc.shapes.slice();
   shapes[index] = shape;
   return { ...doc, shapes };
 }
 
+/** Replaces the joint at `index`; returns `doc` itself when nothing changes. */
 function replaceJoint(doc: DrawingDocument, index: number, joint: Joint): DrawingDocument {
+  if (same(doc.joints[index], joint)) return doc;
   const joints = doc.joints.slice();
   joints[index] = joint;
   return { ...doc, joints };
@@ -118,7 +129,13 @@ export function addShape(doc: DrawingDocument, shape: Shape): DrawingDocument {
   if (locksAspect(shape) && Math.abs(shape.size.width - shape.size.height) > SIDE_TOLERANCE) {
     throw new DrawingOperationError(`a ${shape.type} requires width == height`);
   }
-  return { ...doc, shapes: [...doc.shapes, { ...shape, rotation: normalizeAngle(shape.rotation) }] };
+  // The format rules for a shape live in validate (FMT-002 to FMT-004); reuse them on the new entry only.
+  // The document that is validated is the one returned.
+  const next = { ...doc, shapes: [...doc.shapes, { ...shape, rotation: normalizeAngle(shape.rotation) }] };
+  const prefix = `shapes[${doc.shapes.length}]`;
+  const error = validate(next).find((e) => e.path === prefix || e.path.startsWith(`${prefix}.`));
+  if (error) throw new DrawingOperationError(`${error.path}: ${error.message}`);
+  return next;
 }
 
 /** Removes the shape(s), their joints and their group membership (REC-071). */
@@ -133,6 +150,7 @@ export function removeShape(doc: DrawingDocument, ids: Ids): DrawingDocument {
  */
 export function moveShape(doc: DrawingDocument, ids: Ids, delta: Vector): DrawingDocument {
   const moving = requireShapes(doc, ids);
+  if (!isFiniteVector(delta)) throw new DrawingOperationError('delta must be finite');
   const shift = clampShift(doc, doc.shapes.filter((s) => moving.has(s.id)), delta);
   if (shift.dx === 0 && shift.dy === 0) return doc;
   return {
@@ -192,13 +210,18 @@ export function setShapeStyle(
 /** Moves the shape(s) to the top, keeping their relative order. */
 export function bringToFront(doc: DrawingDocument, ids: Ids): DrawingDocument {
   const set = requireShapes(doc, ids);
-  return { ...doc, shapes: [...doc.shapes.filter((s) => !set.has(s.id)), ...doc.shapes.filter((s) => set.has(s.id))] };
+  return reorder(doc, [...doc.shapes.filter((s) => !set.has(s.id)), ...doc.shapes.filter((s) => set.has(s.id))]);
 }
 
 /** Moves the shape(s) to the back, keeping their relative order. */
 export function sendToBack(doc: DrawingDocument, ids: Ids): DrawingDocument {
   const set = requireShapes(doc, ids);
-  return { ...doc, shapes: [...doc.shapes.filter((s) => set.has(s.id)), ...doc.shapes.filter((s) => !set.has(s.id))] };
+  return reorder(doc, [...doc.shapes.filter((s) => set.has(s.id)), ...doc.shapes.filter((s) => !set.has(s.id))]);
+}
+
+/** `doc` with `shapes` in a new order; `doc` itself when the order is unchanged. */
+function reorder(doc: DrawingDocument, shapes: Shape[]): DrawingDocument {
+  return shapes.every((s, i) => s === doc.shapes[i]) ? doc : { ...doc, shapes };
 }
 
 /**
@@ -209,6 +232,7 @@ export function duplicateShape(doc: DrawingDocument, id: string, options: { id?:
   const source = doc.shapes[shapeIndex(doc, id)]!;
   const taken = new Set(doc.shapes.map((s) => s.id));
   const copyId = options.id ?? uniqueId('s', taken);
+  if (!copyId) throw new DrawingOperationError('a shape id must not be empty');
   if (taken.has(copyId)) throw new DrawingOperationError(`duplicate shape id "${copyId}"`);
   const center = {
     x: Math.min(Math.max(source.center.x + DUPLICATE_OFFSET.dx, 0), doc.canvas.width),
@@ -241,7 +265,8 @@ export function addJoint(
   if (!name) throw new DrawingOperationError('a joint name must not be blank');
   const taken = new Set(doc.joints.map((j) => j.id));
   const id = joint.id ?? uniqueId('j', taken);
-  if (!id || taken.has(id)) throw new DrawingOperationError(`duplicate joint id "${id}"`);
+  if (!id) throw new DrawingOperationError('a joint id must not be empty');
+  if (taken.has(id)) throw new DrawingOperationError(`duplicate joint id "${id}"`);
   const created: Joint = { id, shapeId: shape.id, anchorId: joint.anchorId, name, labelOffset: defaultLabelOffset(shape.center, anchor) };
   return { ...doc, joints: [...doc.joints, created], jointDisplay: { ...doc.jointDisplay, visible: true } };
 }
@@ -257,6 +282,7 @@ export function renameJoint(doc: DrawingDocument, id: string, name: string, maxL
 
 /** Sets the label offset, clamped so the label center stays inside the canvas (FMT-041). */
 export function moveJointLabel(doc: DrawingDocument, id: string, labelOffset: Vector): DrawingDocument {
+  if (!isFiniteVector(labelOffset)) throw new DrawingOperationError('labelOffset must be finite');
   const index = jointIndex(doc, id);
   const joint = doc.joints[index]!;
   const shape = doc.shapes.find((s) => s.id === joint.shapeId);
@@ -286,7 +312,8 @@ export function groupShapes(doc: DrawingDocument, ids: readonly string[], option
   if (touched.length === 1 && only && only.shapeIds.length === selected.size) return doc;
   const taken = new Set(doc.groups.map((g) => g.id));
   const id = options.id ?? uniqueId('g', taken);
-  if (!id || taken.has(id)) throw new DrawingOperationError(`duplicate group id "${id}"`);
+  if (!id) throw new DrawingOperationError('a group id must not be empty');
+  if (taken.has(id)) throw new DrawingOperationError(`duplicate group id "${id}"`);
   const members = doc.shapes.filter((s) => selected.has(s.id)).map((s) => s.id);
   const groups = [...doc.groups.filter((g) => !touched.includes(g)), { id, shapeIds: members }];
   return { ...doc, groups: normalizeGroups(doc.shapes, groups) };
@@ -300,7 +327,14 @@ export function ungroup(doc: DrawingDocument, groupId: string): DrawingDocument 
 
 // ── Joint display (REC-075) ──────────────────────────────────────────────────
 
+/** Changes the label size and/or visibility. Values are checked, since JS callers may pass anything. */
 export function setJointDisplay(doc: DrawingDocument, display: Partial<JointDisplay>): DrawingDocument {
+  if (display.labelSize !== undefined && !(JOINT_LABEL_SIZES as readonly string[]).includes(display.labelSize)) {
+    throw new DrawingOperationError(`labelSize must be one of ${JOINT_LABEL_SIZES.join(', ')}`);
+  }
+  if (display.visible !== undefined && typeof display.visible !== 'boolean') {
+    throw new DrawingOperationError('visible must be a boolean');
+  }
   const next: JointDisplay = {
     labelSize: display.labelSize ?? doc.jointDisplay.labelSize,
     visible: display.visible ?? doc.jointDisplay.visible,

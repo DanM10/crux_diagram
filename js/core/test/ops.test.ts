@@ -75,6 +75,13 @@ describe('REC-070 shape operations are pure', () => {
       bringToFront(doc, 'a');
       sendToBack(doc, 'c');
       duplicateShape(doc, 'a', { id: 'a2' });
+      addJoint(doc, { shapeId: 'c', anchorId: 'tl' });
+      renameJoint(doc, 'j1', 'Other');
+      moveJointLabel(doc, 'j1', { dx: 10, dy: 10 });
+      removeJoint(doc, 'j1');
+      groupShapes(doc, ['b', 'c']);
+      ungroup(doc, 'g1');
+      setJointDisplay(doc, { labelSize: 'large', visible: false });
     }).not.toThrow();
   });
 
@@ -82,11 +89,22 @@ describe('REC-070 shape operations are pure', () => {
     const doc = addShape(sample(), { ...shape('d', 10, 10), rotation: -1 });
     expect(ids(doc)).toEqual(['a', 'b', 'c', 'd']);
     expect(doc.shapes[3]?.rotation).toBeCloseTo(2 * Math.PI - 1, 12);
+    const wrapped = addShape(sample(), { ...shape('d', 10, 10), rotation: 7 });
+    expect(wrapped.shapes[3]?.rotation).toBeCloseTo(7 - 2 * Math.PI, 12);
     expect(() => addShape(sample(), shape('a', 0, 0))).toThrow(DrawingOperationError);
     expect(() => addShape(sample(), { ...shape('d', 0, 0, 'square'), size: { width: 10, height: 20 } })).toThrow(
       DrawingOperationError,
     );
   });
+
+  it.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'addShape rejects a non-finite rotation (%s)',
+    (rotation) => {
+      const add = () => addShape(sample(), { ...shape('d', 10, 10), rotation });
+      expect(add).toThrow(DrawingOperationError);
+      expect(add).toThrow('shapes[3].rotation: must be a finite number');
+    },
+  );
 
   it('moveShape shifts the center and keeps it inside the canvas', () => {
     expect(moveShape(sample(), 'a', { dx: 20, dy: 0 }).shapes[0]?.center).toEqual({ x: 220, y: 200 });
@@ -278,3 +296,59 @@ describe('REC-076 shape transforms keep labelOffset (FMT-021)', () => {
     }
   });
 });
+
+describe('REC-070 to REC-075 review follow-ups: invalid input and no-op edits', () => {
+  it('addShape rejects values the format does not allow (FMT-002 to FMT-004)', () => {
+    const base = shape('d', 10, 10);
+    const bad: Shape[] = [
+      { ...base, center: { x: Number.NaN, y: 0 } },
+      { ...base, size: { width: 0, height: 10 } },
+      { ...base, size: { width: -5, height: 10 } },
+      { ...base, rotation: Number.POSITIVE_INFINITY },
+      { ...base, fill: -1 },
+      { ...base, stroke: 0x1_0000_0000 },
+      { ...base, strokeWidth: -1 },
+      { ...base, type: 'triangle' as Shape['type'] },
+    ];
+    for (const s of bad) expect(() => addShape(sample(), s), JSON.stringify(s)).toThrow(DrawingOperationError);
+  });
+
+  it('moveShape and moveJointLabel reject non-finite values', () => {
+    expect(() => moveShape(sample(), 'a', { dx: Number.NaN, dy: 0 })).toThrow(DrawingOperationError);
+    expect(() => moveShape(sample(), 'a', { dx: 0, dy: Number.POSITIVE_INFINITY })).toThrow(DrawingOperationError);
+    expect(() => moveJointLabel(sample(), 'j1', { dx: Number.NaN, dy: 0 })).toThrow(DrawingOperationError);
+  });
+
+  it('an explicitly empty id is rejected with an empty-id message', () => {
+    expect(() => duplicateShape(sample(), 'a', { id: '' })).toThrow('a shape id must not be empty');
+    expect(() => addJoint(sample(), { shapeId: 'c', anchorId: 'tl', id: '' })).toThrow('a joint id must not be empty');
+    expect(() => groupShapes(sample(), ['b', 'c'], { id: '' })).toThrow('a group id must not be empty');
+  });
+
+  it('setJointDisplay rejects an unknown label size or a non-boolean visible', () => {
+    expect(() => setJointDisplay(sample(), { labelSize: 'huge' as never })).toThrow(DrawingOperationError);
+    expect(() => setJointDisplay(sample(), { visible: 'yes' as never })).toThrow(DrawingOperationError);
+  });
+
+  it('edits that change nothing return the same document', () => {
+    const doc = sample();
+    const a = doc.shapes[0]!;
+    expect(setShapeStyle(doc, 'a', { fill: a.fill, stroke: a.stroke, strokeWidth: a.strokeWidth })).toBe(doc);
+    expect(setShapeStyle(doc, 'a', {})).toBe(doc);
+    expect(bringToFront(doc, 'c')).toBe(doc);
+    expect(sendToBack(doc, 'a')).toBe(doc);
+    expect(resizeShape(doc, 'a', a.size)).toBe(doc);
+    expect(rotateShape(doc, 'a', { to: a.rotation })).toBe(doc);
+    expect(rotateShape(doc, 'a', { by: 0 })).toBe(doc);
+    expect(moveJointLabel(doc, 'j1', doc.joints[0]!.labelOffset)).toBe(doc);
+  });
+
+  it('edits that change something still return a new document', () => {
+    const doc = sample();
+    expect(setShapeStyle(doc, 'a', { fill: 0xff0000ff })).not.toBe(doc);
+    expect(bringToFront(doc, 'a')).not.toBe(doc);
+    expect(sendToBack(doc, 'c')).not.toBe(doc);
+    expect(rotateShape(doc, 'a', { by: 1 })).not.toBe(doc);
+  });
+});
+

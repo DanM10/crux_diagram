@@ -823,10 +823,24 @@ void _editorGeometryFixtures() {
       ),
       ('circle edge is inclusive', contains(circle, _pt(450, 300))),
       (
-        'rectangle rotated 45 degrees, corner of the unrotated box is outside',
+        'square rotated 45 degrees, corner of the unrotated box is outside',
         contains(
           shape('square', 100, 100, rotation: math.pi / 4),
           _pt(448, 348),
+        ),
+      ),
+      (
+        'rectangle rotated 45 degrees, point inside the unrotated box is outside',
+        contains(
+          shape('rectangle', 200, 100, rotation: math.pi / 4),
+          _pt(480, 300),
+        ),
+      ),
+      (
+        'rectangle rotated 45 degrees, point along its long axis is inside',
+        contains(
+          shape('rectangle', 200, 100, rotation: math.pi / 4),
+          _pt(460, 360),
         ),
       ),
     ],
@@ -941,11 +955,36 @@ void _editorGeometryFixtures() {
         resize(box, 'bottomRight', _pt(537, 377), gridSize: 10),
       ),
       (
-        'grid step at a quarter turn snaps the dragged edges to lines',
+        'grid step, unrotated: the dragged edges snap to lines',
         resize(
           shape('rectangle', 200, 100, x: 405, y: 303),
           'bottomRight',
           _pt(537, 377),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step at a quarter turn: the dragged edges snap to lines',
+        resize(
+          shape('rectangle', 200, 100, x: 405, y: 303, rotation: math.pi / 2),
+          'bottomRight',
+          _pt(337, 437),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step at three quarter turns: the dragged edges snap to lines',
+        resize(
+          shape(
+            'rectangle',
+            200,
+            100,
+            x: 405,
+            y: 303,
+            rotation: 3 * math.pi / 2,
+          ),
+          'bottomRight',
+          _pt(468, 172),
           gridStep: 25,
         ),
       ),
@@ -1045,20 +1084,20 @@ void _editorGeometryFixtures() {
     [
       (
         'unrotated, nearest edge snaps',
-        move(_pt(107, 203), _sz(50, 30), 0, 20),
+        move(_pt(107, 203), _sz(50, 24), 0, 20),
       ),
       (
         'quarter turn swaps the extents',
-        move(_pt(107, 203), _sz(50, 30), math.pi / 2, 20),
+        move(_pt(107, 203), _sz(50, 24), math.pi / 2, 20),
       ),
       ('tie picks the lower edge', move(_pt(110, 110), _sz(10, 10), 0, 20)),
       (
         'other rotation snaps the center',
-        move(_pt(107, 203), _sz(50, 30), 0.5, 20),
+        move(_pt(107, 203), _sz(50, 24), 0.5, 20),
       ),
       (
         'three quarter turns',
-        move(_pt(107, 203), _sz(50, 30), 3 * math.pi / 2, 20),
+        move(_pt(107, 203), _sz(50, 24), 3 * math.pi / 2, 20),
       ),
     ],
   );
