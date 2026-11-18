@@ -2,7 +2,7 @@
 // the REA-018 assumption: they act only while the editor has the focus and never while
 // a text field has it.
 
-import { duplicateShapes, moveShape, removeShape } from '@diagrama-kit/core';
+import { duplicateShapes, moveShape, removeShape, rotateShape } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
 
 /** Arrow-key move, in canvas units; `Shift` uses the large step (REA-015). */
@@ -14,6 +14,7 @@ export type EditorCommand =
   | { readonly type: 'undo' }
   | { readonly type: 'redo' }
   | { readonly type: 'duplicate' }
+  | { readonly type: 'rotate90' }
   | { readonly type: 'nudge'; readonly dx: number; readonly dy: number };
 
 /** The modifier and key fields of a `KeyboardEvent`. */
@@ -61,8 +62,9 @@ export function isTextEntry(target: EventTarget | null): boolean {
  * Runs `command` on the committed document. Each change is one history entry: delete
  * removes the selected shapes with their joints (REC-071) and clears the selection;
  * duplicate copies them as FR-20 does and selects the copies; nudge moves them without
- * grid snapping, every center kept inside the canvas (FR-10). Without a selection, or
- * when nothing would change, it does nothing.
+ * grid snapping, every center kept inside the canvas (FR-10); rotate90 turns a single
+ * shape a quarter turn clockwise (FR-17, REA-013; it has no key and serves the toolbar).
+ * Without a selection, or when nothing would change, it does nothing.
  */
 export function runCommand(editor: EditorStore, command: EditorCommand): void {
   if (command.type === 'undo') return editor.undo();
@@ -78,6 +80,10 @@ export function runCommand(editor: EditorStore, command: EditorCommand): void {
       editor.commit(next, next.shapes.slice(-selection.length).map((s) => s.id));
       return;
     }
+    case 'rotate90':
+      // Only a single shape rotates; a multi-selection or a group does nothing (MS-5).
+      if (selection.length === 1) editor.commit(rotateShape(document, selection[0]!, { by: Math.PI / 2 }));
+      return;
     case 'nudge': {
       const next = moveShape(document, selection, { dx: command.dx, dy: command.dy });
       if (next !== document) editor.commit(next);

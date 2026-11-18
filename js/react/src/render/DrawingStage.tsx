@@ -23,8 +23,8 @@ export interface DrawingStageProps {
   readonly listening: boolean;
   /** Called when a pointer goes down anywhere on the stage (the editor's gestures). */
   readonly onPointerDown?: (event: KonvaEventObject<PointerEvent>) => void;
-  /** Layer 4, drawn above the joints. */
-  readonly children?: ReactNode;
+  /** Layer 4, drawn above the joints; a function receives the view scale (screen pixels per canvas unit). */
+  readonly children?: ReactNode | ((scale: number) => ReactNode);
 }
 
 /** Fills its parent and fits the canvas into it, centered, keeping the aspect ratio. */
@@ -49,7 +49,7 @@ function FittedStage({
   onPointerDown,
   area,
   children,
-}: Required<Omit<DrawingStageProps, 'children' | 'onPointerDown'>> & Pick<DrawingStageProps, 'onPointerDown'> & { area: Size; children?: ReactNode }) {
+}: Required<Omit<DrawingStageProps, 'children' | 'onPointerDown'>> & Pick<DrawingStageProps, 'onPointerDown'> & { area: Size; children?: DrawingStageProps['children'] }) {
   const viewport = fitViewport(document.canvas, area);
   const clip = { x: 0, y: 0, width: document.canvas.width, height: document.canvas.height };
   return (
@@ -72,7 +72,7 @@ function FittedStage({
         ))}
       </Layer>
       <JointsLayer document={document} style={jointStyle} clip={clip} />
-      {children}
+      {typeof children === 'function' ? children(viewport.scale) : children}
     </Stage>
   );
 }

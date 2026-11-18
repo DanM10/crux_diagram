@@ -66,7 +66,7 @@ function setup(options: { readOnly?: boolean; value?: DrawingDocument } = {}) {
   const outline = () => stage.findOne<Konva.Rect>('.selection-outline');
   const outlineBox = () => {
     const node = outline();
-    return node && { x: node.x(), y: node.y(), width: node.width(), height: node.height() };
+    return node && { x: node.x() - node.offsetX(), y: node.y() - node.offsetY(), width: node.width(), height: node.height() };
   };
   const document_ = () => ref.current!.getDocument();
   const center = (id: string) => document_().shapes.find((s) => s.id === id)?.center;
@@ -281,5 +281,78 @@ describe('REA-005 readOnly', () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(document().shapes.map((s) => s.center)).toEqual([{ x: 200, y: 200 }, { x: 600, y: 400 }]);
     expect(container.querySelector('canvas')).not.toBeNull();
+  });
+});
+
+describe('REA-012 and REA-013 handles through the editor', () => {
+  // `a` is a 100 × 60 rectangle at (200, 200); `s` a 100 × 100 square at (600, 400).
+  const shapes = docOf([rect('a', 200, 200), { ...rect('s', 600, 400, 100, 100), type: 'square' as const }]);
+  const nodes = (stage: Konva.Stage, name: string) => stage.find(`.${name}`);
+  const handlesOf = (container: HTMLElement) => {
+    const content = container.querySelector<HTMLElement>('.konvajs-content')!;
+    const stage = (globalThis as { Konva?: typeof Konva }).Konva!.stages.find((s) => s.content === content)!;
+    return { resize: nodes(stage, 'resize-handle'), rotation: nodes(stage, 'rotation-handle'), stem: nodes(stage, 'rotation-stem') };
+  };
+
+  it('draws 8 resize handles and the rotation handle for a selected rectangle, 4 for a square (FR-7, REA-012)', () => {
+    const { pointer, container } = setup({ value: shapes });
+    pointer.tap(200, 200);
+    expect(handlesOf(container).resize).toHaveLength(8);
+    expect(handlesOf(container).rotation).toHaveLength(1);
+    expect(handlesOf(container).stem).toHaveLength(1);
+    pointer.tap(600, 400);
+    expect(handlesOf(container).resize).toHaveLength(4);
+  });
+
+  it('draws no handles without a selection, for a group, or read-only (MS-5, REA-005)', () => {
+    const { pointer, container, setReadOnly } = setup({ value: shapes });
+    expect(handlesOf(container).resize).toHaveLength(0);
+    pointer.tap(200, 200);
+    expect(handlesOf(container).resize).toHaveLength(8);
+    setReadOnly(true);
+    expect(handlesOf(container).resize).toHaveLength(0);
+    expect(handlesOf(container).rotation).toHaveLength(0);
+    cleanup();
+    const grouped = setup({ value: { ...shapes, groups: [{ id: 'g', shapeIds: ['a', 's'] }] } });
+    grouped.pointer.tap(200, 200);
+    expect(grouped.outline()).toBeDefined();
+    expect(handlesOf(grouped.container).resize).toHaveLength(0);
+  });
+
+  it('dragging a corner handle resizes the shape as one history entry (FR-11, FR-22)', () => {
+    const { pointer, document, onChange, onPreview, ref } = setup({ value: shapes });
+    pointer.tap(200, 200);
+    pointer.drag([250, 230], [310, 290]);
+    const a = document().shapes.find((s) => s.id === 'a')!;
+    expect(a.size).toEqual({ width: 160, height: 120 });
+    expect(a.center).toEqual({ x: 230, y: 230 }); // the top-left corner (150, 170) stays put
+    expect(onPreview).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    act(() => ref.current!.undo());
+    expect(document().shapes.find((s) => s.id === 'a')!.size).toEqual({ width: 100, height: 60 });
+  });
+
+  it('dragging the rotation handle rotates the shape toward the pointer (FR-15)', () => {
+    const { pointer, document, onChange } = setup({ value: shapes });
+    pointer.tap(200, 200);
+    pointer.drag([200, 138], [300, 200]); // handle at 200 - 30 - 32; pointer due east
+    expect(document().shapes.find((s) => s.id === 'a')!.rotation).toBeCloseTo(Math.PI / 2, 9);
+    expect(onChange).toHaveBeenCalledTimes(1);
+  });
+
+  it('a tap on the rotation handle keeps the selection (Flutter _onTap)', () => {
+    const { pointer, outline, onChange } = setup({ value: shapes });
+    pointer.tap(200, 200);
+    pointer.tap(200, 138);
+    expect(outline()).toBeDefined();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('a press on a handle does not move the shape or change the selection', () => {
+    const { pointer, document, onChange } = setup({ value: shapes });
+    pointer.tap(200, 200);
+    pointer.drag([250, 230], [250, 230]);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(document().shapes[0]!.center).toEqual({ x: 200, y: 200 });
   });
 });
