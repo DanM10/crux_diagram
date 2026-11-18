@@ -19,6 +19,9 @@ rmSync(join(out, 'cjs'), { recursive: true, force: true });
 run(['--outDir', join(out, 'esm')]);
 run(['--outDir', join(out, 'cjs'), '--module', 'commonjs']);
 
-// The package is "type": "module", so mark the CJS folder explicitly.
-mkdirSync(join(out, 'cjs'), { recursive: true });
-writeFileSync(join(out, 'cjs', 'package.json'), '{ "type": "commonjs" }\n');
+// Mark each output folder with its module type, so a build placed anywhere (not only
+// under this package's "type": "module") loads the same way.
+for (const [folder, type] of [['esm', 'module'], ['cjs', 'commonjs']]) {
+  mkdirSync(join(out, folder), { recursive: true });
+  writeFileSync(join(out, folder, 'package.json'), `{ "type": "${type}" }\n`);
+}
