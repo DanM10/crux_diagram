@@ -2,6 +2,7 @@
 
 import { normalizeAngle } from '../angle.js';
 import type { Point } from '../types.js';
+import { isQuarterTurn } from './grid.js';
 import { roundHalfAwayFromZero } from './round.js';
 
 const QUARTER_TURN = Math.PI / 2;
@@ -41,7 +42,5 @@ export function softSnapAngle(radians: number, step: number, tolerance: number):
 /** `multiple × step`, returning the exact quarter-turn constant when the product is one. */
 function exactMultiple(multiple: number, step: number): number {
   const value = multiple * step;
-  const quarters = value / QUARTER_TURN;
-  const roundedQuarters = roundHalfAwayFromZero(quarters);
-  return Math.abs(quarters - roundedQuarters) < 1e-9 ? roundedQuarters * QUARTER_TURN : value;
+  return isQuarterTurn(value) ? roundHalfAwayFromZero(value / QUARTER_TURN) * QUARTER_TURN : value;
 }

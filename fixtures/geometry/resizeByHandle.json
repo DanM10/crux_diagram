@@ -411,7 +411,7 @@
       }
     },
     {
-      "name": "grid step at a quarter turn snaps the dragged edges to lines",
+      "name": "grid step, unrotated: the dragged edges snap to lines",
       "input": {
         "shape": {
           "id": "fixture",
@@ -445,6 +445,82 @@
         "size": {
           "width": 220.0,
           "height": 122.0
+        }
+      }
+    },
+    {
+      "name": "grid step at a quarter turn: the dragged edges snap to lines",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 405.0,
+            "y": 303.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 1.5707963267948966
+        },
+        "handle": "bottomRight",
+        "pointer": {
+          "x": 337.0,
+          "y": 437.0
+        },
+        "limits": {
+          "min": 20.0,
+          "max": 1600.0
+        },
+        "gridStep": 25.0
+      },
+      "expected": {
+        "center": {
+          "x": 390.0,
+          "y": 314.0
+        },
+        "size": {
+          "width": 222.0,
+          "height": 130.0
+        }
+      }
+    },
+    {
+      "name": "grid step at three quarter turns: the dragged edges snap to lines",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 405.0,
+            "y": 303.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 4.71238898038469
+        },
+        "handle": "bottomRight",
+        "pointer": {
+          "x": 468.0,
+          "y": 172.0
+        },
+        "limits": {
+          "min": 20.0,
+          "max": 1600.0
+        },
+        "gridStep": 25.0
+      },
+      "expected": {
+        "center": {
+          "x": 415.0,
+          "y": 289.0
+        },
+        "size": {
+          "width": 228.0,
+          "height": 120.0
         }
       }
     },

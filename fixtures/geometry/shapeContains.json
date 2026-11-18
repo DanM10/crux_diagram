@@ -210,7 +210,7 @@
       "expected": true
     },
     {
-      "name": "rectangle rotated 45 degrees, corner of the unrotated box is outside",
+      "name": "square rotated 45 degrees, corner of the unrotated box is outside",
       "input": {
         "shape": {
           "id": "fixture",
@@ -231,6 +231,52 @@
         }
       },
       "expected": false
+    },
+    {
+      "name": "rectangle rotated 45 degrees, point inside the unrotated box is outside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        },
+        "point": {
+          "x": 480.0,
+          "y": 300.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "rectangle rotated 45 degrees, point along its long axis is inside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        },
+        "point": {
+          "x": 460.0,
+          "y": 360.0
+        }
+      },
+      "expected": true
     }
   ]
 }
