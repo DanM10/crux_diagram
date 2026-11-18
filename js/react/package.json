@@ -31,12 +31,18 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@diagrama-kit/core": "^0.0.0"
+    "@diagrama-kit/core": "^0.0.0",
+    "zundo": "^2.3.0",
+    "zustand": "^5.1.0"
   },
   "peerDependencies": {
     "konva": "^9.0.0 || ^10.0.0",
     "react": ">=18",
     "react-dom": ">=18",
     "react-konva": "^18.2.10 || ^19.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "jsdom": "^31.0.1"
   }
 }
