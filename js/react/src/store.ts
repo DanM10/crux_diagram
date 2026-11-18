@@ -46,6 +46,7 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
 
   return {
     getState: store.getState,
+    getInitialState: store.getInitialState,
     subscribe: store.subscribe,
     /** The committed document. */
     getDocument: () => store.getState().document,
