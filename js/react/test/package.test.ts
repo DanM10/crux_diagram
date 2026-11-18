@@ -57,10 +57,14 @@ describe('REA-060 ESM and CJS outputs with types; react, react-dom, konva and re
     expect(pkg.files).toEqual(['dist']);
   });
 
-  it('lists react, react-dom, konva and react-konva only as peer dependencies, with react >= 18', () => {
+  it('lists react, react-dom, konva and react-konva only as peer dependencies, React 19 only', () => {
     expect(Object.keys(pkg.peerDependencies).sort()).toEqual([...PEERS].sort());
-    expect(pkg.peerDependencies.react).toBe('>=18');
-    expect(pkg.peerDependencies['react-dom']).toBe('>=18');
+    expect(pkg.peerDependencies).toEqual({
+      react: '^19.3.0',
+      'react-dom': '^19.3.0',
+      'react-konva': '^19.3.0',
+      konva: '^10.0.0',
+    });
     for (const peer of PEERS) expect(pkg.dependencies[peer], peer).toBeUndefined();
   });
 
