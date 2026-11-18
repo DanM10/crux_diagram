@@ -19,3 +19,5 @@ export * from './geometry/grid.js';
 export * from './geometry/anchor-snapping.js';
 export * from './geometry/rotation.js';
 export * from './geometry/viewport.js';
+// Selection boxes (REC-078).
+export * from './geometry/bounds.js';

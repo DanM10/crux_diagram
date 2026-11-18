@@ -1,0 +1,102 @@
+{
+  "function": "shapeBounds",
+  "description": "Axis-aligned box around a rotated shape; a circle uses its rotated ellipse (REC-078).",
+  "cases": [
+    {
+      "name": "unrotated rectangle",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        }
+      },
+      "expected": {
+        "left": 300.0,
+        "top": 250.0,
+        "width": 200.0,
+        "height": 100.0
+      }
+    },
+    {
+      "name": "rectangle rotated 90 degrees",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 1.5707963267948966
+        }
+      },
+      "expected": {
+        "left": 350.0,
+        "top": 200.0,
+        "width": 100.0,
+        "height": 200.0
+      }
+    },
+    {
+      "name": "rectangle rotated 45 degrees",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        }
+      },
+      "expected": {
+        "left": 293.93398282201787,
+        "top": 193.93398282201787,
+        "width": 212.13203435596427,
+        "height": 212.13203435596427
+      }
+    },
+    {
+      "name": "circle rotated 45 degrees",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "circle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 100.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        }
+      },
+      "expected": {
+        "left": 350.0,
+        "top": 250.0,
+        "width": 100.0,
+        "height": 100.0
+      }
+    }
+  ]
+}

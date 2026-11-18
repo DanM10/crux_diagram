@@ -11,6 +11,7 @@ import 'package:soft_drawer_service/src/geometry/hit_testing.dart';
 import 'package:soft_drawer_service/src/geometry/joint_geometry.dart';
 import 'package:soft_drawer_service/src/geometry/resize.dart';
 import 'package:soft_drawer_service/src/geometry/rotation.dart';
+import 'package:soft_drawer_service/src/geometry/transforms.dart';
 import 'package:soft_drawer_service/src/geometry/viewport.dart';
 import 'package:soft_drawer_service/src/model/joint_names.dart';
 
@@ -151,6 +152,14 @@ Object? runGeometry(String function, Json input) {
         _shapes(input['shapes']),
         _point(input['point']),
       )?.id;
+    case 'shapeBounds':
+      final bounds = shapeBounds(_shape(input['shape']));
+      return {
+        'left': bounds.left,
+        'top': bounds.top,
+        'width': bounds.width,
+        'height': bounds.height,
+      };
     case 'handlesFor':
       return {
         'handles': [

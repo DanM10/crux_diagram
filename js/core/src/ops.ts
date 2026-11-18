@@ -11,6 +11,7 @@ import { normalizeAngle } from './angle.js';
 import { isArgb } from './color.js';
 import { anchorPositionOf } from './geometry/anchors.js';
 import { clampLabelOffset, defaultLabelOffset } from './geometry/joints.js';
+import { clampToCanvas } from './geometry/transforms.js';
 import { uniqueId } from './ids.js';
 import { nextJointName, normalizeJointName } from './names.js';
 import { JOINT_LABEL_SIZES, type DrawingDocument, type Group, type Joint, type JointDisplay, type Shape, type Size, type Vector } from './types.js';
@@ -239,6 +240,69 @@ export function duplicateShape(doc: DrawingDocument, id: string, options: { id?:
     y: Math.min(Math.max(source.center.y + DUPLICATE_OFFSET.dy, 0), doc.canvas.height),
   };
   return { ...doc, shapes: [...doc.shapes, { ...source, id: copyId, center }] };
+}
+
+// ── Selection (REC-078) ──────────────────────────────────────────────────────
+
+/**
+ * `ids` plus every other member of the groups they touch, in document z-order
+ * (Flutter `_withGroupMates`). Unknown ids throw `DrawingOperationError`.
+ */
+export function withGroupMates(doc: DrawingDocument, ids: readonly string[]): string[] {
+  const result = requireShapes(doc, ids);
+  for (const group of doc.groups) {
+    if (group.shapeIds.some((id) => result.has(id))) group.shapeIds.forEach((id) => result.add(id));
+  }
+  return doc.shapes.filter((s) => result.has(s.id)).map((s) => s.id);
+}
+
+/**
+ * Copies several shapes on top, as Flutter duplicates a multi-selection (`_duplicateSelection`).
+ *
+ * Each copy gets a new id and its center moved by (20, 20), clamped to the canvas. The copies
+ * keep the sources' z-order and go above every shape, so the copies are the last
+ * `new Set(ids).size` entries of the returned `shapes`. Joints are not copied. Every group whose
+ * members are all copied gets a new group of the copies (new `g_…` id); a partially copied
+ * group gives none. Group mates are not added: pass `withGroupMates(doc, ids)` to copy whole groups.
+ *
+ * `options.ids[i]` is the id of the copy of the i-th distinct entry of `ids`; without it,
+ * unique `s_…` ids are generated. No ids returns the same document.
+ */
+export function duplicateShapes(
+  doc: DrawingDocument,
+  ids: readonly string[],
+  options: { ids?: readonly string[] } = {},
+): DrawingDocument {
+  const sources = [...requireShapes(doc, ids)];
+  if (sources.length === 0) return doc;
+  if (options.ids && options.ids.length !== sources.length) {
+    throw new DrawingOperationError(`one copy id per shape is required (${sources.length})`);
+  }
+  const taken = new Set(doc.shapes.map((s) => s.id));
+  const copyIds = new Map<string, string>();
+  sources.forEach((source, i) => {
+    const copyId = options.ids ? options.ids[i]! : uniqueId('s', taken);
+    if (!copyId) throw new DrawingOperationError('a shape id must not be empty');
+    if (taken.has(copyId)) throw new DrawingOperationError(`duplicate shape id "${copyId}"`);
+    taken.add(copyId);
+    copyIds.set(source, copyId);
+  });
+  const copies = doc.shapes
+    .filter((s) => copyIds.has(s.id))
+    .map((s) => ({
+      ...s,
+      id: copyIds.get(s.id)!,
+      center: clampToCanvas({ x: s.center.x + DUPLICATE_OFFSET.dx, y: s.center.y + DUPLICATE_OFFSET.dy }, doc.canvas),
+    }));
+  const groupIds = new Set(doc.groups.map((g) => g.id));
+  const newGroups: Group[] = [];
+  for (const group of doc.groups) {
+    if (!group.shapeIds.every((id) => copyIds.has(id))) continue;
+    const id = uniqueId('g', groupIds);
+    groupIds.add(id);
+    newGroups.push({ id, shapeIds: group.shapeIds.map((member) => copyIds.get(member)!) });
+  }
+  return withShapes(doc, [...doc.shapes, ...copies], [...doc.groups, ...newGroups]);
 }
 
 // ── Joints (REC-073) ─────────────────────────────────────────────────────────

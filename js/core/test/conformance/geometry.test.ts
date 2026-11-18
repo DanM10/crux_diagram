@@ -21,6 +21,7 @@ import {
   pinchZoom,
   resizeByHandle,
   rotationFromPointer,
+  shapeBounds,
   shapeContains,
   sizeLimitsForCanvas,
   snapBoxShiftToGrid,
@@ -73,6 +74,7 @@ const adapters: Record<string, Adapter> = {
   normalizeJointName: (i) => normalizeJointName(i.raw, i.maxLength),
   // Editor modules (REC-077).
   shapeContains: (i) => shapeContains(shapeFrom(i.shape), i.point),
+  shapeBounds: (i) => shapeBounds(shapeFrom(i.shape)),
   topmostShapeAt: (i) => topmostShapeAt(i.shapes.map(shapeFrom), i.point)?.id ?? null,
   handlesFor: (i) => ({ handles: handlesFor(i.type) }),
   sizeLimitsForCanvas: (i) => sizeLimitsForCanvas(i.canvas, { gridSize: i.gridSize, gridStep: i.gridStep }),

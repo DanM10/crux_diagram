@@ -863,6 +863,25 @@ void _editorGeometryFixtures() {
       ('no shapes', {'shapes': <Json>[], 'point': _pt(400, 300)}),
     ],
   );
+  _geometry(
+    'shapeBounds',
+    'Axis-aligned box around a rotated shape; a circle uses its rotated ellipse (REC-078).',
+    [
+      ('unrotated rectangle', {'shape': shape('rectangle', 200, 100)}),
+      (
+        'rectangle rotated 90 degrees',
+        {'shape': shape('rectangle', 200, 100, rotation: math.pi / 2)},
+      ),
+      (
+        'rectangle rotated 45 degrees',
+        {'shape': shape('rectangle', 200, 100, rotation: math.pi / 4)},
+      ),
+      (
+        'circle rotated 45 degrees',
+        {'shape': shape('circle', 100, 100, rotation: math.pi / 4)},
+      ),
+    ],
+  );
 
   // resize (REC-077).
   _geometry(
