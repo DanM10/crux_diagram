@@ -33,6 +33,15 @@ describe('REA-006 editor config', () => {
     expect(config.historyLimit).toBe(100);
   });
 
+  it('a field given as undefined keeps its default, as with an optional prop forwarded unset', () => {
+    const config = resolveEditorConfig({ historyLimit: undefined, gridSize: undefined, canvasSize: undefined, shapeStyle: { fill: undefined } });
+    expect(config).toEqual(DEFAULT_EDITOR_CONFIG);
+  });
+
+  it('null stays an explicit value where the field allows it', () => {
+    expect(resolveEditorConfig({ gridSize: null, anchorSnapThreshold: null })).toMatchObject({ gridSize: null, anchorSnapThreshold: null });
+  });
+
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects historyLimit %s with a RangeError', (historyLimit) => {
     expect(() => resolveEditorConfig({ historyLimit })).toThrow(RangeError);
     expect(() => resolveEditorConfig({ historyLimit })).toThrow('historyLimit must be a positive integer');

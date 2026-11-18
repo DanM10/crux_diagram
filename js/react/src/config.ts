@@ -59,9 +59,20 @@ export const DEFAULT_EDITOR_CONFIG: DrawingEditorConfig = Object.freeze({
   historyLimit: 100,
 });
 
-/** Fills the missing fields with the defaults. Throws `RangeError` on an invalid history limit. */
+/** The entries of `object` whose value is not `undefined`. */
+const defined = <T extends object>(object: T | undefined): Partial<T> =>
+  Object.fromEntries(Object.entries(object ?? {}).filter(([, value]) => value !== undefined)) as Partial<T>;
+
+/**
+ * Fills the missing fields with the defaults; a field given as `undefined` counts as
+ * missing. Throws `RangeError` on an invalid history limit.
+ */
 export function resolveEditorConfig(input: DrawingEditorConfigInput = {}): DrawingEditorConfig {
-  const config = { ...DEFAULT_EDITOR_CONFIG, ...input, shapeStyle: { ...DEFAULT_EDITOR_CONFIG.shapeStyle, ...input.shapeStyle } };
+  const config = {
+    ...DEFAULT_EDITOR_CONFIG,
+    ...defined(input),
+    shapeStyle: { ...DEFAULT_EDITOR_CONFIG.shapeStyle, ...defined(input.shapeStyle) },
+  };
   if (!Number.isInteger(config.historyLimit) || config.historyLimit < 1) {
     throw new RangeError('historyLimit must be a positive integer');
   }
