@@ -52,8 +52,13 @@ Funcionalidad que se reproduce de Flutter:
 
 - **REA-001** `<DrawingViewer document={d} jointStyle? />`: solo lectura, ajusta el lienzo al contenedor con fondo blanco, figuras y juntas, igual que `DrawingView` de Flutter.
 - **REA-002** `<DrawingEditor value={d} onChange={fn} readOnly? config? />`: componente **controlado**; emite un `DrawingDocument` nuevo (inmutable) en cada cambio confirmado.
+- **REA-007** Un `value` distinto del documento del editor nunca borra el historial por sí solo:
+  - si es un documento que el editor ya emitió y la app todavía no adoptó (adopción con retraso), se ignora;
+  - en otro caso se aplica como un cambio que se puede deshacer, sin llamar a `onChange`.
+
+  Para abrir otro dibujo con el historial vacío, la app cambia la `key` del editor o llama a `reset(documento)` (REA-004).
 - **REA-003** Un arrastre continuo emite `onChange` solo al soltar (y opcionalmente `onPreview` durante el arrastre).
-- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`.
+- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`, `reset(documento)` (reemplaza el documento y vacía el historial, sin llamar a `onChange`).
 - **REA-005** `readOnly` desactiva selección, arrastre y atajos.
 - **REA-006** `config` replica `DrawingEditorConfig` de Flutter: `gridSize`, `showGrid`, `gridMajorEvery`, `rotationSnapStep`, `rotationSnapTolerance`, `shapeStyle`, `jointNameMaxLength` (12 por defecto), `jointNameSuggestions`, `canvasSize`.
 
