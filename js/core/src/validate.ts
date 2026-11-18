@@ -112,7 +112,10 @@ function join(path: string, key: string): string {
 
 /** Describes an arbitrary JSON value for a message without ever throwing (REC-021). */
 function describe(value: unknown): string {
-  return typeof value === 'string' ? `"${value}"` : `a ${value === null ? 'null' : Array.isArray(value) ? 'list' : typeof value}`;
+  if (typeof value === 'string') return `"${value}"`;
+  // Primitives convert safely; objects may not (no prototype, throwing toString).
+  if (typeof value === 'number' || typeof value === 'boolean') return `"${value}"`;
+  return `a ${value === null ? 'null' : Array.isArray(value) ? 'list' : typeof value}`;
 }
 
 function isOneOf<T extends string>(values: readonly T[], value: unknown): value is T {
