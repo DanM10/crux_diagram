@@ -81,8 +81,10 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
      * With `selection`, the selection becomes those shapes (and their groups) in the same update.
      */
     commit(document: DrawingDocument, selection?: readonly string[]) {
+      // Resolve the selection first: an unknown id throws before anything is recorded.
+      const next = selection ? withGroupMates(document, selection) : null;
       store.setState({ document, preview: null });
-      if (selection) setSelection(withGroupMates(document, selection));
+      if (next) setSelection(next);
       else dropStaleSelection();
     },
     /** Shows `document` during a gesture without committing it; `null` cancels the gesture. */

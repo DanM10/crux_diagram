@@ -24,21 +24,23 @@ function setup(options: { readOnly?: boolean; value?: DrawingDocument } = {}) {
   const onChange = vi.fn<(d: DrawingDocument) => void>();
   const onPreview = vi.fn<(d: DrawingDocument) => void>();
   const ref = createRef<DrawingEditorHandle>();
-  const host: { setValue?: (d: DrawingDocument) => void } = {};
+  const host: { setValue?: (d: DrawingDocument) => void; setReadOnly?: (on: boolean) => void } = {};
   function Host() {
     const [value, setValue] = useState(options.value ?? doc);
+    const [readOnly, setReadOnly] = useState(options.readOnly);
     host.setValue = setValue;
+    host.setReadOnly = setReadOnly;
     return (
       <DrawingEditor
         ref={ref}
         value={value}
-        readOnly={options.readOnly}
+        readOnly={readOnly}
         onPreview={onPreview}
         onChange={(d) => (onChange(d), setValue(d))}
       />
     );
   }
-  const { container } = render(<Host />);
+  const { container, unmount } = render(<Host />);
   const content = container.querySelector<HTMLElement>('.konvajs-content')!;
   const focusable = container.querySelector<HTMLElement>('[tabindex="0"]')!;
   const stage = (globalThis as { Konva?: typeof Konva }).Konva!.stages.find((s) => s.content === content)!;
@@ -47,6 +49,7 @@ function setup(options: { readOnly?: boolean; value?: DrawingDocument } = {}) {
     down: (x: number, y: number) => act(() => void fireEvent.pointerDown(content, at(x, y))),
     move: (x: number, y: number) => act(() => void fireEvent.pointerMove(window, at(x, y))),
     up: (x: number, y: number) => act(() => void fireEvent.pointerUp(window, at(x, y))),
+    cancel: (x: number, y: number) => act(() => void fireEvent.pointerCancel(window, at(x, y))),
     tap(x: number, y: number) {
       this.down(x, y);
       this.up(x, y);
@@ -67,7 +70,8 @@ function setup(options: { readOnly?: boolean; value?: DrawingDocument } = {}) {
   };
   const document_ = () => ref.current!.getDocument();
   const center = (id: string) => document_().shapes.find((s) => s.id === id)?.center;
-  return { setValue: (d: DrawingDocument) => act(() => host.setValue!(d)), onChange, onPreview, ref, pointer, key, outline, outlineBox, focusable, container, document: document_, center };
+  const shownX = (id: string) => stage.findOne(`#${id}`)?.x();
+  return { setValue: (d: DrawingDocument) => act(() => host.setValue!(d)), setReadOnly: (on: boolean) => act(() => host.setReadOnly!(on)), unmount, shownX, onChange, onPreview, ref, pointer, key, outline, outlineBox, focusable, container, document: document_, center };
 }
 
 describe('REA-010 selection by click', () => {
@@ -106,6 +110,53 @@ describe('REA-011 drag to move', () => {
     act(() => ref.current!.undo());
     expect(center('b')).toEqual({ x: 600, y: 400 });
     expect(ref.current!.canUndo).toBe(false);
+  });
+});
+
+describe('REA-011 a drag that ends early changes nothing (FR-22)', () => {
+  it('a cancelled pointer drops the preview and commits nothing', () => {
+    const { pointer, onChange, shownX, center } = setup();
+    pointer.down(600, 400);
+    pointer.move(650, 400);
+    expect(shownX('b')).toBe(650);
+    pointer.cancel(650, 400);
+    expect(shownX('b')).toBe(600);
+    pointer.move(700, 400);
+    pointer.up(700, 400);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(center('b')).toEqual({ x: 600, y: 400 });
+  });
+
+  it('turning readOnly on during a drag ends it with no change (REA-005)', () => {
+    const { pointer, onChange, shownX, setReadOnly } = setup();
+    pointer.down(600, 400);
+    pointer.move(650, 400);
+    setReadOnly(true);
+    expect(shownX('b')).toBe(600);
+    pointer.move(700, 400);
+    pointer.up(700, 400);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('the same pointer pressed again after a lost release starts over', () => {
+    const { pointer, onChange, shownX, outlineBox } = setup();
+    pointer.down(600, 400);
+    pointer.move(650, 400);
+    pointer.down(200, 200);
+    expect(shownX('b')).toBe(600);
+    pointer.up(200, 200);
+    expect(onChange).not.toHaveBeenCalled();
+    expect(outlineBox()).toEqual({ x: 150, y: 170, width: 100, height: 60 });
+  });
+
+  it('unmounting during a drag removes the window listeners', () => {
+    const { pointer, onChange, unmount } = setup();
+    pointer.down(600, 400);
+    pointer.move(650, 400);
+    unmount();
+    pointer.move(700, 400);
+    pointer.up(700, 400);
+    expect(onChange).not.toHaveBeenCalled();
   });
 });
 

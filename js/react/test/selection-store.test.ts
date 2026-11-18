@@ -89,3 +89,15 @@ describe('stale selection is dropped (Flutter _dropStaleSelection)', () => {
     expect(editor.getState().selection).toEqual(['c']);
   });
 });
+
+describe('commit with a selection', () => {
+  it('rejects an unknown selection id before recording anything', () => {
+    const editor = createEditorStore(grouped);
+    editor.select('c');
+    const moved = moveShape(grouped, 'c', { dx: 10, dy: 0 });
+    expect(() => editor.commit(moved, ['zz'])).toThrow();
+    expect(editor.getDocument()).toBe(grouped);
+    expect(editor.canUndo()).toBe(false);
+    expect(editor.getState().selection).toEqual(['c']);
+  });
+});
