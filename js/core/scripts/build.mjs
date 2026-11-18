@@ -20,8 +20,10 @@ run(['--outDir', join(out, 'esm')]);
 run(['--outDir', join(out, 'cjs'), '--module', 'commonjs']);
 
 // Mark each output folder with its module type, so a build placed anywhere (not only
-// under this package's "type": "module") loads the same way.
+// under this package's "type": "module") loads the same way. The markers repeat
+// `sideEffects: false` (REC-081) because some bundlers, such as webpack, read it from the
+// package.json nearest to each file.
 for (const [folder, type] of [['esm', 'module'], ['cjs', 'commonjs']]) {
   mkdirSync(join(out, folder), { recursive: true });
-  writeFileSync(join(out, folder, 'package.json'), `{ "type": "${type}" }\n`);
+  writeFileSync(join(out, folder, 'package.json'), `${JSON.stringify({ type, sideEffects: false })}\n`);
 }

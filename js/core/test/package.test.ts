@@ -71,8 +71,8 @@ describe('REC-080 ESM and CJS outputs with types', () => {
   });
 
   it('marks each output folder with its module type, so neither depends on syntax detection', () => {
-    expect(JSON.parse(readFileSync(join(installed, 'dist', 'esm', 'package.json'), 'utf8'))).toEqual({ type: 'module' });
-    expect(JSON.parse(readFileSync(join(installed, 'dist', 'cjs', 'package.json'), 'utf8'))).toEqual({ type: 'commonjs' });
+    expect(JSON.parse(readFileSync(join(installed, 'dist', 'esm', 'package.json'), 'utf8')).type).toBe('module');
+    expect(JSON.parse(readFileSync(join(installed, 'dist', 'cjs', 'package.json'), 'utf8')).type).toBe('commonjs');
   });
 
   it('emits declarations for both outputs', () => {
@@ -84,6 +84,12 @@ describe('REC-080 ESM and CJS outputs with types', () => {
 describe('REC-081 tree-shaking', () => {
   it('declares no side effects', () => {
     expect(pkg.sideEffects).toBe(false);
+  });
+
+  it('the nested output markers repeat it, since bundlers such as webpack read the nearest package.json', () => {
+    for (const folder of ['esm', 'cjs']) {
+      expect(JSON.parse(readFileSync(join(installed, 'dist', folder, 'package.json'), 'utf8')).sideEffects, folder).toBe(false);
+    }
   });
 });
 
