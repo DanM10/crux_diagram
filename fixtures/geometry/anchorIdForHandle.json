@@ -1,0 +1,62 @@
+{
+  "function": "anchorIdForHandle",
+  "description": "Anchor id under each resize handle (REC-077).",
+  "cases": [
+    {
+      "name": "topLeft",
+      "input": {
+        "handle": "topLeft"
+      },
+      "expected": "tl"
+    },
+    {
+      "name": "top",
+      "input": {
+        "handle": "top"
+      },
+      "expected": "tc"
+    },
+    {
+      "name": "topRight",
+      "input": {
+        "handle": "topRight"
+      },
+      "expected": "tr"
+    },
+    {
+      "name": "right",
+      "input": {
+        "handle": "right"
+      },
+      "expected": "rc"
+    },
+    {
+      "name": "bottomRight",
+      "input": {
+        "handle": "bottomRight"
+      },
+      "expected": "br"
+    },
+    {
+      "name": "bottom",
+      "input": {
+        "handle": "bottom"
+      },
+      "expected": "bc"
+    },
+    {
+      "name": "bottomLeft",
+      "input": {
+        "handle": "bottomLeft"
+      },
+      "expected": "bl"
+    },
+    {
+      "name": "left",
+      "input": {
+        "handle": "left"
+      },
+      "expected": "lc"
+    }
+  ]
+}

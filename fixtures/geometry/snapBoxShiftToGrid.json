@@ -1,0 +1,90 @@
+{
+  "function": "snapBoxShiftToGrid",
+  "description": "Translation that moves a box by about delta and snaps it to the grid (REC-077).",
+  "cases": [
+    {
+      "name": "edges: nearest edge lands on a line",
+      "input": {
+        "box": {
+          "left": 100,
+          "top": 100,
+          "width": 60,
+          "height": 30
+        },
+        "delta": {
+          "dx": 12.0,
+          "dy": 7.0
+        },
+        "step": 25,
+        "edges": true
+      },
+      "expected": {
+        "dx": 15.0,
+        "dy": 0.0
+      }
+    },
+    {
+      "name": "edges: negative delta",
+      "input": {
+        "box": {
+          "left": 100,
+          "top": 100,
+          "width": 60,
+          "height": 30
+        },
+        "delta": {
+          "dx": -12.0,
+          "dy": -40.0
+        },
+        "step": 25,
+        "edges": true
+      },
+      "expected": {
+        "dx": -10.0,
+        "dy": -50.0
+      }
+    },
+    {
+      "name": "center snaps without edges",
+      "input": {
+        "box": {
+          "left": 100,
+          "top": 100,
+          "width": 60,
+          "height": 30
+        },
+        "delta": {
+          "dx": 12.0,
+          "dy": 7.0
+        },
+        "step": 25,
+        "edges": false
+      },
+      "expected": {
+        "dx": 20.0,
+        "dy": 10.0
+      }
+    },
+    {
+      "name": "no movement keeps the box near its place",
+      "input": {
+        "box": {
+          "left": 100,
+          "top": 100,
+          "width": 60,
+          "height": 30
+        },
+        "delta": {
+          "dx": 0.0,
+          "dy": 0.0
+        },
+        "step": 25,
+        "edges": true
+      },
+      "expected": {
+        "dx": 0.0,
+        "dy": 0.0
+      }
+    }
+  ]
+}

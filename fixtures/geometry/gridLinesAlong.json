@@ -1,0 +1,109 @@
+{
+  "function": "gridLinesAlong",
+  "description": "Grid lines along an axis; a position on a major line is reported once, as major (REC-077).",
+  "cases": [
+    {
+      "name": "minor and major lines",
+      "input": {
+        "extent": 100,
+        "gridSize": 20.0,
+        "majorEvery": 2,
+        "scale": 1.0
+      },
+      "expected": {
+        "lines": [
+          {
+            "at": 0.0,
+            "major": true
+          },
+          {
+            "at": 20.0,
+            "major": false
+          },
+          {
+            "at": 40.0,
+            "major": true
+          },
+          {
+            "at": 60.0,
+            "major": false
+          },
+          {
+            "at": 80.0,
+            "major": true
+          },
+          {
+            "at": 100.0,
+            "major": false
+          }
+        ]
+      }
+    },
+    {
+      "name": "line on the far edge is kept",
+      "input": {
+        "extent": 0.3,
+        "gridSize": 0.1,
+        "majorEvery": 3,
+        "scale": 100.0
+      },
+      "expected": {
+        "lines": [
+          {
+            "at": 0.0,
+            "major": true
+          },
+          {
+            "at": 0.1,
+            "major": false
+          },
+          {
+            "at": 0.2,
+            "major": false
+          },
+          {
+            "at": 0.30000000000000004,
+            "major": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "only major lines",
+      "input": {
+        "extent": 200,
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 0.2
+      },
+      "expected": {
+        "lines": [
+          {
+            "at": 0.0,
+            "major": true
+          },
+          {
+            "at": 100.0,
+            "major": true
+          },
+          {
+            "at": 200.0,
+            "major": true
+          }
+        ]
+      }
+    },
+    {
+      "name": "no lines",
+      "input": {
+        "extent": 200,
+        "gridSize": 20.0,
+        "majorEvery": 5,
+        "scale": 0.05
+      },
+      "expected": {
+        "lines": []
+      }
+    }
+  ]
+}

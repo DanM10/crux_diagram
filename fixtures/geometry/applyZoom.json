@@ -1,0 +1,58 @@
+{
+  "function": "applyZoom",
+  "description": "Zoom and pan applied on top of the fitted viewport (REC-077).",
+  "cases": [
+    {
+      "name": "identity",
+      "input": {
+        "zoom": {
+          "zoom": 1.0,
+          "pan": {
+            "dx": 0.0,
+            "dy": 0.0
+          }
+        },
+        "fit": {
+          "scale": 0.5,
+          "origin": {
+            "x": 100.0,
+            "y": 0.0
+          }
+        }
+      },
+      "expected": {
+        "scale": 0.5,
+        "origin": {
+          "x": 100.0,
+          "y": 0.0
+        }
+      }
+    },
+    {
+      "name": "zoomed and panned",
+      "input": {
+        "zoom": {
+          "zoom": 2.0,
+          "pan": {
+            "dx": -50.0,
+            "dy": 30.0
+          }
+        },
+        "fit": {
+          "scale": 0.5,
+          "origin": {
+            "x": 100.0,
+            "y": 0.0
+          }
+        }
+      },
+      "expected": {
+        "scale": 1.0,
+        "origin": {
+          "x": 150.0,
+          "y": 30.0
+        }
+      }
+    }
+  ]
+}
