@@ -1,0 +1,52 @@
+{
+  "function": "handlesFor",
+  "description": "Resize handles available per shape type (REC-077).",
+  "cases": [
+    {
+      "name": "rectangle has corners and edges",
+      "input": {
+        "type": "rectangle"
+      },
+      "expected": {
+        "handles": [
+          "topLeft",
+          "top",
+          "topRight",
+          "right",
+          "bottomRight",
+          "bottom",
+          "bottomLeft",
+          "left"
+        ]
+      }
+    },
+    {
+      "name": "square has corners only",
+      "input": {
+        "type": "square"
+      },
+      "expected": {
+        "handles": [
+          "topLeft",
+          "topRight",
+          "bottomRight",
+          "bottomLeft"
+        ]
+      }
+    },
+    {
+      "name": "circle has corners only",
+      "input": {
+        "type": "circle"
+      },
+      "expected": {
+        "handles": [
+          "topLeft",
+          "topRight",
+          "bottomRight",
+          "bottomLeft"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,118 @@
+{
+  "function": "pinchZoom",
+  "description": "Pinch keeps the content under the start focal point under the current focal point; zoom in [1, 4] (REC-077).",
+  "cases": [
+    {
+      "name": "zoom in around a point",
+      "input": {
+        "zoom": {
+          "zoom": 1.0,
+          "pan": {
+            "dx": 0.0,
+            "dy": 0.0
+          }
+        },
+        "startFocal": {
+          "x": 200.0,
+          "y": 100.0
+        },
+        "focal": {
+          "x": 200.0,
+          "y": 100.0
+        },
+        "scale": 2
+      },
+      "expected": {
+        "zoom": 2.0,
+        "pan": {
+          "dx": -200.0,
+          "dy": -100.0
+        }
+      }
+    },
+    {
+      "name": "two fingers moving together pan",
+      "input": {
+        "zoom": {
+          "zoom": 2.0,
+          "pan": {
+            "dx": -100.0,
+            "dy": -50.0
+          }
+        },
+        "startFocal": {
+          "x": 200.0,
+          "y": 100.0
+        },
+        "focal": {
+          "x": 260.0,
+          "y": 80.0
+        },
+        "scale": 1
+      },
+      "expected": {
+        "zoom": 2.0,
+        "pan": {
+          "dx": -40.0,
+          "dy": -70.0
+        }
+      }
+    },
+    {
+      "name": "clamped to the maximum",
+      "input": {
+        "zoom": {
+          "zoom": 3.0,
+          "pan": {
+            "dx": 0.0,
+            "dy": 0.0
+          }
+        },
+        "startFocal": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "focal": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "scale": 2
+      },
+      "expected": {
+        "zoom": 4.0,
+        "pan": {
+          "dx": 0.0,
+          "dy": 0.0
+        }
+      }
+    },
+    {
+      "name": "clamped to the minimum",
+      "input": {
+        "zoom": {
+          "zoom": 1.5,
+          "pan": {
+            "dx": 0.0,
+            "dy": 0.0
+          }
+        },
+        "startFocal": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "focal": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "scale": 0.25
+      },
+      "expected": {
+        "zoom": 1.0,
+        "pan": {
+          "dx": 33.33333333333333,
+          "dy": 33.33333333333333
+        }
+      }
+    }
+  ]
+}

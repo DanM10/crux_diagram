@@ -4,8 +4,29 @@
   "private": true,
   "type": "module",
   "sideEffects": false,
-  "main": "./src/index.ts",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/esm/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/esm/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
+    "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },

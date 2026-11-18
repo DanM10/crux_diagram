@@ -1,0 +1,76 @@
+{
+  "function": "rotationFromPointer",
+  "description": "Rotation that makes the handle above the top edge point at the pointer (REC-077).",
+  "cases": [
+    {
+      "name": "pointer above is 0",
+      "input": {
+        "center": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "pointer": {
+          "x": 100.0,
+          "y": 0.0
+        }
+      },
+      "expected": 0.0
+    },
+    {
+      "name": "pointer right is a quarter turn",
+      "input": {
+        "center": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "pointer": {
+          "x": 200.0,
+          "y": 100.0
+        }
+      },
+      "expected": 1.5707963267948966
+    },
+    {
+      "name": "pointer below is a half turn",
+      "input": {
+        "center": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "pointer": {
+          "x": 100.0,
+          "y": 200.0
+        }
+      },
+      "expected": 3.141592653589793
+    },
+    {
+      "name": "pointer left is three quarters",
+      "input": {
+        "center": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "pointer": {
+          "x": 0.0,
+          "y": 100.0
+        }
+      },
+      "expected": 4.71238898038469
+    },
+    {
+      "name": "pointer up and to the right",
+      "input": {
+        "center": {
+          "x": 100.0,
+          "y": 100.0
+        },
+        "pointer": {
+          "x": 150.0,
+          "y": 50.0
+        }
+      },
+      "expected": 0.7853981633974483
+    }
+  ]
+}

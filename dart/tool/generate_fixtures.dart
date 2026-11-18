@@ -14,6 +14,8 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:soft_drawer_service/src/geometry/resize.dart';
+
 import '../test/conformance/geometry_cases.dart';
 
 const _encoder = JsonEncoder.withIndent('  ');
@@ -778,6 +780,582 @@ void _geometryFixtures() {
     ('large negative', angle(-1000)),
     ('very large', angle(1e6)),
   ]);
+
+  _editorGeometryFixtures();
+}
+
+void _editorGeometryFixtures() {
+  Json shape(
+    String type,
+    double w,
+    double h, {
+    double x = 400,
+    double y = 300,
+    double rotation = 0,
+    String id = 'fixture',
+  }) => {
+    'id': id,
+    'type': type,
+    'center': _pt(x, y),
+    'size': _sz(w, h),
+    'rotation': rotation,
+  };
+
+  // hit_testing (REC-077).
+  Json contains(Json s, Json p) => {'shape': s, 'point': p};
+  final rect = shape('rectangle', 200, 100);
+  final turned = shape('rectangle', 200, 100, rotation: math.pi / 2);
+  final circle = shape('circle', 100, 100);
+  _geometry(
+    'shapeContains',
+    'Whether a shape contains a canvas point, rotation-aware, edges inclusive (REC-077).',
+    [
+      ('rectangle center', contains(rect, _pt(400, 300))),
+      ('rectangle inside near a corner', contains(rect, _pt(495, 345))),
+      ('rectangle edge is inclusive', contains(rect, _pt(500, 300))),
+      ('rectangle just outside', contains(rect, _pt(500.5, 300))),
+      ('quarter turn swaps the extents', contains(turned, _pt(400, 390))),
+      ('quarter turn, outside along x', contains(turned, _pt(480, 300))),
+      ('circle inside', contains(circle, _pt(430, 330))),
+      (
+        'circle bounding box corner is outside',
+        contains(circle, _pt(445, 345)),
+      ),
+      ('circle edge is inclusive', contains(circle, _pt(450, 300))),
+      (
+        'square rotated 45 degrees, corner of the unrotated box is outside',
+        contains(
+          shape('square', 100, 100, rotation: math.pi / 4),
+          _pt(448, 348),
+        ),
+      ),
+      (
+        'rectangle rotated 45 degrees, point inside the unrotated box is outside',
+        contains(
+          shape('rectangle', 200, 100, rotation: math.pi / 4),
+          _pt(480, 300),
+        ),
+      ),
+      (
+        'rectangle rotated 45 degrees, point along its long axis is inside',
+        contains(
+          shape('rectangle', 200, 100, rotation: math.pi / 4),
+          _pt(460, 360),
+        ),
+      ),
+    ],
+  );
+
+  final stack = [
+    shape('rectangle', 200, 100, id: 'back'),
+    shape('circle', 100, 100, x: 450, id: 'front'),
+  ];
+  _geometry(
+    'topmostShapeAt',
+    'Id of the topmost shape (last in z-order) under a point, or null (REC-077).',
+    [
+      (
+        'overlap picks the front shape',
+        {'shapes': stack, 'point': _pt(460, 300)},
+      ),
+      ('only the back shape', {'shapes': stack, 'point': _pt(320, 300)}),
+      ('empty spot', {'shapes': stack, 'point': _pt(50, 50)}),
+      ('no shapes', {'shapes': <Json>[], 'point': _pt(400, 300)}),
+    ],
+  );
+
+  // resize (REC-077).
+  _geometry(
+    'handlesFor',
+    'Resize handles available per shape type (REC-077).',
+    [
+      ('rectangle has corners and edges', {'type': 'rectangle'}),
+      ('square has corners only', {'type': 'square'}),
+      ('circle has corners only', {'type': 'circle'}),
+    ],
+  );
+
+  _geometry(
+    'sizeLimitsForCanvas',
+    'Minimum 20 (or 2 × gridSize, at least gridStep) and maximum the longest canvas side (REC-077).',
+    [
+      ('no grid', {'canvas': _sz(1600, 1200)}),
+      ('portrait canvas', {'canvas': _sz(800, 1400)}),
+      ('grid size', {'canvas': _sz(1600, 1200), 'gridSize': 25}),
+      (
+        'grid step larger than twice the grid size',
+        {'canvas': _sz(1600, 1200), 'gridSize': 10, 'gridStep': 50},
+      ),
+      (
+        'grid step smaller than twice the grid size',
+        {'canvas': _sz(1600, 1200), 'gridSize': 10, 'gridStep': 10},
+      ),
+    ],
+  );
+
+  Json resize(
+    Json s,
+    String handle,
+    Json pointer, {
+    double min = 20,
+    double max = 1600,
+    double? gridSize,
+    double? gridStep,
+  }) => {
+    'shape': s,
+    'handle': handle,
+    'pointer': pointer,
+    'limits': {'min': min, 'max': max},
+    'gridSize': ?gridSize,
+    'gridStep': ?gridStep,
+  };
+  final box = shape('rectangle', 200, 100);
+  _geometry(
+    'resizeByHandle',
+    'Resizing with a handle keeps the opposite corner or edge fixed in world space (REC-077).',
+    [
+      ('bottom right corner grows', resize(box, 'bottomRight', _pt(550, 400))),
+      ('top left corner grows', resize(box, 'topLeft', _pt(250, 200))),
+      ('right edge keeps the height', resize(box, 'right', _pt(600, 999))),
+      ('top edge keeps the width', resize(box, 'top', _pt(-50, 150))),
+      (
+        'dragged past the fixed corner hits the minimum',
+        resize(box, 'bottomRight', _pt(100, 100)),
+      ),
+      (
+        'clamped to the maximum',
+        resize(box, 'right', _pt(5000, 300), max: 800),
+      ),
+      (
+        'rotated quarter turn, fixed corner stays in world space',
+        resize(
+          shape('rectangle', 200, 100, rotation: math.pi / 2),
+          'bottomRight',
+          _pt(300, 450),
+        ),
+      ),
+      (
+        'rotated 0.5 rad',
+        resize(
+          shape('rectangle', 200, 100, rotation: 0.5),
+          'bottomRight',
+          _pt(560, 420),
+        ),
+      ),
+      (
+        'square uses the larger side for both',
+        resize(shape('square', 100, 100), 'bottomRight', _pt(520, 380)),
+      ),
+      (
+        'circle uses the larger side for both',
+        resize(shape('circle', 100, 100), 'topLeft', _pt(300, 330)),
+      ),
+      (
+        'grid size snaps sizes to 2 × gridSize',
+        resize(box, 'bottomRight', _pt(537, 377), gridSize: 10),
+      ),
+      (
+        'grid step, unrotated: the dragged edges snap to lines',
+        resize(
+          shape('rectangle', 200, 100, x: 405, y: 303),
+          'bottomRight',
+          _pt(537, 377),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step at a quarter turn: the dragged edges snap to lines',
+        resize(
+          shape('rectangle', 200, 100, x: 405, y: 303, rotation: math.pi / 2),
+          'bottomRight',
+          _pt(337, 437),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step at three quarter turns: the dragged edges snap to lines',
+        resize(
+          shape(
+            'rectangle',
+            200,
+            100,
+            x: 405,
+            y: 303,
+            rotation: 3 * math.pi / 2,
+          ),
+          'bottomRight',
+          _pt(468, 172),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step below the minimum ends on the first line past it',
+        resize(
+          shape('rectangle', 200, 100, x: 405, y: 303),
+          'right',
+          _pt(310, 303),
+          min: 30,
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step on the left edge',
+        resize(
+          shape('rectangle', 200, 100, x: 405, y: 303),
+          'left',
+          _pt(262, 303),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step at another rotation snaps the sizes',
+        resize(
+          shape('rectangle', 200, 100, rotation: 0.5),
+          'bottomRight',
+          _pt(560, 420),
+          gridStep: 25,
+        ),
+      ),
+      (
+        'grid step on a square snaps the size',
+        resize(
+          shape('square', 100, 100),
+          'bottomRight',
+          _pt(520, 380),
+          gridStep: 25,
+        ),
+      ),
+    ],
+  );
+
+  // grid (REC-077).
+  Json snapPoint(double x, double y, double g) => {
+    'point': _pt(x, y),
+    'gridSize': g,
+  };
+  _geometry(
+    'snapPointToGrid',
+    'Rounds each coordinate to the nearest multiple; halves round away from zero, like Dart (REC-077).',
+    [
+      ('already on the grid', snapPoint(40, 60, 20)),
+      ('rounds down and up', snapPoint(44, 56, 20)),
+      ('half rounds away from zero', snapPoint(30, 50, 20)),
+      ('negative half rounds away from zero', snapPoint(-30, -50, 20)),
+      ('fractional grid', snapPoint(13, 7, 2.5)),
+    ],
+  );
+
+  Json step(double g, int major, double scale) => {
+    'gridSize': g,
+    'majorEvery': major,
+    'scale': scale,
+  };
+  _geometry(
+    'visibleGridStep',
+    'Finest drawn grid spacing: minor lines at 8 dp or more, else major lines, else null (REC-077).',
+    [
+      ('minor lines readable', step(20, 5, 1)),
+      ('minor lines exactly 8 dp', step(20, 5, 0.4)),
+      ('only major lines readable', step(20, 5, 0.2)),
+      ('nothing readable', step(20, 5, 0.05)),
+    ],
+  );
+
+  _geometry(
+    'gridLinesAlong',
+    'Grid lines along an axis; a position on a major line is reported once, as major (REC-077).',
+    [
+      ('minor and major lines', {'extent': 100, ...step(20, 2, 1)}),
+      ('line on the far edge is kept', {'extent': 0.3, ...step(0.1, 3, 100)}),
+      ('only major lines', {'extent': 200, ...step(20, 5, 0.2)}),
+      ('no lines', {'extent': 200, ...step(20, 5, 0.05)}),
+    ],
+  );
+
+  Json move(Json center, Json size, double rotation, double step) => {
+    'center': center,
+    'size': size,
+    'rotation': rotation,
+    'step': step,
+  };
+  _geometry(
+    'snapMoveToGrid',
+    'Snapped center of a moved shape: edges snap at multiples of 90°, the center otherwise (REC-077).',
+    [
+      (
+        'unrotated, nearest edge snaps',
+        move(_pt(107, 203), _sz(50, 24), 0, 20),
+      ),
+      (
+        'quarter turn swaps the extents',
+        move(_pt(107, 203), _sz(50, 24), math.pi / 2, 20),
+      ),
+      ('tie picks the lower edge', move(_pt(110, 110), _sz(10, 10), 0, 20)),
+      (
+        'other rotation snaps the center',
+        move(_pt(107, 203), _sz(50, 24), 0.5, 20),
+      ),
+      (
+        'three quarter turns',
+        move(_pt(107, 203), _sz(50, 24), 3 * math.pi / 2, 20),
+      ),
+    ],
+  );
+
+  Json shift(Json delta, {required bool edges}) => {
+    'box': {'left': 100, 'top': 100, 'width': 60, 'height': 30},
+    'delta': delta,
+    'step': 25,
+    'edges': edges,
+  };
+  _geometry(
+    'snapBoxShiftToGrid',
+    'Translation that moves a box by about delta and snaps it to the grid (REC-077).',
+    [
+      ('edges: nearest edge lands on a line', shift(_vec(12, 7), edges: true)),
+      ('edges: negative delta', shift(_vec(-12, -40), edges: true)),
+      ('center snaps without edges', shift(_vec(12, 7), edges: false)),
+      (
+        'no movement keeps the box near its place',
+        shift(_vec(0, 0), edges: true),
+      ),
+    ],
+  );
+
+  // anchor_snapping (REC-077).
+  Json snap(List<Json> moving, List<Json> targets, double threshold) => {
+    'moving': moving,
+    'targets': targets,
+    'threshold': threshold,
+  };
+  _geometry(
+    'nearestAnchorSnap',
+    'Nearest moving/target anchor pair within the threshold, or null; ties keep the first pair (REC-077).',
+    [
+      (
+        'nearest pair wins',
+        snap([_pt(0, 0), _pt(100, 0)], [_pt(108, 3), _pt(4, 3)], 10),
+      ),
+      ('exactly at the threshold', snap([_pt(0, 0)], [_pt(6, 8)], 10)),
+      ('beyond the threshold', snap([_pt(0, 0)], [_pt(6, 8.1)], 10)),
+      (
+        'equal distances keep the first moving anchor',
+        snap([_pt(0, 0), _pt(100, 0)], [_pt(3, 4), _pt(103, 4)], 10),
+      ),
+      ('no targets', snap([_pt(0, 0)], <Json>[], 10)),
+    ],
+  );
+
+  _geometry(
+    'anchorIdForHandle',
+    'Anchor id under each resize handle (REC-077).',
+    [
+      for (final handle in ResizeHandle.values)
+        (handle.name, {'handle': handle.name}),
+    ],
+  );
+
+  Json pick(List<Json> shapes, Json point) => {
+    'shapes': shapes,
+    'point': point,
+    'radius': 24,
+    'tieTolerance': 1,
+  };
+  final a = shape('rectangle', 200, 100, id: 'a');
+  final b = shape('rectangle', 200, 100, x: 600, id: 'b');
+  final apart = shape('rectangle', 200, 100, x: 610, id: 'apart');
+  _geometry(
+    'pickAnchor',
+    'Anchor under a point: nearest within the radius, the topmost shape on a tie (REC-077).',
+    [
+      ('nearest anchor', pick([a], _pt(505, 255))),
+      ('edge midpoint', pick([a], _pt(400, 360))),
+      ('nothing within the radius', pick([a], _pt(400, 300))),
+      (
+        'shared corner prefers the topmost shape',
+        pick([a, b], _pt(500, 250.5)),
+      ),
+      ('clear nearest beats z-order', pick([a, apart], _pt(502, 250))),
+      ('no shapes', pick(<Json>[], _pt(0, 0))),
+    ],
+  );
+
+  // rotation (REC-077).
+  Json soft(double radians, double step, double tolerance) => {
+    'radians': radians,
+    'step': step,
+    'tolerance': tolerance,
+  };
+  const deg = math.pi / 180;
+  _geometry(
+    'softSnap',
+    'Snaps an angle to the nearest multiple of step within tolerance, normalized to [0, 2π) (REC-077).',
+    [
+      ('within tolerance snaps', soft(88 * deg, 15 * deg, 3 * deg)),
+      ('outside tolerance stays free', soft(80 * deg, 15 * deg, 3 * deg)),
+      ('quarter turn is exact', soft(math.pi / 2 + 1e-4, math.pi / 4, 0.01)),
+      ('negative angle near 0 snaps to 0', soft(-1 * deg, 15 * deg, 3 * deg)),
+      ('step 0 disables snapping', soft(-0.5, 0, 1)),
+      ('snaps to a full turn becomes 0', soft(359 * deg, 15 * deg, 3 * deg)),
+      ('half step rounds away from zero', soft(7.5 * deg, 15 * deg, 8 * deg)),
+      (
+        'negative half step rounds away from zero',
+        soft(-7.5 * deg, 15 * deg, 8 * deg),
+      ),
+    ],
+  );
+
+  _geometry(
+    'rotationFromPointer',
+    'Rotation that makes the handle above the top edge point at the pointer (REC-077).',
+    [
+      ('pointer above is 0', {'center': _pt(100, 100), 'pointer': _pt(100, 0)}),
+      (
+        'pointer right is a quarter turn',
+        {'center': _pt(100, 100), 'pointer': _pt(200, 100)},
+      ),
+      (
+        'pointer below is a half turn',
+        {'center': _pt(100, 100), 'pointer': _pt(100, 200)},
+      ),
+      (
+        'pointer left is three quarters',
+        {'center': _pt(100, 100), 'pointer': _pt(0, 100)},
+      ),
+      (
+        'pointer up and to the right',
+        {'center': _pt(100, 100), 'pointer': _pt(150, 50)},
+      ),
+    ],
+  );
+
+  // viewport (REC-077).
+  _geometry(
+    'fitViewport',
+    'Fits the canvas into the area, centered, keeping the aspect ratio (REC-077).',
+    [
+      ('wider area', {'canvas': _sz(1600, 1200), 'area': _sz(1000, 600)}),
+      ('taller area', {'canvas': _sz(1600, 1200), 'area': _sz(400, 900)}),
+      ('same aspect', {'canvas': _sz(1600, 1200), 'area': _sz(800, 600)}),
+    ],
+  );
+
+  final view = {'scale': 0.5, 'origin': _pt(100, 0)};
+  _geometry('viewportToCanvas', 'Screen point to canvas units (REC-077).', [
+    ('origin', {'viewport': view, 'screen': _pt(100, 0)}),
+    ('inside', {'viewport': view, 'screen': _pt(300, 150)}),
+  ]);
+
+  _geometry(
+    'visibleCenter',
+    'Canvas point under the center of the area, clamped to the canvas (REC-077).',
+    [
+      (
+        'inside the canvas',
+        {'viewport': view, 'area': _sz(1000, 600), 'canvas': _sz(1600, 1200)},
+      ),
+      (
+        'clamped to the canvas',
+        {
+          'viewport': {'scale': 1, 'origin': _pt(-2000, 0)},
+          'area': _sz(1000, 600),
+          'canvas': _sz(1600, 1200),
+        },
+      ),
+    ],
+  );
+
+  Json zoom(double z, double dx, double dy) => {'zoom': z, 'pan': _vec(dx, dy)};
+  _geometry(
+    'applyZoom',
+    'Zoom and pan applied on top of the fitted viewport (REC-077).',
+    [
+      ('identity', {'zoom': zoom(1, 0, 0), 'fit': view}),
+      ('zoomed and panned', {'zoom': zoom(2, -50, 30), 'fit': view}),
+    ],
+  );
+
+  _geometry(
+    'pinchZoom',
+    'Pinch keeps the content under the start focal point under the current focal point; zoom in [1, 4] (REC-077).',
+    [
+      (
+        'zoom in around a point',
+        {
+          'zoom': zoom(1, 0, 0),
+          'startFocal': _pt(200, 100),
+          'focal': _pt(200, 100),
+          'scale': 2,
+        },
+      ),
+      (
+        'two fingers moving together pan',
+        {
+          'zoom': zoom(2, -100, -50),
+          'startFocal': _pt(200, 100),
+          'focal': _pt(260, 80),
+          'scale': 1,
+        },
+      ),
+      (
+        'clamped to the maximum',
+        {
+          'zoom': zoom(3, 0, 0),
+          'startFocal': _pt(0, 0),
+          'focal': _pt(0, 0),
+          'scale': 2,
+        },
+      ),
+      (
+        'clamped to the minimum',
+        {
+          'zoom': zoom(1.5, 0, 0),
+          'startFocal': _pt(100, 100),
+          'focal': _pt(100, 100),
+          'scale': 0.25,
+        },
+      ),
+    ],
+  );
+
+  _geometry(
+    'clampZoom',
+    'Pan limited so the canvas covers the area on each larger axis and is centered on each smaller one (REC-077).',
+    [
+      (
+        'fitted view is centered',
+        {
+          'zoom': zoom(1, 37, -12),
+          'canvas': _sz(1600, 1200),
+          'area': _sz(1000, 600),
+        },
+      ),
+      (
+        'zoomed pan inside the limits is kept',
+        {
+          'zoom': zoom(2, -300, -200),
+          'canvas': _sz(1600, 1200),
+          'area': _sz(1000, 600),
+        },
+      ),
+      (
+        'zoomed pan past the start is clamped',
+        {
+          'zoom': zoom(2, 500, 100),
+          'canvas': _sz(1600, 1200),
+          'area': _sz(1000, 600),
+        },
+      ),
+      (
+        'zoomed pan past the end is clamped',
+        {
+          'zoom': zoom(4, -5000, -5000),
+          'canvas': _sz(1600, 1200),
+          'area': _sz(1000, 600),
+        },
+      ),
+    ],
+  );
 }
 
 void main() {

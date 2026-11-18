@@ -1,0 +1,102 @@
+{
+  "function": "softSnap",
+  "description": "Snaps an angle to the nearest multiple of step within tolerance, normalized to [0, 2π) (REC-077).",
+  "cases": [
+    {
+      "name": "within tolerance snaps",
+      "input": {
+        "radians": 1.53588974175501,
+        "step": 0.2617993877991494,
+        "tolerance": 0.05235987755982989
+      },
+      "expected": {
+        "angle": 1.5707963267948966,
+        "snapped": true
+      }
+    },
+    {
+      "name": "outside tolerance stays free",
+      "input": {
+        "radians": 1.3962634015954636,
+        "step": 0.2617993877991494,
+        "tolerance": 0.05235987755982989
+      },
+      "expected": {
+        "angle": 1.3962634015954636,
+        "snapped": false
+      }
+    },
+    {
+      "name": "quarter turn is exact",
+      "input": {
+        "radians": 1.5708963267948965,
+        "step": 0.7853981633974483,
+        "tolerance": 0.01
+      },
+      "expected": {
+        "angle": 1.5707963267948966,
+        "snapped": true
+      }
+    },
+    {
+      "name": "negative angle near 0 snaps to 0",
+      "input": {
+        "radians": -0.017453292519943295,
+        "step": 0.2617993877991494,
+        "tolerance": 0.05235987755982989
+      },
+      "expected": {
+        "angle": 0.0,
+        "snapped": true
+      }
+    },
+    {
+      "name": "step 0 disables snapping",
+      "input": {
+        "radians": -0.5,
+        "step": 0.0,
+        "tolerance": 1.0
+      },
+      "expected": {
+        "angle": 5.783185307179586,
+        "snapped": false
+      }
+    },
+    {
+      "name": "snaps to a full turn becomes 0",
+      "input": {
+        "radians": 6.265732014659643,
+        "step": 0.2617993877991494,
+        "tolerance": 0.05235987755982989
+      },
+      "expected": {
+        "angle": 0.0,
+        "snapped": true
+      }
+    },
+    {
+      "name": "half step rounds away from zero",
+      "input": {
+        "radians": 0.1308996938995747,
+        "step": 0.2617993877991494,
+        "tolerance": 0.13962634015954636
+      },
+      "expected": {
+        "angle": 0.2617993877991494,
+        "snapped": true
+      }
+    },
+    {
+      "name": "negative half step rounds away from zero",
+      "input": {
+        "radians": -0.1308996938995747,
+        "step": 0.2617993877991494,
+        "tolerance": 0.13962634015954636
+      },
+      "expected": {
+        "angle": 6.021385919380437,
+        "snapped": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "function": "pickAnchor",
+  "description": "Anchor under a point: nearest within the radius, the topmost shape on a tie (REC-077).",
+  "cases": [
+    {
+      "name": "nearest anchor",
+      "input": {
+        "shapes": [
+          {
+            "id": "a",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 505.0,
+          "y": 255.0
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": {
+        "shapeId": "a",
+        "anchorId": "tr"
+      }
+    },
+    {
+      "name": "edge midpoint",
+      "input": {
+        "shapes": [
+          {
+            "id": "a",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 400.0,
+          "y": 360.0
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": {
+        "shapeId": "a",
+        "anchorId": "bc"
+      }
+    },
+    {
+      "name": "nothing within the radius",
+      "input": {
+        "shapes": [
+          {
+            "id": "a",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 400.0,
+          "y": 300.0
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": null
+    },
+    {
+      "name": "shared corner prefers the topmost shape",
+      "input": {
+        "shapes": [
+          {
+            "id": "a",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "id": "b",
+            "type": "rectangle",
+            "center": {
+              "x": 600.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 500.0,
+          "y": 250.5
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": {
+        "shapeId": "b",
+        "anchorId": "tl"
+      }
+    },
+    {
+      "name": "clear nearest beats z-order",
+      "input": {
+        "shapes": [
+          {
+            "id": "a",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "id": "apart",
+            "type": "rectangle",
+            "center": {
+              "x": 610.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 502.0,
+          "y": 250.0
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": {
+        "shapeId": "a",
+        "anchorId": "tr"
+      }
+    },
+    {
+      "name": "no shapes",
+      "input": {
+        "shapes": [],
+        "point": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "radius": 24,
+        "tieTolerance": 1
+      },
+      "expected": null
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "function": "snapPointToGrid",
+  "description": "Rounds each coordinate to the nearest multiple; halves round away from zero, like Dart (REC-077).",
+  "cases": [
+    {
+      "name": "already on the grid",
+      "input": {
+        "point": {
+          "x": 40.0,
+          "y": 60.0
+        },
+        "gridSize": 20.0
+      },
+      "expected": {
+        "x": 40.0,
+        "y": 60.0
+      }
+    },
+    {
+      "name": "rounds down and up",
+      "input": {
+        "point": {
+          "x": 44.0,
+          "y": 56.0
+        },
+        "gridSize": 20.0
+      },
+      "expected": {
+        "x": 40.0,
+        "y": 60.0
+      }
+    },
+    {
+      "name": "half rounds away from zero",
+      "input": {
+        "point": {
+          "x": 30.0,
+          "y": 50.0
+        },
+        "gridSize": 20.0
+      },
+      "expected": {
+        "x": 40.0,
+        "y": 60.0
+      }
+    },
+    {
+      "name": "negative half rounds away from zero",
+      "input": {
+        "point": {
+          "x": -30.0,
+          "y": -50.0
+        },
+        "gridSize": 20.0
+      },
+      "expected": {
+        "x": -40.0,
+        "y": -60.0
+      }
+    },
+    {
+      "name": "fractional grid",
+      "input": {
+        "point": {
+          "x": 13.0,
+          "y": 7.0
+        },
+        "gridSize": 2.5
+      },
+      "expected": {
+        "x": 12.5,
+        "y": 7.5
+      }
+    }
+  ]
+}
