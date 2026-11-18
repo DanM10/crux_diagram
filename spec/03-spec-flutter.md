@@ -64,6 +64,7 @@ El paquete **ya existe y es funcional** (`soft_drawer_service`, versión `0.1.0`
 
 - **FLT-030** Los valores por defecto de `JointStyle` coinciden con la tabla de la spec 02, sección 12: color `#000000`, línea `2.5`, fuente base `30` con paso `4`, negrita, punta `16 × 11`, `labelPadding` `6`. Un test los verifica.
 - **FLT-031** `jointNameMaxLength` es `12` por defecto y configurable. Es una regla del editor, no del decodificador (FMT-022).
+- **FLT-032** La etiqueta de las juntas usa la familia `Arial` (spec 02, sección 12): `JointStyle.labelStyle` la fija por defecto. Solo afecta a las etiquetas de las juntas; el resto de la UI no cambia. *Pendiente.*
 
 ### 5.4 Calidad del paquete (pub.dev)
 
