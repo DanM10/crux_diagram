@@ -41,7 +41,7 @@ Funcionalidad que se reproduce de Flutter:
 
 - **Render:** `react-konva` (Canvas).
 - **Estado interno:** Zustand + `zundo` para deshacer/rehacer, con historial de instantáneas (por defecto 100 entradas; un gesto continuo = una entrada).
-- **React:** peer dependency `react >= 18`.
+- **React:** solo React 19. Peer dependencies `react` y `react-dom` `^19.3.0`, `react-konva` `^19.3.0` (que pide `react ^19.3.0`) y `konva` `^10.0.0`. React 18 no se soporta (decidido 2026-11-18).
 - **Capas del `Stage`:** (1) fondo, (2) figuras, (3) juntas, (4) UI de edición (asas, puntos de anclaje, cuadrícula, guías). Las juntas se dibujan por encima de todas las figuras (FMT-023). La capa 4 se oculta al exportar.
 - **Rotación y pivote:** cada figura usa `x,y = center` y `rotation` en grados (conversión desde y hacia radianes con `core`), así gira sobre su centro. El cuadrado y el rectángulo (`Rect`) usan además `offsetX = width/2`, `offsetY = height/2`; el círculo es una `Ellipse` con `radiusX = width/2`, `radiusY = height/2`, que Konva ya centra en `x,y`, sin offset.
 - **Asas propias en lugar de `Transformer`:** el redimensionado y la rotación se implementan con asas dibujadas en la capa 4 que llaman a las operaciones de `core` (REC-077). `Transformer` escala la figura y obliga a reconvertir a `size`, lo que no reproduce el algoritmo de Flutter (esquina opuesta fija, mínimo y máximo, cuadrícula).
