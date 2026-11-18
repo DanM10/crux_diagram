@@ -1,0 +1,131 @@
+{
+  "function": "topmostShapeAt",
+  "description": "Id of the topmost shape (last in z-order) under a point, or null (REC-077).",
+  "cases": [
+    {
+      "name": "overlap picks the front shape",
+      "input": {
+        "shapes": [
+          {
+            "id": "back",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "id": "front",
+            "type": "circle",
+            "center": {
+              "x": 450.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 100.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 460.0,
+          "y": 300.0
+        }
+      },
+      "expected": "front"
+    },
+    {
+      "name": "only the back shape",
+      "input": {
+        "shapes": [
+          {
+            "id": "back",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "id": "front",
+            "type": "circle",
+            "center": {
+              "x": 450.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 100.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 320.0,
+          "y": 300.0
+        }
+      },
+      "expected": "back"
+    },
+    {
+      "name": "empty spot",
+      "input": {
+        "shapes": [
+          {
+            "id": "back",
+            "type": "rectangle",
+            "center": {
+              "x": 400.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 200.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          },
+          {
+            "id": "front",
+            "type": "circle",
+            "center": {
+              "x": 450.0,
+              "y": 300.0
+            },
+            "size": {
+              "width": 100.0,
+              "height": 100.0
+            },
+            "rotation": 0.0
+          }
+        ],
+        "point": {
+          "x": 50.0,
+          "y": 50.0
+        }
+      },
+      "expected": null
+    },
+    {
+      "name": "no shapes",
+      "input": {
+        "shapes": [],
+        "point": {
+          "x": 400.0,
+          "y": 300.0
+        }
+      },
+      "expected": null
+    }
+  ]
+}

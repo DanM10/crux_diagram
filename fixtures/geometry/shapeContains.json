@@ -1,0 +1,282 @@
+{
+  "function": "shapeContains",
+  "description": "Whether a shape contains a canvas point, rotation-aware, edges inclusive (REC-077).",
+  "cases": [
+    {
+      "name": "rectangle center",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 400.0,
+          "y": 300.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "rectangle inside near a corner",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 495.0,
+          "y": 345.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "rectangle edge is inclusive",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 500.0,
+          "y": 300.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "rectangle just outside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 500.5,
+          "y": 300.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "quarter turn swaps the extents",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 1.5707963267948966
+        },
+        "point": {
+          "x": 400.0,
+          "y": 390.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "quarter turn, outside along x",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 1.5707963267948966
+        },
+        "point": {
+          "x": 480.0,
+          "y": 300.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "circle inside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "circle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 100.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 430.0,
+          "y": 330.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "circle bounding box corner is outside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "circle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 100.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 445.0,
+          "y": 345.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "circle edge is inclusive",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "circle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 100.0,
+            "height": 100.0
+          },
+          "rotation": 0.0
+        },
+        "point": {
+          "x": 450.0,
+          "y": 300.0
+        }
+      },
+      "expected": true
+    },
+    {
+      "name": "square rotated 45 degrees, corner of the unrotated box is outside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "square",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 100.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        },
+        "point": {
+          "x": 448.0,
+          "y": 348.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "rectangle rotated 45 degrees, point inside the unrotated box is outside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        },
+        "point": {
+          "x": 480.0,
+          "y": 300.0
+        }
+      },
+      "expected": false
+    },
+    {
+      "name": "rectangle rotated 45 degrees, point along its long axis is inside",
+      "input": {
+        "shape": {
+          "id": "fixture",
+          "type": "rectangle",
+          "center": {
+            "x": 400.0,
+            "y": 300.0
+          },
+          "size": {
+            "width": 200.0,
+            "height": 100.0
+          },
+          "rotation": 0.7853981633974483
+        },
+        "point": {
+          "x": 460.0,
+          "y": 360.0
+        }
+      },
+      "expected": true
+    }
+  ]
+}

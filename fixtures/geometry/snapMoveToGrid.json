@@ -1,0 +1,101 @@
+{
+  "function": "snapMoveToGrid",
+  "description": "Snapped center of a moved shape: edges snap at multiples of 90°, the center otherwise (REC-077).",
+  "cases": [
+    {
+      "name": "unrotated, nearest edge snaps",
+      "input": {
+        "center": {
+          "x": 107.0,
+          "y": 203.0
+        },
+        "size": {
+          "width": 50.0,
+          "height": 24.0
+        },
+        "rotation": 0.0,
+        "step": 20.0
+      },
+      "expected": {
+        "x": 105.0,
+        "y": 208.0
+      }
+    },
+    {
+      "name": "quarter turn swaps the extents",
+      "input": {
+        "center": {
+          "x": 107.0,
+          "y": 203.0
+        },
+        "size": {
+          "width": 50.0,
+          "height": 24.0
+        },
+        "rotation": 1.5707963267948966,
+        "step": 20.0
+      },
+      "expected": {
+        "x": 108.0,
+        "y": 205.0
+      }
+    },
+    {
+      "name": "tie picks the lower edge",
+      "input": {
+        "center": {
+          "x": 110.0,
+          "y": 110.0
+        },
+        "size": {
+          "width": 10.0,
+          "height": 10.0
+        },
+        "rotation": 0.0,
+        "step": 20.0
+      },
+      "expected": {
+        "x": 105.0,
+        "y": 105.0
+      }
+    },
+    {
+      "name": "other rotation snaps the center",
+      "input": {
+        "center": {
+          "x": 107.0,
+          "y": 203.0
+        },
+        "size": {
+          "width": 50.0,
+          "height": 24.0
+        },
+        "rotation": 0.5,
+        "step": 20.0
+      },
+      "expected": {
+        "x": 100.0,
+        "y": 200.0
+      }
+    },
+    {
+      "name": "three quarter turns",
+      "input": {
+        "center": {
+          "x": 107.0,
+          "y": 203.0
+        },
+        "size": {
+          "width": 50.0,
+          "height": 24.0
+        },
+        "rotation": 4.71238898038469,
+        "step": 20.0
+      },
+      "expected": {
+        "x": 108.0,
+        "y": 205.0
+      }
+    }
+  ]
+}

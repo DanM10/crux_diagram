@@ -1,0 +1,76 @@
+{
+  "function": "sizeLimitsForCanvas",
+  "description": "Minimum 20 (or 2 × gridSize, at least gridStep) and maximum the longest canvas side (REC-077).",
+  "cases": [
+    {
+      "name": "no grid",
+      "input": {
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        }
+      },
+      "expected": {
+        "min": 20.0,
+        "max": 1600.0
+      }
+    },
+    {
+      "name": "portrait canvas",
+      "input": {
+        "canvas": {
+          "width": 800.0,
+          "height": 1400.0
+        }
+      },
+      "expected": {
+        "min": 20.0,
+        "max": 1400.0
+      }
+    },
+    {
+      "name": "grid size",
+      "input": {
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        },
+        "gridSize": 25
+      },
+      "expected": {
+        "min": 50.0,
+        "max": 1600.0
+      }
+    },
+    {
+      "name": "grid step larger than twice the grid size",
+      "input": {
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        },
+        "gridSize": 10,
+        "gridStep": 50
+      },
+      "expected": {
+        "min": 50.0,
+        "max": 1600.0
+      }
+    },
+    {
+      "name": "grid step smaller than twice the grid size",
+      "input": {
+        "canvas": {
+          "width": 1600.0,
+          "height": 1200.0
+        },
+        "gridSize": 10,
+        "gridStep": 10
+      },
+      "expected": {
+        "min": 20.0,
+        "max": 1600.0
+      }
+    }
+  ]
+}

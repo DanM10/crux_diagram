@@ -57,7 +57,7 @@ js/core/
 - **REC-011** `parse(json: unknown): DrawingDocument` lanza `DrawingFormatError` con la ruta del problema; `safeParse` devuelve `{ ok, document | error }`.
 - **REC-012** `serialize(document): string` escribe todos los campos siempre (FMT-008), con `rotation` normalizada. No redondea `center`, `size`, `rotation` ni `labelOffset` (FMT-070).
 - **REC-013** Los campos desconocidos se ignoran al leer y no se conservan (FMT-009).
-- **REC-014** `schemaVersion` se lee y se escribe como entero `1`.
+- **REC-014** `schemaVersion` se lee y se escribe como entero `1`. Un `1.0` en el texto se acepta, porque `JSON.parse` no lo distingue (FMT-005a).
 
 ### 5.2 Validación
 

@@ -1,0 +1,154 @@
+{
+  "function": "nearestAnchorSnap",
+  "description": "Nearest moving/target anchor pair within the threshold, or null; ties keep the first pair (REC-077).",
+  "cases": [
+    {
+      "name": "nearest pair wins",
+      "input": {
+        "moving": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "x": 100.0,
+            "y": 0.0
+          }
+        ],
+        "targets": [
+          {
+            "x": 108.0,
+            "y": 3.0
+          },
+          {
+            "x": 4.0,
+            "y": 3.0
+          }
+        ],
+        "threshold": 10.0
+      },
+      "expected": {
+        "from": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "to": {
+          "x": 4.0,
+          "y": 3.0
+        },
+        "targetIndex": 1,
+        "delta": {
+          "dx": 4.0,
+          "dy": 3.0
+        }
+      }
+    },
+    {
+      "name": "exactly at the threshold",
+      "input": {
+        "moving": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          }
+        ],
+        "targets": [
+          {
+            "x": 6.0,
+            "y": 8.0
+          }
+        ],
+        "threshold": 10.0
+      },
+      "expected": {
+        "from": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "to": {
+          "x": 6.0,
+          "y": 8.0
+        },
+        "targetIndex": 0,
+        "delta": {
+          "dx": 6.0,
+          "dy": 8.0
+        }
+      }
+    },
+    {
+      "name": "beyond the threshold",
+      "input": {
+        "moving": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          }
+        ],
+        "targets": [
+          {
+            "x": 6.0,
+            "y": 8.1
+          }
+        ],
+        "threshold": 10.0
+      },
+      "expected": null
+    },
+    {
+      "name": "equal distances keep the first moving anchor",
+      "input": {
+        "moving": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          },
+          {
+            "x": 100.0,
+            "y": 0.0
+          }
+        ],
+        "targets": [
+          {
+            "x": 3.0,
+            "y": 4.0
+          },
+          {
+            "x": 103.0,
+            "y": 4.0
+          }
+        ],
+        "threshold": 10.0
+      },
+      "expected": {
+        "from": {
+          "x": 0.0,
+          "y": 0.0
+        },
+        "to": {
+          "x": 3.0,
+          "y": 4.0
+        },
+        "targetIndex": 0,
+        "delta": {
+          "dx": 3.0,
+          "dy": 4.0
+        }
+      }
+    },
+    {
+      "name": "no targets",
+      "input": {
+        "moving": [
+          {
+            "x": 0.0,
+            "y": 0.0
+          }
+        ],
+        "targets": [],
+        "threshold": 10.0
+      },
+      "expected": null
+    }
+  ]
+}

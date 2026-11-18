@@ -1,0 +1,46 @@
+{
+  "function": "viewportToCanvas",
+  "description": "Screen point to canvas units (REC-077).",
+  "cases": [
+    {
+      "name": "origin",
+      "input": {
+        "viewport": {
+          "scale": 0.5,
+          "origin": {
+            "x": 100.0,
+            "y": 0.0
+          }
+        },
+        "screen": {
+          "x": 100.0,
+          "y": 0.0
+        }
+      },
+      "expected": {
+        "x": 0.0,
+        "y": 0.0
+      }
+    },
+    {
+      "name": "inside",
+      "input": {
+        "viewport": {
+          "scale": 0.5,
+          "origin": {
+            "x": 100.0,
+            "y": 0.0
+          }
+        },
+        "screen": {
+          "x": 300.0,
+          "y": 150.0
+        }
+      },
+      "expected": {
+        "x": 400.0,
+        "y": 300.0
+      }
+    }
+  ]
+}
