@@ -18,6 +18,8 @@ const moved = (doc: DrawingDocument, n = 1) => moveShape(doc, firstId, { dx: n, 
 
 afterEach(cleanup);
 
+const CONFIG_LIMIT_2 = { historyLimit: 2 };
+
 /**
  * Renders the provider inside a controlled parent that adopts every emitted document,
  * with a probe that exposes the store. `onChange` spies on what the parent receives.
@@ -62,7 +64,7 @@ describe('REA-002 controlled component', () => {
     expect(ref.current!.canUndo).toBe(true);
   });
 
-  it('a parent that does not adopt the change keeps its value: undo back to it emits nothing', () => {
+  it('a parent that has not adopted the change still receives the undo back to its value', () => {
     const onChange = vi.fn();
     const ref = createRef<DrawingEditorHandle>();
     let editor!: EditorStore;
@@ -77,7 +79,8 @@ describe('REA-002 controlled component', () => {
     );
     act(() => editor.commit(moved(sample)));
     act(() => ref.current!.undo());
-    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(onChange).toHaveBeenLastCalledWith(sample);
     expect(ref.current!.getDocument()).toBe(sample);
   });
 });
@@ -129,6 +132,40 @@ describe('REA-007 a new value never clears the history by itself', () => {
     expect(onChange).toHaveBeenCalledTimes(2);
     act(() => ref.current!.undo());
     expect(ref.current!.getDocument()).toBe(b);
+  });
+
+  it('commit, undo, then a late adoption of the undone document: the editor and the parent end on the same document', () => {
+    const { ref, editor, setValue, onChange } = manual();
+    const b = moved(sample, 1);
+    act(() => editor().commit(b));
+    act(() => ref.current!.undo());
+    act(() => setValue(b));
+    expect(ref.current!.getDocument()).toBe(sample);
+    expect(onChange).toHaveBeenLastCalledWith(sample);
+    act(() => setValue(sample));
+    expect(ref.current!.getDocument()).toBe(sample);
+  });
+
+  it('remembers echoes only for the last historyLimit + 1 emitted documents', () => {
+    const onChange = vi.fn();
+    const ref = createRef<DrawingEditorHandle>();
+    let editor!: EditorStore;
+    function Probe() {
+      editor = useEditor();
+      return null;
+    }
+    const ui = (value: DrawingDocument) => (
+      <EditorProvider ref={ref} value={value} onChange={onChange} config={CONFIG_LIMIT_2}>
+        <Probe />
+      </EditorProvider>
+    );
+    const view = render(ui(sample));
+    const docs = [moved(sample, 1)];
+    for (let i = 0; i < 3; i++) docs.push(moved(docs[docs.length - 1]!, 1));
+    act(() => docs.forEach((d) => editor.commit(d)));
+    // docs[0] is older than the last 3 emitted documents: a real change, not an echo.
+    act(() => view.rerender(ui(docs[0]!)));
+    expect(ref.current!.getDocument()).toBe(docs[0]);
   });
 
   it('once the parent has adopted the latest document, going back to an older one is a real change', () => {

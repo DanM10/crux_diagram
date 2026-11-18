@@ -48,28 +48,45 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
   const config = useMemo(() => resolveEditorConfig(configInput), [configInput]);
   // Created once: the history limit and the initial grid visibility are read at mount.
   const [editor] = useState(() => createEditorStore(value, { historyLimit: config.historyLimit, showGrid: config.showGrid }));
-  const latest = useRef({ value, onChange, onPreview });
+  const latest = useRef({ onChange, onPreview });
   useIsomorphicLayoutEffect(() => {
-    latest.current = { value, onChange, onPreview };
+    latest.current = { onChange, onPreview };
   });
 
   // Documents emitted since the parent last held the editor's document: a parent that
   // adopts late may still render one of them, and that echo must not undo newer commits.
+  // Only the most recent ones are kept, so a parent that never adopts cannot grow it forever.
   const unadopted = useRef(new Set<DrawingDocument>());
-  // True while `reset` runs, which replaces the document without emitting.
-  const silent = useRef(false);
+  const maxUnadopted = config.historyLimit + 1;
+  // Runs `change` without emitting: for the parent's own value and for `reset`.
+  const quiet = useRef(false);
+  const quietly = (change: () => void) => {
+    quiet.current = true;
+    try {
+      change();
+    } finally {
+      quiet.current = false;
+    }
+  };
 
-  // A committed document the parent does not already hold is emitted; previews go to onPreview.
+  // Every committed change made in the editor is emitted, including an undo back to the
+  // parent's current value; previews go to onPreview.
   useEffect(
     () =>
       editor.subscribe((state, previous) => {
-        if (state.document !== previous.document && state.document !== latest.current.value && !silent.current) {
-          unadopted.current.add(state.document);
+        if (state.document !== previous.document && !quiet.current) {
+          const pending = unadopted.current;
+          pending.delete(state.document);
+          pending.add(state.document);
+          for (const oldest of pending) {
+            if (pending.size <= maxUnadopted) break;
+            pending.delete(oldest);
+          }
           latest.current.onChange(state.document);
         }
         if (state.preview && state.preview !== previous.preview) latest.current.onPreview?.(state.preview);
       }),
-    [editor],
+    [editor, maxUnadopted],
   );
 
   // REA-007: a new value never clears the history by itself.
@@ -80,8 +97,7 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
     }
     if (unadopted.current.has(value)) return;
     unadopted.current.clear();
-    // Equal to the parent's value, so the subscription does not emit it back.
-    editor.commit(value);
+    quietly(() => editor.commit(value));
   }, [editor, value]);
 
   useImperativeHandle(
@@ -97,12 +113,7 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
       },
       getDocument: editor.getDocument,
       reset(document: DrawingDocument) {
-        silent.current = true;
-        try {
-          editor.reset(document);
-        } finally {
-          silent.current = false;
-        }
+        quietly(() => editor.reset(document));
         unadopted.current.clear();
       },
     }),
