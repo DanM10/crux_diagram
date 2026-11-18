@@ -15,13 +15,14 @@ const empty: DrawingDocument = {
 };
 
 describe('REA-054 server rendering', () => {
-  it('renders the viewer and the editor as an empty container, with no canvas', () => {
+  // The editor wraps the stage container in its focusable element (REA-018).
+  it('renders the viewer and the editor as empty containers, with no canvas', () => {
     expect(typeof window).toBe('undefined');
     for (const html of [
       renderToString(<DrawingViewer document={empty} />),
       renderToString(<DrawingEditor value={empty} onChange={() => {}} />),
     ]) {
-      expect(html).toMatch(/^<div[^>]*><\/div>$/);
+      expect(html).toMatch(/^(<div[^>]*>){1,2}(<\/div>){1,2}$/);
       expect(html).not.toContain('canvas');
     }
   });

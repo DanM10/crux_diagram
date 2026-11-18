@@ -10,6 +10,7 @@ import {
   type Shape,
   type Size,
 } from '@diagrama-kit/core';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ellipse, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import { useFontsReady, useLabelMeasurer } from './fonts.js';
@@ -20,18 +21,20 @@ export interface DrawingStageProps {
   readonly jointStyle?: JointStyle;
   /** Whether the stage handles pointer events. */
   readonly listening: boolean;
+  /** Called when a pointer goes down anywhere on the stage (the editor's gestures). */
+  readonly onPointerDown?: (event: KonvaEventObject<PointerEvent>) => void;
   /** Layer 4, drawn above the joints. */
   readonly children?: ReactNode;
 }
 
 /** Fills its parent and fits the canvas into it, centered, keeping the aspect ratio. */
-export function DrawingStage({ document, jointStyle = DEFAULT_JOINT_STYLE, listening, children }: DrawingStageProps) {
+export function DrawingStage({ document, jointStyle = DEFAULT_JOINT_STYLE, listening, onPointerDown, children }: DrawingStageProps) {
   const container = useRef<HTMLDivElement>(null);
   const area = useContainerSize(container);
   return (
     <div ref={container} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
       {area && area.width > 0 && area.height > 0 && (
-        <FittedStage document={document} jointStyle={jointStyle} listening={listening} area={area}>
+        <FittedStage document={document} jointStyle={jointStyle} listening={listening} onPointerDown={onPointerDown} area={area}>
           {children}
         </FittedStage>
       )}
@@ -43,9 +46,10 @@ function FittedStage({
   document,
   jointStyle,
   listening,
+  onPointerDown,
   area,
   children,
-}: Required<Omit<DrawingStageProps, 'children'>> & { area: Size; children?: ReactNode }) {
+}: Required<Omit<DrawingStageProps, 'children' | 'onPointerDown'>> & Pick<DrawingStageProps, 'onPointerDown'> & { area: Size; children?: ReactNode }) {
   const viewport = fitViewport(document.canvas, area);
   const clip = { x: 0, y: 0, width: document.canvas.width, height: document.canvas.height };
   return (
@@ -57,6 +61,7 @@ function FittedStage({
       scaleX={viewport.scale}
       scaleY={viewport.scale}
       listening={listening}
+      onPointerDown={onPointerDown}
     >
       <Layer name="background" clip={clip} listening={false}>
         <Rect name="background-fill" width={clip.width} height={clip.height} fill="#ffffff" />
