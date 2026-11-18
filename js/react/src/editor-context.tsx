@@ -11,10 +11,16 @@ export interface DrawingEditorHandle {
   readonly canRedo: boolean;
   /** The committed document (never a gesture preview). */
   getDocument(): DrawingDocument;
+  /** Replaces the document and clears the history, without calling `onChange` (opening another drawing). */
+  reset(document: DrawingDocument): void;
 }
 
 export interface EditorProviderProps {
-  /** The document to show. A value other than the last one emitted replaces the document and clears history. */
+  /**
+   * The document to show. A value the editor did not produce is applied as one undoable
+   * change; a late echo of an emitted document is ignored (REA-007). To open another
+   * drawing with an empty history, change the editor's `key` or call `reset`.
+   */
   value: DrawingDocument;
   /** Receives a new document on every committed change (REA-002). */
   onChange: (document: DrawingDocument) => void;
@@ -47,19 +53,35 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
     latest.current = { value, onChange, onPreview };
   });
 
+  // Documents emitted since the parent last held the editor's document: a parent that
+  // adopts late may still render one of them, and that echo must not undo newer commits.
+  const unadopted = useRef(new Set<DrawingDocument>());
+  // True while `reset` runs, which replaces the document without emitting.
+  const silent = useRef(false);
+
   // A committed document the parent does not already hold is emitted; previews go to onPreview.
   useEffect(
     () =>
       editor.subscribe((state, previous) => {
-        if (state.document !== previous.document && state.document !== latest.current.value) latest.current.onChange(state.document);
+        if (state.document !== previous.document && state.document !== latest.current.value && !silent.current) {
+          unadopted.current.add(state.document);
+          latest.current.onChange(state.document);
+        }
         if (state.preview && state.preview !== previous.preview) latest.current.onPreview?.(state.preview);
       }),
     [editor],
   );
 
-  // A value that is not the current document comes from outside the editor (for example a load).
+  // REA-007: a new value never clears the history by itself.
   useEffect(() => {
-    if (value !== editor.getDocument()) editor.reset(value);
+    if (value === editor.getDocument()) {
+      unadopted.current.clear();
+      return;
+    }
+    if (unadopted.current.has(value)) return;
+    unadopted.current.clear();
+    // Equal to the parent's value, so the subscription does not emit it back.
+    editor.commit(value);
   }, [editor, value]);
 
   useImperativeHandle(
@@ -74,6 +96,15 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
         return editor.canRedo();
       },
       getDocument: editor.getDocument,
+      reset(document: DrawingDocument) {
+        silent.current = true;
+        try {
+          editor.reset(document);
+        } finally {
+          silent.current = false;
+        }
+        unadopted.current.clear();
+      },
     }),
     [editor],
   );

@@ -62,18 +62,6 @@ describe('REA-002 controlled component', () => {
     expect(ref.current!.canUndo).toBe(true);
   });
 
-  it('a value from the parent other than the last emitted one replaces the document and clears history, without emitting', () => {
-    const onChange = vi.fn();
-    const { ref, editor, setDoc } = setup({ onChange });
-    act(() => editor().commit(moved(sample, 1)));
-    expect(ref.current!.canUndo).toBe(true);
-    const loaded = moved(sample, 50);
-    act(() => setDoc(loaded));
-    expect(ref.current!.getDocument()).toBe(loaded);
-    expect(ref.current!.canUndo).toBe(false);
-    expect(onChange).toHaveBeenCalledTimes(1);
-  });
-
   it('a parent that does not adopt the change keeps its value: undo back to it emits nothing', () => {
     const onChange = vi.fn();
     const ref = createRef<DrawingEditorHandle>();
@@ -91,6 +79,93 @@ describe('REA-002 controlled component', () => {
     act(() => ref.current!.undo());
     expect(onChange).toHaveBeenCalledTimes(1);
     expect(ref.current!.getDocument()).toBe(sample);
+  });
+});
+
+describe('REA-007 a new value never clears the history by itself', () => {
+  /** Renders the provider with a value the test sets by hand, like a parent that adopts late or not at all. */
+  function manual(onChange = vi.fn()) {
+    const ref = createRef<DrawingEditorHandle>();
+    const probe: { editor?: EditorStore } = {};
+    function Probe() {
+      probe.editor = useEditor();
+      return null;
+    }
+    const ui = (value: DrawingDocument) => (
+      <EditorProvider ref={ref} value={value} onChange={onChange}>
+        <Probe />
+      </EditorProvider>
+    );
+    const view = render(ui(sample));
+    return { ref, onChange, editor: () => probe.editor!, setValue: (d: DrawingDocument) => view.rerender(ui(d)) };
+  }
+
+  it('a value from outside the editor is applied as one undoable change, without emitting', () => {
+    const onChange = vi.fn();
+    const { ref, editor, setDoc } = setup({ onChange });
+    const first = moved(sample, 1);
+    act(() => editor().commit(first));
+    const loaded = moved(sample, 50);
+    act(() => setDoc(loaded));
+    expect(ref.current!.getDocument()).toBe(loaded);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    act(() => ref.current!.undo());
+    expect(ref.current!.getDocument()).toBe(first);
+    expect(onChange).toHaveBeenLastCalledWith(first);
+    act(() => ref.current!.undo());
+    expect(ref.current!.getDocument()).toBe(sample);
+  });
+
+  it('a late echo of an emitted document is ignored: newer commits and the history stay', () => {
+    const { ref, editor, setValue, onChange } = manual();
+    const b = moved(sample, 1);
+    const c = moved(b, 1);
+    act(() => editor().commit(b));
+    act(() => editor().commit(c));
+    act(() => setValue(b));
+    expect(ref.current!.getDocument()).toBe(c);
+    act(() => setValue(c));
+    expect(ref.current!.getDocument()).toBe(c);
+    expect(onChange).toHaveBeenCalledTimes(2);
+    act(() => ref.current!.undo());
+    expect(ref.current!.getDocument()).toBe(b);
+  });
+
+  it('once the parent has adopted the latest document, going back to an older one is a real change', () => {
+    const { ref, editor, setValue } = manual();
+    const b = moved(sample, 1);
+    const c = moved(b, 1);
+    act(() => editor().commit(b));
+    act(() => editor().commit(c));
+    act(() => setValue(c));
+    act(() => setValue(b));
+    expect(ref.current!.getDocument()).toBe(b);
+    act(() => ref.current!.undo());
+    expect(ref.current!.getDocument()).toBe(c);
+  });
+
+  it('a normalized copy of the emitted document is applied as an undoable change, never a reset', () => {
+    const { ref, editor, setValue } = manual();
+    const b = moved(sample, 1);
+    act(() => editor().commit(b));
+    const copy = structuredClone(b);
+    act(() => setValue(copy));
+    expect(ref.current!.getDocument()).toBe(copy);
+    expect(ref.current!.canUndo).toBe(true);
+  });
+});
+
+describe('REA-004 reset(document)', () => {
+  it('replaces the document and clears the history, without emitting', () => {
+    const onChange = vi.fn();
+    const { ref, editor } = setup({ onChange });
+    act(() => editor().commit(moved(sample, 1)));
+    const other = moved(sample, 30);
+    act(() => ref.current!.reset(other));
+    expect(ref.current!.getDocument()).toBe(other);
+    expect(ref.current!.canUndo).toBe(false);
+    expect(ref.current!.canRedo).toBe(false);
+    expect(onChange).toHaveBeenCalledTimes(1);
   });
 });
 
