@@ -112,9 +112,10 @@ function join(path: string, key: string): string {
 
 /** Describes an arbitrary JSON value for a message without ever throwing (REC-021). */
 function describe(value: unknown): string {
+  // Strings are quoted and numbers/booleans are not, so `"5"` and `5` stay distinguishable.
   if (typeof value === 'string') return `"${value}"`;
   // Primitives convert safely; objects may not (no prototype, throwing toString).
-  if (typeof value === 'number' || typeof value === 'boolean') return `"${value}"`;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   return `a ${value === null ? 'null' : Array.isArray(value) ? 'list' : typeof value}`;
 }
 

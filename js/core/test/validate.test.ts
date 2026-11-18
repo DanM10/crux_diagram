@@ -41,9 +41,14 @@ describe('REC-021 validate never throws', () => {
   });
 
   it('keeps the value in the message for numbers and booleans', () => {
-    expect(validate(doc({ ...square(10, 10), type: 5 }))[0]?.message).toBe('unknown shape type "5"');
+    expect(validate(doc({ ...square(10, 10), type: 5 }))[0]?.message).toBe('unknown shape type 5');
     const display = { ...doc(square(10, 10)), jointDisplay: { labelSize: true, visible: true } };
-    expect(validate(display)[0]?.message).toBe('unknown joint label size "true"');
+    expect(validate(display)[0]?.message).toBe('unknown joint label size true');
+  });
+
+  it('quotes strings but not numbers, so "5" and 5 read differently', () => {
+    expect(validate(doc({ ...square(10, 10), type: '5' }))[0]?.message).toBe('unknown shape type "5"');
+    expect(validate(doc({ ...square(10, 10), type: 5 }))[0]?.message).toBe('unknown shape type 5');
   });
 
   it('does not throw on values that cannot be turned into a string', () => {
