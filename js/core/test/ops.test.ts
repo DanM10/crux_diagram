@@ -91,6 +91,11 @@ describe('REC-070 shape operations are pure', () => {
     expect(doc.shapes[3]?.rotation).toBeCloseTo(2 * Math.PI - 1, 12);
     const wrapped = addShape(sample(), { ...shape('d', 10, 10), rotation: 7 });
     expect(wrapped.shapes[3]?.rotation).toBeCloseTo(7 - 2 * Math.PI, 12);
+    for (const rotation of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY]) {
+      expect(() => addShape(sample(), { ...shape('d', 10, 10), rotation })).toThrow(
+        new DrawingOperationError('shapes[3].rotation: must be a finite number'),
+      );
+    }
     expect(() => addShape(sample(), shape('a', 0, 0))).toThrow(DrawingOperationError);
     expect(() => addShape(sample(), { ...shape('d', 0, 0, 'square'), size: { width: 10, height: 20 } })).toThrow(
       DrawingOperationError,
