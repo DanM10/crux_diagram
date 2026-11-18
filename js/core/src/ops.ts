@@ -130,11 +130,12 @@ export function addShape(doc: DrawingDocument, shape: Shape): DrawingDocument {
     throw new DrawingOperationError(`a ${shape.type} requires width == height`);
   }
   // The format rules for a shape live in validate (FMT-002 to FMT-004); reuse them on the new entry only.
-  const next = { ...doc, shapes: [...doc.shapes, shape] };
+  // The document that is validated is the one returned.
+  const next = { ...doc, shapes: [...doc.shapes, { ...shape, rotation: normalizeAngle(shape.rotation) }] };
   const prefix = `shapes[${doc.shapes.length}]`;
   const error = validate(next).find((e) => e.path === prefix || e.path.startsWith(`${prefix}.`));
   if (error) throw new DrawingOperationError(`${error.path}: ${error.message}`);
-  return { ...doc, shapes: [...doc.shapes, { ...shape, rotation: normalizeAngle(shape.rotation) }] };
+  return next;
 }
 
 /** Removes the shape(s), their joints and their group membership (REC-071). */
