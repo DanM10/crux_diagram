@@ -73,6 +73,27 @@ export function installPendingFonts(): { load(): void } {
   };
 }
 
+/** Replaces `document.fonts` with one whose `ready` rejects when `fail()` is called. */
+export function installFailingFonts(): { fail(): void } {
+  let reject!: (error: Error) => void;
+  const ready = new Promise<void>((_, r) => {
+    reject = r;
+  });
+  Object.defineProperty(document, 'fonts', { configurable: true, value: { status: 'loading', ready } });
+  return { fail: () => reject(new Error('font loading failed')) };
+}
+
+/** Removes the fake `ResizeObserver`, so the stage falls back to the element size. */
+export function removeResizeObserver(): void {
+  Reflect.deleteProperty(globalThis, 'ResizeObserver');
+}
+
+/** Makes every element report `width × height` as its client size. */
+export function setClientSize(width: number, height: number): void {
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, get: () => width });
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, get: () => height });
+}
+
 /** Removes the fake `document.fonts`. */
 export function removeFonts(): void {
   Reflect.deleteProperty(document, 'fonts');

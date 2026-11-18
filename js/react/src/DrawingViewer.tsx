@@ -3,7 +3,7 @@ import { DrawingStage } from './render/DrawingStage.js';
 
 export interface DrawingViewerProps {
   readonly document: DrawingDocument;
-  /** Look of leader arrows and labels; pass the editor's so joints look the same. */
+  /** Look of leader arrows and labels; the reference style (spec 02, section 12) by default. */
   readonly jointStyle?: JointStyle;
 }
 

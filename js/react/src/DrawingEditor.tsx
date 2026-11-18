@@ -16,7 +16,7 @@ export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>
 });
 
 /** The editor's stage: the gesture preview while there is one, else the document. */
-function EditorCanvas() {
+export function EditorCanvas() {
   const editor = useEditor();
   const document = useStore(editor, (state) => state.preview ?? state.document);
   return (

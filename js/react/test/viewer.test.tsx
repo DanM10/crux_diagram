@@ -5,9 +5,22 @@ import type { DrawingDocument } from '@diagrama-kit/core';
 import { DEFAULT_JOINT_STYLE } from '@diagrama-kit/core';
 import { act, cleanup, render } from '@testing-library/react';
 import type Konva from 'konva';
+import { moveShape } from '@diagrama-kit/core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { EditorCanvas } from '../src/DrawingEditor.js';
+import { EditorProvider, useEditor } from '../src/editor-context.js';
 import { DrawingEditor, DrawingViewer } from '../src/index.js';
-import { installCanvas, installPendingFonts, installResizeObserver, measuredFonts, removeFonts } from './support/dom.js';
+import type { EditorStore } from '../src/store.js';
+import {
+  installCanvas,
+  installFailingFonts,
+  installPendingFonts,
+  installResizeObserver,
+  measuredFonts,
+  removeFonts,
+  removeResizeObserver,
+  setClientSize,
+} from './support/dom.js';
 
 const document_: DrawingDocument = {
   schemaVersion: 1,
@@ -140,9 +153,60 @@ describe('DrawingViewer (REA-001)', () => {
     await act(async () => fonts.load());
     expect(stageIn(container).find('.joint-label')).toHaveLength(1);
   });
+
+  it('still draws the labels when font loading fails', async () => {
+    const fonts = installFailingFonts();
+    const { container } = render(<DrawingViewer document={document_} />);
+    expect(stageIn(container).find('.joint-label')).toHaveLength(0);
+    await act(async () => fonts.fail());
+    expect(stageIn(container).find('.joint-label')).toHaveLength(1);
+  });
+});
+
+describe('container size without ResizeObserver', () => {
+  afterEach(() => installResizeObserver(400, 400));
+
+  it('reads the element size and follows window resizes, even from zero', () => {
+    removeResizeObserver();
+    setClientSize(0, 0);
+    const { container } = render(<DrawingViewer document={document_} />);
+    expect(container.querySelector('.konvajs-content')).toBeNull();
+    setClientSize(800, 300);
+    act(() => {
+      window.dispatchEvent(new Event('resize'));
+    });
+    const stage = stageIn(container);
+    expect(stage.size()).toEqual({ width: 800, height: 300 });
+    expect(stage.scaleX()).toBe(0.5);
+  });
 });
 
 describe('DrawingEditor canvas (spec 05 section 4)', () => {
+  it('shows the preview during a gesture and the committed document otherwise', () => {
+    const probe: { editor?: EditorStore } = {};
+    function Probe() {
+      probe.editor = useEditor();
+      return null;
+    }
+    const { container } = render(
+      <EditorProvider value={document_} onChange={() => {}}>
+        <EditorCanvas />
+        <Probe />
+      </EditorProvider>,
+    );
+    const x = () => stageIn(container).findOne('#s1')!.x();
+    const editor = probe.editor!;
+    expect(x()).toBe(200);
+    act(() => editor.preview(moveShape(document_, 's1', { dx: 10, dy: 0 })));
+    expect(x()).toBe(210);
+    act(() => editor.preview(null));
+    expect(x()).toBe(200);
+    act(() => editor.commit(moveShape(document_, 's1', { dx: 30, dy: 0 })));
+    expect(x()).toBe(230);
+    act(() => editor.undo());
+    expect(x()).toBe(200);
+  });
+
   it('adds the editing UI layer above the joints', () => {
     const { container } = render(<DrawingEditor value={document_} onChange={() => {}} />);
     const layers = stageIn(container).getLayers();

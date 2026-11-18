@@ -118,7 +118,7 @@ function JointsLayer({ document, style, clip }: { document: DrawingDocument; sty
   );
 }
 
-/** The content size of `ref`, tracked with `ResizeObserver`; `null` before mount. */
+/** The content size of `ref`, tracked with `ResizeObserver` (window resizes without it); `null` before mount. */
 function useContainerSize(ref: React.RefObject<HTMLDivElement | null>): Size | null {
   const [size, setSize] = useState<Size | null>(null);
   useLayoutEffect(() => {
@@ -127,8 +127,11 @@ function useContainerSize(ref: React.RefObject<HTMLDivElement | null>): Size | n
     const update = (width: number, height: number) =>
       setSize((old) => (old && old.width === width && old.height === height ? old : { width, height }));
     if (typeof ResizeObserver === 'undefined') {
-      update(element.clientWidth, element.clientHeight);
-      return;
+      // Without ResizeObserver, follow window resizes only.
+      const read = () => update(element.clientWidth, element.clientHeight);
+      read();
+      window.addEventListener('resize', read);
+      return () => window.removeEventListener('resize', read);
     }
     const observer = new ResizeObserver(([entry]) => {
       if (entry) update(entry.contentRect.width, entry.contentRect.height);

@@ -14,7 +14,7 @@ function fontSet(): FontSet | undefined {
   return (globalThis.document as { fonts?: FontSet } | undefined)?.fonts;
 }
 
-/** Whether `document.fonts` is ready; labels are measured only after it is (REA-032). */
+/** Whether `document.fonts` has settled; labels are measured only after it has (REA-032). */
 export function useFontsReady(): boolean {
   const [ready, setReady] = useState(() => {
     const fonts = fontSet();
@@ -23,9 +23,11 @@ export function useFontsReady(): boolean {
   useEffect(() => {
     if (ready) return;
     let live = true;
-    void fontSet()?.ready.then(() => {
+    // A failed load still measures, with whatever font the browser falls back to.
+    const settle = () => {
       if (live) setReady(true);
-    });
+    };
+    void fontSet()?.ready.then(settle, settle);
     return () => {
       live = false;
     };
