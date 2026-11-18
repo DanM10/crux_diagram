@@ -194,11 +194,12 @@ El documento solo guarda `small/medium/large`. Para que el mismo JSON se vea igu
 | Color de línea, punta y etiqueta | `#000000` |
 | Grosor de línea | `2.5` (no cambia con el tamaño) |
 | Tamaño de fuente `small` / `medium` / `large` | `30` / `34` / `38` (base 30, paso 4) |
+| Familia de la fuente de la etiqueta | `Arial` (solo para las etiquetas de las juntas) |
 | Peso de la fuente | negrita |
 | Punta (largo × ancho) en `small` | `16 × 11`, escalada por `fuente / 30` en los otros tamaños |
 | `labelPadding` | `6` |
 
-- **FMT-050** Las dimensiones del texto dependen de la fuente de cada plataforma y **no son interoperables al píxel**. La posición de la flecha puede variar levemente entre implementaciones. Las fixtures de geometría reciben el rectángulo de etiqueta como dato y no miden texto.
+- **FMT-050** Las dimensiones del texto dependen de la fuente de cada plataforma y **no son interoperables al píxel**. Ambas implementaciones piden `Arial` para las etiquetas de las juntas, pero si el sistema no la tiene usa otra (ver sección 14). La posición de la flecha puede variar levemente entre implementaciones. Las fixtures de geometría reciben el rectángulo de etiqueta como dato y no miden texto.
 
 ## 13. Validación
 
@@ -235,6 +236,7 @@ El lector rechaza el documento si incumple cualquiera de estas reglas:
 | Igualdad de círculos | exacta hoy | `square` y `circle`: escribir el mismo valor en `width` y `height` |
 | Entero vs decimal | `jsonEncode` escribe `100.0` | comparar numéricamente, nunca por texto |
 | Entero escrito como `1.0` | `jsonDecode` da `double`: rechaza `schemaVersion` o color `1.0` | `JSON.parse` da `1`: se acepta; escribir siempre sin decimales (FMT-005a) |
+| Fuente de las etiquetas | `fontFamily: 'Arial'`; Android y muchos Linux no la traen y Flutter usa la del sistema | `Arial` en el canvas y en el `<input>` de edición; medir con la misma fuente (REA-030). Arial tiene licencia propia: no se incluye en ningún paquete |
 | Punto dentro de un rectángulo | `Rect.contains` es semiabierto (excluye derecha y abajo) | implementar `left <= x < right && top <= y < bottom`, no un intervalo cerrado |
 
 - **FMT-070 Redondeo compartido (`round2`).** Para valores **derivados** (fixtures de geometría, y `computed` si algún día existe): `round2(v) = signo(v) · floor(|v|·100 + 0.5) / 100`. Es "mitad lejos de cero", y se usa la misma fórmula en ambos lados (no `Math.round` ni `double.round`, que difieren en las mitades negativas). Como ambos usan doubles IEEE 754, la fórmula da el mismo resultado.

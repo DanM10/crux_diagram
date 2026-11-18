@@ -35,7 +35,7 @@ Funcionalidad que se reproduce de Flutter:
 | Selección múltiple, rectángulo de selección y grupos | Spec 05 (MS) |
 | Estilo de figuras y de juntas, sugerencias de nombre, longitud de nombre | Spec 06 |
 
-**Fuera:** persistencia y llamadas al backend (las hace la app mediante `onChange`), historial de versiones persistente, colaboración en tiempo real, retroalimentación háptica (no aplica en web).
+**Fuera:** persistencia y llamadas al backend (las hace la app mediante `onChange`), historial de versiones persistente, colaboración en tiempo real, retroalimentación háptica (no aplica en web), entrada táctil (la v1 se usa con ratón, teclado y trackpad; ver sección 8).
 
 ## 4. Decisiones técnicas
 
@@ -65,7 +65,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-013** Rotar con una asa sobre el borde superior, con ajuste suave a múltiplos de 15° dentro de 5° (configurable), y la acción "girar 90°".
 - **REA-014** `Supr` y `Backspace` eliminan. Eliminar una figura elimina sus juntas (REC-071).
 - **REA-015** Atajos: `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+D` (duplicar con nuevo `id`), flechas del teclado para mover 1 unidad (`Shift` = 10).
-- **REA-016** Zoom con rueda y pellizco entre 1× y 4×; pan con arrastre en fondo cuando el zoom supera el ajustado, o con barra espaciadora. Las coordenadas del puntero se convierten a coordenadas del lienzo. Botón "ajustar a pantalla" con indicador de porcentaje (Spec 03, ZM-1, ZM-2).
+- **REA-016** Zoom con la rueda del ratón y con el pellizco del trackpad (evento `wheel` con `ctrlKey`) entre 1× y 4×; pan con arrastre en fondo cuando el zoom supera el ajustado, o con barra espaciadora. Las coordenadas del puntero se convierten a coordenadas del lienzo. Botón "ajustar a pantalla" con indicador de porcentaje (Spec 03, ZM-1, ZM-2).
 - **REA-017** Un cambio de zoom, pan o cuadrícula no crea entrada de historial ni marca el documento como modificado.
 
 ### 5.3 Juntas
@@ -80,8 +80,8 @@ Funcionalidad que se reproduce de Flutter:
 
 ### 5.4 Texto
 
-- **REA-030** El medidor del editor es `CanvasTextMeasurer` con la **misma fuente** que se dibuja (negrita); la fuente es configurable por prop y la predeterminada es una pila segura (`system-ui, sans-serif`).
-- **REA-031** La edición de nombre usa un `<input>` HTML superpuesto, alineado y con el mismo tamaño de fuente.
+- **REA-030** Las etiquetas de las juntas se dibujan en `Arial` negrita, igual que en Flutter (spec 02, sección 12). La fuente es fija, no se configura por prop. El medidor del editor es `CanvasTextMeasurer` con esa **misma fuente**. El resto de la UI del editor no usa esta regla.
+- **REA-031** La edición de nombre usa un `<input>` HTML superpuesto, alineado y con la misma fuente (`Arial` negrita) y el mismo tamaño.
 - **REA-032** Se espera a que las fuentes estén cargadas (`document.fonts.ready`) antes de medir y antes de exportar.
 
 ### 5.5 Exportación
@@ -96,7 +96,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-050** Solo se vuelven a renderizar las figuras cuyo dato cambió (`React.memo` por figura, selectores de Zustand).
 - **REA-051** Con más de 1 000 figuras se documenta el uso de capas separadas para estático y dinámico.
 - **REA-052** Accesibilidad básica: el lienzo expone una descripción alternativa y un listado de figuras para lectores de pantalla.
-- **REA-053** Sin dependencias de estilos globales; los controles de herramienta son componentes exportados aparte (`<Toolbar />`, `<JointDisplayBar />`).
+- **REA-053** Sin dependencias de estilos globales; los controles de herramienta son componentes listos para usar, exportados aparte (`<Toolbar />`, `<JointDisplayBar />`), que llaman a la misma API que la referencia imperativa (REA-004).
 - **REA-054** SSR seguro: importar el paquete en un entorno sin `window` no falla (el canvas se monta solo en cliente).
 
 ### 5.7 Empaquetado
@@ -137,7 +137,7 @@ La app es responsable de `save()`: enviar `serialize(doc)` al backend con el nú
 
 ## 8. Preguntas abiertas
 
-- ¿Soporte táctil (móvil) en la primera versión? Flutter está pensado para móvil; en web se prioriza el ratón.
-- ¿Fuente por defecto fija (para fidelidad con Flutter) o configurable?
-- ¿Se ofrece la barra de herramientas como componente listo o solo la API imperativa?
-- ¿Historial de versiones: componente de UI opcional dentro del paquete o solo documentación de cómo integrarlo?
+- ~~¿Soporte táctil (móvil) en la primera versión?~~ **Decidido (2026-11-17): no.** La v1 se usa con ratón, teclado y trackpad; la entrada táctil queda fuera de alcance (sección 3).
+- ¿Fuente por defecto fija (para fidelidad con Flutter) o configurable? **Decidido (2026-11-17): fija, `Arial`, solo para las etiquetas de las juntas y en ambas implementaciones** (REA-030, FLT-032, spec 02 sección 12).
+- ~~¿Se ofrece la barra de herramientas como componente listo o solo la API imperativa?~~ **Decidido (2026-11-17): componente listo** (REA-053).
+- ¿Historial de versiones: componente de UI opcional dentro del paquete o solo documentación de cómo integrarlo? **Decidido (2026-11-17): componente.** Pendiente: definir su contrato (datos que recibe de la app y acciones que emite), ya que la persistencia sigue fuera de alcance.

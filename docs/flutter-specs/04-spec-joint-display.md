@@ -74,6 +74,7 @@ Make joints readable and controllable. Joint labels work well, but at the defaul
 | CL-2 | Must | Joint labels are black and bold by default: `JointStyle.labelStyle` defaults to `TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.bold)`. |
 | CL-3 | Must | Leader lines are thicker by default: `lineWidth` 2.5 (was 1.5), `arrowheadLength` 16 (was 12), `arrowheadWidth` 11 (was 8). The arrowhead values are the small size; JS-7 scales them for medium and large. `arrowColor` stays black. |
 | CL-4 | Must | The selected joint's highlight color is unchanged (Spec 02). |
+| CL-5 | Must | Joint labels use the `Arial` font family: `JointStyle.labelStyle` defaults to `TextStyle(color: Color(0xFF000000), fontWeight: FontWeight.bold, fontFamily: 'Arial')`. Only joint labels use it; the rest of the editor UI keeps the platform font. Where Arial is not installed (Android, most Linux) the platform falls back to its default font. *Pending.* |
 
 ## 5. Persistence
 
@@ -109,7 +110,7 @@ class JointStyle {
   double labelFontSize(JointLabelSize size); // JS-2
   Size arrowheadSize(JointLabelSize size);   // JS-7: (length, width)
   // changed defaults (CL-2, CL-3)
-  final TextStyle labelStyle;               // black, bold, no fontSize
+  final TextStyle labelStyle;               // black, bold, Arial, no fontSize
   final double lineWidth;                   // 2.5
   final double arrowheadLength;             // 16
   final double arrowheadWidth;              // 11
