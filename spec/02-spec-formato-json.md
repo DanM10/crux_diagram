@@ -34,6 +34,7 @@ Definir un formato JSON para dibujos de figuras básicas (cuadrado, rectángulo,
   - No es el orden de CSS (`#rrggbbaa`). Conversión a CSS: `rgba(R, G, B, A/255)`.
   - Valores como `0xFF757575` superan `2³¹−1`. Un lector Java debe mapearlos a `long`, no a `int`.
 - **FMT-005** Los números son JSON `number` finitos (sin `NaN` ni infinito). Los lectores aceptan enteros o decimales indistintamente (`100` y `100.0`), salvo `schemaVersion` y los colores, que deben ser enteros.
+  - **FMT-005a** Un escritor siempre escribe `schemaVersion` y los colores sin parte decimal (`1`, no `1.0`). Un decimal con parte entera exacta (`1.0`) es un caso límite que la conformidad no fija: Dart lo rechaza porque `jsonDecode` lo lee como `double`, y TypeScript lo acepta porque `JSON.parse` no distingue `1` de `1.0`. Ambos comportamientos son conformes y ninguna fixture usa ese caso. Un decimal con parte fraccionaria (`1.5`) siempre se rechaza.
 - **FMT-006** Los ids (de figuras, juntas y grupos) son cadenas **no vacías y opacas**; no se interpreta su contenido. Cada tipo de id es único dentro de su lista.
 - **FMT-007** El orden de `shapes` define el orden de dibujo: el índice 0 queda al fondo.
 - **FMT-008** Todos los campos de esta spec son **obligatorios** y se escriben siempre. No hay valores por defecto al leer.
@@ -233,6 +234,7 @@ El lector rechaza el documento si incumple cualquiera de estas reglas:
 | Escala del Transformer | n/a | tras transformar, volver a `size` y reiniciar `scaleX/scaleY` a 1 |
 | Igualdad de círculos | exacta hoy | `square` y `circle`: escribir el mismo valor en `width` y `height` |
 | Entero vs decimal | `jsonEncode` escribe `100.0` | comparar numéricamente, nunca por texto |
+| Entero escrito como `1.0` | `jsonDecode` da `double`: rechaza `schemaVersion` o color `1.0` | `JSON.parse` da `1`: se acepta; escribir siempre sin decimales (FMT-005a) |
 | Punto dentro de un rectángulo | `Rect.contains` es semiabierto (excluye derecha y abajo) | implementar `left <= x < right && top <= y < bottom`, no un intervalo cerrado |
 
 - **FMT-070 Redondeo compartido (`round2`).** Para valores **derivados** (fixtures de geometría, y `computed` si algún día existe): `round2(v) = signo(v) · floor(|v|·100 + 0.5) / 100`. Es "mitad lejos de cero", y se usa la misma fórmula en ambos lados (no `Math.round` ni `double.round`, que difieren en las mitades negativas). Como ambos usan doubles IEEE 754, la fórmula da el mismo resultado.
