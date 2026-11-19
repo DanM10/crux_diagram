@@ -69,6 +69,9 @@ export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>
 /** Color of the selection outline and the selection rectangle. */
 const SELECTION_COLOR = '#1e88e5';
 
+/** Color of the ring on the anchor a shape is snapping onto (SN-3). */
+const SNAP_COLOR = '#ff9800';
+
 /** A pointer that went down on the stage, until it is released. */
 interface PointerSession {
   readonly pointerId: number;
@@ -93,6 +96,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
   const tool = useStore(editor, (state) => state.tool);
   const naming = useStore(editor, (state) => state.naming);
   const selectedJoint = useStore(editor, (state) => state.selectedJoint);
+  const snapHighlight = useStore(editor, (state) => state.snapHighlight);
   const selection = useStore(editor, (state) => state.selection);
   const [marquee, setMarquee] = useState<CanvasRect | null>(null);
   const focusable = useRef<HTMLDivElement>(null);
@@ -132,9 +136,11 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
     const downCanvas = stage?.getRelativePointerPosition();
     if (!stage || !downCanvas) return;
     focusable.current?.focus({ preventScroll: true });
-    const { gridSize, gridMajorEvery } = config;
+    const { gridSize, gridMajorEvery, anchorSnapThreshold } = config;
     const grid = {
       gridSize,
+      // The threshold is in screen pixels (REA-026); gestures work in canvas units.
+      anchorSnapDistance: anchorSnapThreshold === null ? null : anchorSnapThreshold / stage.scaleX(),
       visibleStep:
         gridSize !== null && editor.getState().view.showGrid
           ? visibleGridStep({ gridSize, majorEvery: gridMajorEvery, scale: stage.scaleX() })
@@ -291,6 +297,18 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
           <Layer name="editor-ui" listening={false}>
             {selected && <SelectionOverlay shapes={selected} scale={scale} />}
             {!readOnly && tool === 'joint' && <AnchorDots document={document} scale={scale} />}
+            {snapHighlight.map((at) => (
+              <Circle
+                key={`${at.x},${at.y}`}
+                name="snap-highlight"
+                x={at.x}
+                y={at.y}
+                radius={(ANCHOR_VISUAL_RADIUS + 4) / scale}
+                stroke={SNAP_COLOR}
+                strokeWidth={2.5}
+                strokeScaleEnabled={false}
+              />
+            ))}
             {selectedJoint && <JointRing document={document} jointId={selectedJoint} scale={scale} />}
             {marquee && (
               <Rect

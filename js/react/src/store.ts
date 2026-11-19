@@ -1,4 +1,4 @@
-import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type ViewportZoom } from '@diagrama-kit/core';
+import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type ViewportZoom } from '@diagrama-kit/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';
@@ -36,6 +36,8 @@ export interface EditorState {
   /** The selected joint, never together with selected shapes. Not in history. */
   readonly selectedJoint: string | null;
   readonly naming: JointNaming | null;
+  /** Anchors highlighted while an anchor snap is active during a gesture (SN-3). Not in history. */
+  readonly snapHighlight: readonly Point[];
 }
 
 export interface EditorStoreOptions {
@@ -61,6 +63,7 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
         tool: 'select',
         selectedJoint: null,
         naming: null,
+        snapHighlight: [],
       }),
       {
         limit: options.historyLimit ?? DEFAULT_EDITOR_CONFIG.historyLimit,
@@ -72,7 +75,7 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
   );
   const history = () => store.temporal.getState();
   const dropPreview = () => {
-    if (store.getState().preview) store.setState({ preview: null });
+    if (store.getState().preview) store.setState({ preview: null, snapHighlight: [] });
   };
   const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
   const setSelection = (selection: readonly string[]) => {
@@ -108,13 +111,13 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     commit(document: DrawingDocument, selection?: readonly string[]) {
       // Resolve the selection first: an unknown id throws before anything is recorded.
       const next = selection ? withGroupMates(document, selection) : null;
-      store.setState({ document, preview: null });
+      store.setState({ document, preview: null, snapHighlight: [] });
       if (next) setSelection(next);
       else dropStaleSelection();
     },
     /** Shows `document` during a gesture without committing it; `null` cancels the gesture. */
-    preview(document: DrawingDocument | null) {
-      store.setState({ preview: document });
+    preview(document: DrawingDocument | null, snapHighlight: readonly Point[] = []) {
+      store.setState({ preview: document, snapHighlight: document ? snapHighlight : [] });
     },
     undo() {
       dropPreview();

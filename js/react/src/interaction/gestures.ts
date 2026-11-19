@@ -3,12 +3,16 @@
 // the controller's `moveSelectedBy`. Points are in canvas units.
 
 import {
+  anchorIdForHandle,
+  anchorPositionOf,
+  anchorsOf,
   boundsOfShapes,
   handleLocalPosition,
   handlesFor,
   isQuarterTurn,
   moveJointLabel,
   moveShape,
+  nearestAnchorSnap,
   rectContains,
   resizeByHandle,
   rotationFromPointer,
@@ -20,6 +24,7 @@ import {
   softSnap,
   topmostShapeAt,
   worldFromLocal,
+  type Anchor,
   type DrawingDocument,
   type Point,
   type Rect,
@@ -41,6 +46,11 @@ export interface DragGrid {
   readonly gridSize: number | null;
   /** Finest drawn grid step while the grid is shown, else `null` (GA-1). */
   readonly visibleStep: number | null;
+  /**
+   * How close, in canvas units, an anchor must come to another shape's anchor to snap onto it
+   * (`config.anchorSnapThreshold` over the view scale); `null` or absent disables it (REA-026).
+   */
+  readonly anchorSnapDistance?: number | null;
 }
 
 /** Touch radius of a handle, in screen pixels (spec 01 section 6). */
@@ -236,16 +246,16 @@ export function updateDrag(editor: EditorStore, gesture: Gesture, point: Point):
     return { ...gesture, last: next };
   }
   if (gesture.kind === 'resize' || gesture.kind === 'rotate') {
-    const next = transformedDocument(gesture, point);
-    editor.preview(next);
+    const { document: next, highlight } = transformedWithSnap(gesture, point);
+    editor.preview(next, highlight);
     return { ...gesture, last: next };
   }
   const delta = {
     dx: point.x - gesture.origin.x,
     dy: point.y - gesture.origin.y,
   };
-  const next = movedDocument(gesture.start, gesture.ids, delta, gesture.grid);
-  editor.preview(next);
+  const { document: next, highlight } = movedWithSnap(gesture.start, gesture.ids, delta, gesture.grid);
+  editor.preview(next, highlight);
   return { ...gesture, last: next };
 }
 
@@ -283,32 +293,53 @@ export function cancelDrag(editor: EditorStore, gesture: Gesture): void {
 
 /**
  * The start document with the gesture's shape resized by dragging its handle to `point`
- * (FR-11 to FR-14), or rotated so its handle points at `point` with soft snapping (FR-15,
- * FR-16). Anchor snapping while resizing is a joints feature (REA-026).
+ * (FR-11 to FR-14), with the dragged handle's anchor snapping onto another shape's anchor
+ * (SN-2), or rotated so its handle points at `point` with soft snapping (FR-15, FR-16).
  */
-function transformedDocument(gesture: Extract<Gesture, { kind: 'resize' | 'rotate' }>, point: Point): DrawingDocument {
+function transformedWithSnap(
+  gesture: Extract<Gesture, { kind: 'resize' | 'rotate' }>,
+  point: Point,
+): { readonly document: DrawingDocument; readonly highlight: readonly Point[] } {
   const { start, id } = gesture;
   const shape = start.shapes.find((s) => s.id === id);
-  if (!shape) return start;
-  let next: Shape;
+  if (!shape) return { document: start, highlight: [] };
+  const replaced = (next: Shape) => ({ ...start, shapes: start.shapes.map((s) => (s === shape ? next : s)) });
   if (gesture.kind === 'rotate') {
-    next = {
-      ...shape,
-      rotation: softSnap(rotationFromPointer(shape.center, point), gesture.snap.step, gesture.snap.tolerance).angle,
-    };
-  } else {
-    const gridSize = gesture.grid.gridSize ?? undefined;
-    const gridStep = gesture.grid.visibleStep ?? undefined;
-    next = resizeByHandle(shape, gesture.handle, point, {
-      limits: sizeLimitsForCanvas(start.canvas, { gridSize, gridStep }),
-      gridSize,
-      gridStep,
-    });
+    // No anchor snapping while rotating (SN-2).
+    const rotation = softSnap(rotationFromPointer(shape.center, point), gesture.snap.step, gesture.snap.tolerance).angle;
+    return { document: replaced({ ...shape, rotation }), highlight: [] };
   }
-  return {
-    ...start,
-    shapes: start.shapes.map((s) => (s === shape ? next : s)),
-  };
+  const gridSize = gesture.grid.gridSize ?? undefined;
+  const gridStep = gesture.grid.visibleStep ?? undefined;
+  const limits = sizeLimitsForCanvas(start.canvas, { gridSize, gridStep });
+  const snapped = snappedResize(gesture, shape, point, limits);
+  if (snapped) return { document: replaced(snapped.shape), highlight: [snapped.to] };
+  return { document: replaced(resizeByHandle(shape, gesture.handle, point, { limits, gridSize, gridStep })), highlight: [] };
+}
+
+/**
+ * The resize that puts the dragged handle's anchor exactly on a nearby anchor of another
+ * shape, or `null` when there is none or it cannot land exactly, for example at a size
+ * limit or under an aspect lock (SN-2, SN-3).
+ */
+function snappedResize(
+  gesture: Extract<Gesture, { kind: 'resize' }>,
+  shape: Shape,
+  point: Point,
+  limits: ReturnType<typeof sizeLimitsForCanvas>,
+): { readonly shape: Shape; readonly to: Point } | null {
+  const targets = snapTargets(gesture.start, (id) => id === shape.id, gesture.grid);
+  if (targets.length === 0) return null;
+  const anchorId = anchorIdForHandle(gesture.handle);
+  const free = resizeByHandle(shape, gesture.handle, point, { limits });
+  const position = anchorPositionOf(free, anchorId);
+  if (!position) return null;
+  const snap = nearestAnchorSnap([{ id: anchorId, kind: 'vertex', position }], targets, { threshold: gesture.grid.anchorSnapDistance ?? 0 });
+  if (!snap) return null;
+  const next = resizeByHandle(shape, gesture.handle, snap.to, { limits });
+  const landed = anchorPositionOf(next, anchorId);
+  if (!landed || Math.hypot(landed.x - snap.to.x, landed.y - snap.to.y) > 1e-6) return null;
+  return { shape: next, to: snap.to };
 }
 
 function transformedAny(start: DrawingDocument, next: DrawingDocument, id: string): boolean {
@@ -324,38 +355,63 @@ function transformedAny(start: DrawingDocument, next: DrawingDocument, id: strin
   );
 }
 
-/**
- * `start` with the shapes `ids` moved by about `delta`, as Flutter's `moveSelectedBy`
- * does without anchors. One shape: with the grid shown its center or nearest edges snap
- * to the visible step (GA-3); with it hidden the center snaps to `gridSize` (FR-9,
- * GA-2). Several shapes: their bounding box snaps at the visible step, or `gridSize`
- * while hidden, by its edges when every shape is at a multiple of 90° (MS-4). Then
- * every center is kept inside the canvas, rigidly (FR-10).
- */
 export function movedDocument(start: DrawingDocument, ids: readonly string[], delta: Vector, grid: DragGrid): DrawingDocument {
+  return movedWithSnap(start, ids, delta, grid).document;
+}
+
+/** Anchors of every shape of `document` not in `excluded`, when anchor snapping is on. */
+function snapTargets(document: DrawingDocument, excluded: (id: string) => boolean, grid: { anchorSnapDistance?: number | null }): Anchor[] {
+  if (grid.anchorSnapDistance == null) return [];
+  return document.shapes.filter((s) => !excluded(s.id)).flatMap(anchorsOf);
+}
+
+/**
+ * Like {@link movedDocument}, plus the anchor that was snapped onto, if any, for the
+ * highlight (SN-3). Anchor snapping comes first and replaces grid snapping when it applies
+ * (SN-1, SN-3, GA-7); only the nearest pair counts, and for several shapes any selected
+ * anchor may snap (MS-4).
+ */
+export function movedWithSnap(
+  start: DrawingDocument,
+  ids: readonly string[],
+  delta: Vector,
+  grid: DragGrid,
+): { readonly document: DrawingDocument; readonly highlight: readonly Point[] } {
   const moving = start.shapes.filter((s) => ids.includes(s.id));
-  if (moving.length === 0) return start;
+  if (moving.length === 0) return { document: start, highlight: [] };
+  const targets = snapTargets(start, (id) => ids.includes(id), grid);
+  const threshold = grid.anchorSnapDistance ?? 0;
   let shift = delta;
+  let highlight: readonly Point[] = [];
   if (moving.length === 1) {
     const shape = moving[0]!;
     const raw = { x: shape.center.x + delta.dx, y: shape.center.y + delta.dy };
+    const snap = targets.length > 0 ? nearestAnchorSnap(anchorsOf({ ...shape, center: raw }), targets, { threshold }) : null;
     let center = raw;
-    if (grid.visibleStep !== null) {
+    if (snap) {
+      center = { x: raw.x + snap.delta.dx, y: raw.y + snap.delta.dy };
+      highlight = [snap.to];
+    } else if (grid.visibleStep !== null) {
       center = snapMoveToGrid(raw, { size: shape.size, rotation: shape.rotation, step: grid.visibleStep });
     } else if (grid.gridSize !== null) {
       center = snapPointToGrid(raw, grid.gridSize);
     }
     shift = { dx: center.x - shape.center.x, dy: center.y - shape.center.y };
   } else {
+    const shifted = moving.flatMap((s) => anchorsOf({ ...s, center: { x: s.center.x + delta.dx, y: s.center.y + delta.dy } }));
+    const snap = targets.length > 0 ? nearestAnchorSnap(shifted, targets, { threshold }) : null;
     const step = grid.visibleStep ?? grid.gridSize;
-    if (step !== null) {
+    if (snap) {
+      shift = { dx: delta.dx + snap.delta.dx, dy: delta.dy + snap.delta.dy };
+      highlight = [snap.to];
+    } else if (step !== null) {
       shift = snapBoxShiftToGrid(boundsOfShapes(moving), delta, {
         step,
         edges: moving.every((s) => isQuarterTurn(s.rotation)),
       });
     }
   }
-  return moveShape(start, ids, shift);
+  return { document: moveShape(start, ids, shift), highlight };
 }
 
 /** A gesture whose start is no longer the committed document (undo, redo, reset or an outside value). */
