@@ -24,8 +24,7 @@ This package does **not** ship that split: its `shapes` layer is a single layer.
 need it today can show the static part with `<DrawingViewer />` and edit a subset in a
 second editor, or open an issue with their numbers.
 
-## Not measured yet
+## Measured
 
-The performance goal REA-O3 (300 shapes, no frame over 16 ms while dragging) needs a real
-browser profile and is not documented here yet. The numbers above come from how Konva
-works, not from a profile of this package. See `odd/tasks/js-react.md`, T11.
+The 300-shape goal (REA-O3) is profiled in `performance.md`. There is no measurement for
+1 000 shapes or more; the layering advice above comes from how Konva works.
