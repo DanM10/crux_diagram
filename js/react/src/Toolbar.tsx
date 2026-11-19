@@ -3,7 +3,7 @@ import { useStore } from 'zustand';
 import { ControlButton, controlRowStyle } from './controls.js';
 import { useEditor, useEditorConfig, useEditorLabels } from './editor-context.js';
 import { useHistoryAvailability } from './hooks.js';
-import { runCommand } from './interaction/keyboard.js';
+import { runCommand, wholeGroup } from './interaction/keyboard.js';
 import { addPaletteShape, visibleCenterOf } from './interaction/palette.js';
 import { JointDisplayBar } from './JointDisplayBar.js';
 
@@ -40,6 +40,11 @@ export function Toolbar({ style }: { style?: CSSProperties }) {
           <ControlButton label={labels.select} title={labels.selectMode} pressed={selectionMode} onClick={() => editor.setSelectionMode(!selectionMode)} />
           {selection.length > 0 && (
             <>
+              {wholeGroup(document, selection) ? (
+                <ControlButton label={labels.ungroup} onClick={() => runCommand(editor, { type: 'ungroup' })} />
+              ) : (
+                selection.length > 1 && <ControlButton label={labels.group} onClick={() => runCommand(editor, { type: 'group' })} />
+              )}
               {single && <ControlButton label={labels.rotate} title={labels.rotate90} onClick={() => runCommand(editor, { type: 'rotate90' })} />}
               <ControlButton label={labels.duplicate} onClick={() => runCommand(editor, { type: 'duplicate' })} />
               <ControlButton label={labels.front} title={labels.bringToFront} onClick={() => runCommand(editor, { type: 'front' })} />

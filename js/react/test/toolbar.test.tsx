@@ -140,7 +140,30 @@ describe('TB-3 selection bar', () => {
   it('leaves Rotate out for several shapes (MS-5)', () => {
     const { editor } = setup();
     act(() => editor.selectAll(['a', 'b']));
-    expect(rowNames(selectionBar())).toEqual(['Select', 'Copy', 'Front', 'Back', 'Delete']);
+    expect(rowNames(selectionBar())).toEqual(['Select', 'Group', 'Copy', 'Front', 'Back', 'Delete']);
+  });
+
+  it('Group makes one entry and keeps the selection; Ungroup takes its place for a whole group (MS-5, MS-6)', () => {
+    const { editor, onChange } = setup();
+    act(() => editor.selectAll(['a', 'b']));
+    fireEvent.click(button('Group'));
+    expect(onChange).toHaveBeenCalledTimes(1);
+    expect(editor.getDocument().groups).toEqual([{ id: expect.any(String), shapeIds: ['a', 'b'] }]);
+    expect(editor.getState().selection).toEqual(['a', 'b']);
+    expect(rowNames(selectionBar())).toEqual(['Select', 'Ungroup', 'Copy', 'Front', 'Back', 'Delete']);
+    fireEvent.click(button('Ungroup'));
+    expect(onChange).toHaveBeenCalledTimes(2);
+    expect(editor.getDocument().groups).toEqual([]);
+    expect(editor.getState().selection).toEqual(['a', 'b']);
+    act(() => editor.undo());
+    expect(editor.getDocument().groups).toHaveLength(1);
+  });
+
+  it('a single shape has neither Group nor Ungroup', () => {
+    const { editor } = setup();
+    act(() => editor.select('a'));
+    expect(rowNames(selectionBar())).not.toContain('Group');
+    expect(rowNames(selectionBar())).not.toContain('Ungroup');
   });
 
   it('Rotate, Copy, Front, Back and Delete act on the selection, one entry each', () => {

@@ -24,6 +24,8 @@ export interface EditorLabels {
   readonly duplicate: string;
   readonly front: string;
   readonly back: string;
+  readonly group: string;
+  readonly ungroup: string;
   readonly showGrid: string;
   readonly hideGrid: string;
   readonly rotate90: string;
@@ -60,6 +62,8 @@ export const DEFAULT_EDITOR_LABELS: EditorLabels = {
   duplicate: 'Copy',
   front: 'Front',
   back: 'Back',
+  group: 'Group',
+  ungroup: 'Ungroup',
   showGrid: 'Show grid',
   hideGrid: 'Hide grid',
   rotate90: 'Rotate 90°',
