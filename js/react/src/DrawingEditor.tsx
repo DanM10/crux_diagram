@@ -1,10 +1,29 @@
-import { boundsOfShapes, visibleGridStep, type Point, type Rect as CanvasRect } from '@diagrama-kit/core';
+import {
+  boundsOfShapes,
+  handleLocalPosition,
+  handlesFor,
+  visibleGridStep,
+  type Point,
+  type Rect as CanvasRect,
+  type Shape,
+} from '@diagrama-kit/core';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
-import { Layer, Rect } from 'react-konva';
+import { Circle, Group, Layer, Line, Rect } from 'react-konva';
 import { useStore } from 'zustand';
 import { EditorProvider, useEditor, useEditorConfig, type DrawingEditorHandle, type EditorProviderProps } from './editor-context.js';
-import { beginDrag, cancelDrag, endDrag, tap, TAP_SLOP, updateDrag, type Gesture } from './interaction/gestures.js';
+import {
+  beginDrag,
+  cancelDrag,
+  endDrag,
+  HANDLE_VISUAL_RADIUS,
+  ROTATION_STEM_LENGTH,
+  tap,
+  TAP_SLOP,
+  updateDrag,
+  type Gesture,
+  type HandleContext,
+} from './interaction/gestures.js';
 import { commandForKey, isTextEntry, runCommand } from './interaction/keyboard.js';
 import { DrawingStage } from './render/DrawingStage.js';
 
@@ -89,6 +108,10 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
           ? visibleGridStep({ gridSize, majorEvery: gridMajorEvery, scale: stage.scaleX() })
           : null,
     };
+    const handles: HandleContext = {
+      scale: stage.scaleX(),
+      rotationSnap: { step: config.rotationSnapStep, tolerance: config.rotationSnapTolerance },
+    };
     const canvasPoint = (e: PointerEvent) => {
       stage.setPointersPositions(e);
       return stage.getRelativePointerPosition() ?? downCanvas;
@@ -98,7 +121,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       if (!current || e.pointerId !== current.pointerId) return;
       if (!current.gesture) {
         if (Math.hypot(e.clientX - current.downScreen.x, e.clientY - current.downScreen.y) < TAP_SLOP) return;
-        current.gesture = beginDrag(editor, current.downCanvas, grid);
+        current.gesture = beginDrag(editor, current.downCanvas, grid, handles);
       }
       current.gesture = updateDrag(editor, current.gesture, canvasPoint(e));
       setMarquee(current.gesture.kind === 'marquee' ? current.gesture.rect : null);
@@ -109,7 +132,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       session.current = null;
       current.dispose();
       if (current.gesture) endDrag(editor, current.gesture);
-      else tap(editor, current.downCanvas);
+      else tap(editor, current.downCanvas, handles);
       setMarquee(null);
     };
     const onCancel = (e: PointerEvent) => {
@@ -139,45 +162,99 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
     runCommand(editor, command);
   };
 
-  const outline = useMemo(() => {
+  const selected = useMemo(() => {
     if (readOnly || selection.length === 0) return null;
     const ids = new Set(selection);
     const shapes = document.shapes.filter((s) => ids.has(s.id));
-    return shapes.length > 0 ? boundsOfShapes(shapes) : null;
+    return shapes.length > 0 ? shapes : null;
   }, [readOnly, selection, document]);
 
   return (
     <div ref={focusable} tabIndex={0} onKeyDown={onKeyDown} style={{ width: '100%', height: '100%' }}>
       <DrawingStage document={document} listening onPointerDown={onPointerDown}>
-        <Layer name="editor-ui" listening={false}>
-          {outline && (
-            <Rect
-              name="selection-outline"
-              x={outline.left}
-              y={outline.top}
-              width={outline.width}
-              height={outline.height}
-              stroke={SELECTION_COLOR}
-              strokeWidth={1.5}
-              strokeScaleEnabled={false}
-            />
-          )}
-          {marquee && (
-            <Rect
-              name="selection-marquee"
-              x={marquee.left}
-              y={marquee.top}
-              width={marquee.width}
-              height={marquee.height}
-              stroke={SELECTION_COLOR}
-              strokeWidth={1}
-              strokeScaleEnabled={false}
-              dash={[4, 4]}
-              fill="rgba(30, 136, 229, 0.08)"
-            />
-          )}
-        </Layer>
+        {(scale) => (
+          <Layer name="editor-ui" listening={false}>
+            {selected && <SelectionOverlay shapes={selected} scale={scale} />}
+            {marquee && (
+              <Rect
+                name="selection-marquee"
+                x={marquee.left}
+                y={marquee.top}
+                width={marquee.width}
+                height={marquee.height}
+                stroke={SELECTION_COLOR}
+                strokeWidth={1}
+                strokeScaleEnabled={false}
+                dash={[4, 4]}
+                fill="rgba(30, 136, 229, 0.08)"
+              />
+            )}
+          </Layer>
+        )}
       </DrawingStage>
     </div>
+  );
+}
+
+const toDegrees = (radians: number) => (radians * 180) / Math.PI;
+
+/**
+ * The selection outline and, for a single shape, its resize handles and rotation handle
+ * with stem (FR-7). A lone shape's outline follows its rotation; several shapes get the
+ * outline of their bounds and no handles (MS-5). Sizes are screen pixels, so they are
+ * divided by the view `scale`.
+ */
+function SelectionOverlay({ shapes, scale }: { shapes: readonly Shape[]; scale: number }) {
+  const single = shapes.length === 1 ? shapes[0]! : null;
+  const bounds = single ? null : boundsOfShapes(shapes);
+  const center = single
+    ? single.center
+    : {
+        x: bounds!.left + bounds!.width / 2,
+        y: bounds!.top + bounds!.height / 2,
+      };
+  const width = single ? single.size.width : bounds!.width;
+  const height = single ? single.size.height : bounds!.height;
+  const rotation = single ? toDegrees(single.rotation) : 0;
+  const stem = ROTATION_STEM_LENGTH / scale;
+  const handle = {
+    radius: HANDLE_VISUAL_RADIUS / scale,
+    fill: '#ffffff',
+    stroke: SELECTION_COLOR,
+    strokeWidth: 1.5,
+    strokeScaleEnabled: false,
+  };
+  return (
+    <>
+      <Rect
+        name="selection-outline"
+        x={center.x}
+        y={center.y}
+        offsetX={width / 2}
+        offsetY={height / 2}
+        rotation={rotation}
+        width={width}
+        height={height}
+        stroke={SELECTION_COLOR}
+        strokeWidth={1.5}
+        strokeScaleEnabled={false}
+      />
+      {single && (
+        <Group name="selection-handles" x={center.x} y={center.y} rotation={rotation}>
+          <Line
+            name="rotation-stem"
+            points={[0, -height / 2, 0, -height / 2 - stem]}
+            stroke={SELECTION_COLOR}
+            strokeWidth={1.5}
+            strokeScaleEnabled={false}
+          />
+          <Circle name="rotation-handle" x={0} y={-height / 2 - stem} {...handle} />
+          {handlesFor(single.type).map((h) => {
+            const at = handleLocalPosition(h, single.size);
+            return <Circle key={h} name={`resize-handle handle-${h}`} x={at.x} y={at.y} {...handle} />;
+          })}
+        </Group>
+      )}
+    </>
   );
 }
