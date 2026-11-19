@@ -44,7 +44,7 @@ import { placeJoints } from './render/scene.js';
 /** Longest time between the two taps of a double tap on a label, in milliseconds (ZM-4). */
 const DOUBLE_TAP_TIMEOUT = 300;
 
-export type DrawingEditorProps = Omit<EditorProviderProps, 'children'> & {
+export type DrawingEditorProps = EditorProviderProps & {
   /**
    * Shows the document without selection, dragging or keyboard shortcuts (REA-005).
    * Changes from the parent's `value` and the imperative handle still apply.
@@ -58,10 +58,20 @@ export type DrawingEditorProps = Omit<EditorProviderProps, 'children'> & {
  * `Ctrl/Cmd+Shift+Z` redoes, `Ctrl/Cmd+D` duplicates and the arrow keys move the
  * selection by 1 (`Shift`: 10) (REA-010 to REA-018).
  */
-export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>(function DrawingEditor({ readOnly, ...props }, ref) {
+export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>(function DrawingEditor({ readOnly, children, ...props }, ref) {
   return (
     <EditorProvider ref={ref} {...props}>
-      <EditorCanvas readOnly={readOnly} />
+      {children === undefined ? (
+        <EditorCanvas readOnly={readOnly} />
+      ) : (
+        // Controls (REA-053) go above the canvas, which takes the rest of the height.
+        <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
+          {children}
+          <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+            <EditorCanvas readOnly={readOnly} />
+          </div>
+        </div>
+      )}
     </EditorProvider>
   );
 });
@@ -277,6 +287,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
         zoom={zoom}
         onWheel={onWheel}
         onPointerDown={onPointerDown}
+        onAreaChange={editor.setStageArea}
         overlay={(viewport) =>
           naming &&
           !readOnly && (

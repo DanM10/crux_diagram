@@ -2,7 +2,7 @@
 // the REA-018 assumption: they act only while the editor has the focus and never while
 // a text field has it.
 
-import { duplicateShapes, moveShape, removeJoint, removeShape, rotateShape } from '@diagrama-kit/core';
+import { bringToFront, duplicateShapes, sendToBack, moveShape, removeJoint, removeShape, rotateShape } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
 
 /** Arrow-key move, in canvas units; `Shift` uses the large step (REA-015). */
@@ -15,6 +15,8 @@ export type EditorCommand =
   | { readonly type: 'redo' }
   | { readonly type: 'duplicate' }
   | { readonly type: 'rotate90' }
+  | { readonly type: 'front' }
+  | { readonly type: 'back' }
   | { readonly type: 'nudge'; readonly dx: number; readonly dy: number };
 
 /** The modifier and key fields of a `KeyboardEvent`. */
@@ -86,6 +88,13 @@ export function runCommand(editor: EditorStore, command: EditorCommand): void {
       // Only a single shape rotates; a multi-selection or a group does nothing (MS-5).
       if (selection.length === 1) editor.commit(rotateShape(document, selection[0]!, { by: Math.PI / 2 }));
       return;
+    case 'front':
+    case 'back': {
+      // The order is a toolbar command (TB-3); it has no key. An unchanged order adds no entry.
+      const next = command.type === 'front' ? bringToFront(document, selection) : sendToBack(document, selection);
+      if (next !== document) editor.commit(next);
+      return;
+    }
     case 'nudge': {
       const next = moveShape(document, selection, { dx: command.dx, dy: command.dy });
       if (next !== document) editor.commit(next);

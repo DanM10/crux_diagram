@@ -12,6 +12,27 @@ export interface EditorLabels {
   readonly show: string;
   readonly hideJoints: string;
   readonly showJoints: string;
+  readonly square: string;
+  readonly rectangle: string;
+  readonly circle: string;
+  readonly joint: string;
+  readonly grid: string;
+  readonly undo: string;
+  readonly redo: string;
+  readonly select: string;
+  readonly rotate: string;
+  readonly duplicate: string;
+  readonly front: string;
+  readonly back: string;
+  readonly showGrid: string;
+  readonly hideGrid: string;
+  readonly rotate90: string;
+  readonly bringToFront: string;
+  readonly sendToBack: string;
+  readonly selectMode: string;
+  readonly jointTool: string;
+  readonly createBar: string;
+  readonly selectionBar: string;
 }
 
 export type EditorLabelsInput = Partial<EditorLabels>;
@@ -27,6 +48,27 @@ export const DEFAULT_EDITOR_LABELS: EditorLabels = {
   show: 'Show',
   hideJoints: 'Hide joints',
   showJoints: 'Show joints',
+  square: 'Square',
+  rectangle: 'Rect',
+  circle: 'Circle',
+  joint: 'Joint',
+  grid: 'Grid',
+  undo: 'Undo',
+  redo: 'Redo',
+  select: 'Select',
+  rotate: 'Rotate',
+  duplicate: 'Copy',
+  front: 'Front',
+  back: 'Back',
+  showGrid: 'Show grid',
+  hideGrid: 'Hide grid',
+  rotate90: 'Rotate 90°',
+  bringToFront: 'Bring to front',
+  sendToBack: 'Send to back',
+  selectMode: 'Select several shapes',
+  jointTool: 'Add joints',
+  createBar: 'Create',
+  selectionBar: 'Selection',
 };
 
 /** The defaults with the given texts on top; a field given as `undefined` keeps its default. */
