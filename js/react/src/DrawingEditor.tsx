@@ -1,9 +1,12 @@
 import {
+  anchorPositionOf,
+  anchorsOf,
   boundsOfShapes,
   clampZoom,
   handleLocalPosition,
   handlesFor,
   visibleGridStep,
+  type DrawingDocument,
   type Point,
   type Rect as CanvasRect,
   type Shape,
@@ -26,6 +29,8 @@ import {
   type Gesture,
   type HandleContext,
 } from './interaction/gestures.js';
+import { NameEditor } from './NameEditor.js';
+import { ANCHOR_VISUAL_RADIUS, cancelNaming, confirmNaming, jointToolTap } from './interaction/joints.js';
 import { commandForKey, isTextEntry, runCommand } from './interaction/keyboard.js';
 import { panBy, wheelZoom } from './interaction/viewport.js';
 import { DrawingStage } from './render/DrawingStage.js';
@@ -76,6 +81,9 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
   const config = useEditorConfig();
   const document = useStore(editor, (state) => state.preview ?? state.document);
   const zoom = useStore(editor, (state) => state.view.zoom);
+  const tool = useStore(editor, (state) => state.tool);
+  const naming = useStore(editor, (state) => state.naming);
+  const selectedJoint = useStore(editor, (state) => state.selectedJoint);
   const selection = useStore(editor, (state) => state.selection);
   const [marquee, setMarquee] = useState<CanvasRect | null>(null);
   const focusable = useRef<HTMLDivElement>(null);
@@ -130,7 +138,9 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       if (!current || e.pointerId !== current.pointerId) return;
       if (!current.pan && !current.gesture) {
         if (Math.hypot(e.clientX - current.downScreen.x, e.clientY - current.downScreen.y) < TAP_SLOP) return;
-        current.gesture = beginDrag(editor, current.downCanvas, grid, handles);
+        // The joint tool never moves, resizes or rotates shapes (JT-1).
+        current.gesture =
+          editor.getState().tool === 'joint' ? { kind: 'none' } : beginDrag(editor, current.downCanvas, grid, handles);
         // A drag that grabs nothing pans when zoomed in (REA-016); in selection mode it is a marquee.
         if (current.gesture.kind === 'none' && editor.getState().view.zoom.zoom > 1) current.pan = shownZoom();
       }
@@ -149,7 +159,15 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       session.current = null;
       current.dispose();
       if (current.gesture) endDrag(editor, current.gesture);
-      else if (!current.pan) tap(editor, current.downCanvas, handles);
+      else if (!current.pan) {
+        if (editor.getState().tool === 'joint') {
+          jointToolTap(editor, current.downCanvas, {
+            scale: handles.scale,
+            namePrefix: config.jointNamePrefix,
+            nameMaxLength: config.jointNameMaxLength,
+          });
+        } else tap(editor, current.downCanvas, handles);
+      }
       setMarquee(null);
     };
     const onCancel = (e: PointerEvent) => {
@@ -217,10 +235,33 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       onBlur={() => void (spaceDown.current = false)}
       style={{ position: 'relative', width: '100%', height: '100%' }}
     >
-      <DrawingStage document={document} listening zoom={zoom} onWheel={onWheel} onPointerDown={onPointerDown}>
+      <DrawingStage
+        document={document}
+        listening
+        zoom={zoom}
+        onWheel={onWheel}
+        onPointerDown={onPointerDown}
+        overlay={(viewport) =>
+          naming &&
+          !readOnly && (
+            <NameEditor
+              // A new editor per name editing session, so the field starts from the joint's name.
+              key={naming.jointId}
+              document={document}
+              naming={naming}
+              viewport={viewport}
+              suggestions={config.jointNameSuggestions}
+              onConfirm={(name) => confirmNaming(editor, name, config.jointNameMaxLength)}
+              onCancel={() => cancelNaming(editor)}
+            />
+          )
+        }
+      >
         {(scale) => (
           <Layer name="editor-ui" listening={false}>
             {selected && <SelectionOverlay shapes={selected} scale={scale} />}
+            {!readOnly && tool === 'joint' && <AnchorDots document={document} scale={scale} />}
+            {selectedJoint && <JointRing document={document} jointId={selectedJoint} scale={scale} />}
             {marquee && (
               <Rect
                 name="selection-marquee"
@@ -255,6 +296,52 @@ function ZoomControls({ zoom, onFit }: { zoom: number; onFit: () => void }) {
         Fit to screen
       </button>
     </div>
+  );
+}
+
+/** Anchor dots of every shape for the joint tool; filled where a joint exists (JT-1). Sizes are screen pixels. */
+function AnchorDots({ document, scale }: { document: DrawingDocument; scale: number }) {
+  const occupied = new Set(document.joints.map((j) => `${j.shapeId}/${j.anchorId}`));
+  return (
+    <>
+      {document.shapes.flatMap((shape) =>
+        anchorsOf(shape).map((anchor) => {
+          const taken = occupied.has(`${shape.id}/${anchor.id}`);
+          return (
+            <Circle
+              key={`${shape.id}/${anchor.id}`}
+              name={taken ? 'anchor-dot anchor-occupied' : 'anchor-dot'}
+              x={anchor.position.x}
+              y={anchor.position.y}
+              radius={ANCHOR_VISUAL_RADIUS / scale}
+              fill={taken ? SELECTION_COLOR : '#ffffff'}
+              stroke={SELECTION_COLOR}
+              strokeWidth={1.5}
+              strokeScaleEnabled={false}
+            />
+          );
+        }),
+      )}
+    </>
+  );
+}
+
+/** The ring around the anchor of the selected joint (AW-7). */
+function JointRing({ document, jointId, scale }: { document: DrawingDocument; jointId: string; scale: number }) {
+  const joint = document.joints.find((j) => j.id === jointId);
+  const shape = joint && document.shapes.find((s) => s.id === joint.shapeId);
+  const anchor = shape && joint ? anchorPositionOf(shape, joint.anchorId) : null;
+  if (!anchor) return null;
+  return (
+    <Circle
+      name="joint-selection-ring"
+      x={anchor.x}
+      y={anchor.y}
+      radius={(ANCHOR_VISUAL_RADIUS + 4) / scale}
+      stroke={SELECTION_COLOR}
+      strokeWidth={2}
+      strokeScaleEnabled={false}
+    />
   );
 }
 

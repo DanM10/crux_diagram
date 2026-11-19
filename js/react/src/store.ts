@@ -10,6 +10,15 @@ export interface EditorView {
   readonly zoom: ViewportZoom;
 }
 
+/** The active tool: `select` moves and edits shapes, `joint` places and selects joints (REA-020). */
+export type EditorTool = 'select' | 'joint';
+
+/** The open joint name editor: for a joint being created (still a preview) or an existing one (REA-021). */
+export interface JointNaming {
+  readonly jointId: string;
+  readonly isNew: boolean;
+}
+
 export interface EditorState {
   /** The committed document, the one `onChange` receives. */
   readonly document: DrawingDocument;
@@ -23,6 +32,10 @@ export interface EditorState {
   readonly selection: readonly string[];
   /** Whether taps toggle shapes and empty-canvas drags draw a selection rectangle (MS-1, MS-3). */
   readonly selectionMode: boolean;
+  readonly tool: EditorTool;
+  /** The selected joint, never together with selected shapes. Not in history. */
+  readonly selectedJoint: string | null;
+  readonly naming: JointNaming | null;
 }
 
 export interface EditorStoreOptions {
@@ -45,6 +58,9 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
         view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid, zoom: FITTED_ZOOM },
         selection: [],
         selectionMode: false,
+        tool: 'select',
+        selectedJoint: null,
+        naming: null,
       }),
       {
         limit: options.historyLimit ?? DEFAULT_EDITOR_CONFIG.historyLimit,
@@ -60,7 +76,9 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
   };
   const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
   const setSelection = (selection: readonly string[]) => {
-    if (!sameIds(selection, store.getState().selection)) store.setState({ selection });
+    if (!sameIds(selection, store.getState().selection)) {
+      store.setState({ selection, ...(selection.length > 0 ? { selectedJoint: null } : {}) });
+    }
   };
   // Flutter `_dropStaleSelection`: after the document changes, keep only the shapes that
   // still exist, with their current groups.
@@ -68,6 +86,11 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     const { document, selection } = store.getState();
     const existing = new Set(document.shapes.map((s) => s.id));
     setSelection(withGroupMates(document, selection.filter((id) => existing.has(id))));
+    // A joint, or an open name editor, whose joint is gone (a new joint lives only in the preview).
+    const { preview, selectedJoint, naming } = store.getState();
+    const joints = new Set((preview ?? document).joints.map((j) => j.id));
+    if (selectedJoint && !joints.has(selectedJoint)) store.setState({ selectedJoint: null });
+    if (naming && !joints.has(naming.jointId)) store.setState({ naming: null });
   };
 
   return {
@@ -126,6 +149,23 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     selectAll(ids: readonly string[]) {
       const { document, selection } = store.getState();
       setSelection(withGroupMates(document, [...selection, ...ids]));
+    },
+    /** Switches the tool: a view change, never a history entry. An open name editor closes. */
+    setTool(tool: EditorTool) {
+      if (store.getState().tool !== tool) store.setState({ tool, naming: null });
+    },
+    /** Selects the joint with `id` (and no shapes), or clears the joint selection with `null`. */
+    selectJoint(id: string | null) {
+      const state = store.getState();
+      if (id === null) {
+        if (state.selectedJoint !== null) store.setState({ selectedJoint: null });
+      } else {
+        store.setState({ selectedJoint: id, selection: [] });
+      }
+    },
+    /** Opens (or with `null` closes) the joint name editor. */
+    setNaming(naming: JointNaming | null) {
+      store.setState({ naming });
     },
     /** Enters or leaves selection mode; leaving it keeps the selection (MS-8). */
     setSelectionMode(selectionMode: boolean) {

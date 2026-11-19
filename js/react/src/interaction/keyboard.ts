@@ -2,7 +2,7 @@
 // the REA-018 assumption: they act only while the editor has the focus and never while
 // a text field has it.
 
-import { duplicateShapes, moveShape, removeShape, rotateShape } from '@diagrama-kit/core';
+import { duplicateShapes, moveShape, removeJoint, removeShape, rotateShape } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
 
 /** Arrow-key move, in canvas units; `Shift` uses the large step (REA-015). */
@@ -69,7 +69,9 @@ export function isTextEntry(target: EventTarget | null): boolean {
 export function runCommand(editor: EditorStore, command: EditorCommand): void {
   if (command.type === 'undo') return editor.undo();
   if (command.type === 'redo') return editor.redo();
-  const { document, selection } = editor.getState();
+  const { document, selection, selectedJoint } = editor.getState();
+  // A selected joint is deleted on its own, as one entry (DL-1); it never coexists with shapes.
+  if (command.type === 'delete' && selectedJoint) return editor.commit(removeJoint(document, selectedJoint));
   if (selection.length === 0) return;
   switch (command.type) {
     case 'delete':
