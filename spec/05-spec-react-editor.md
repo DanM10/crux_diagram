@@ -124,6 +124,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-060** ESM + CJS con tipos; `react`, `react-dom`, `konva` y `react-konva` como peer dependencies.
 - **REA-061** Depende de `@diagrama-kit/core` con rango de versiones compatible (`schemaVersion` manda).
 - **REA-062** Storybook (o equivalente) con historias de cada componente y de los casos límite.
+  *Detalles (2026-11-18):* Storybook 10 con `@storybook/react-vite`, en `js/react/stories` (`npm run storybook`, `npm run build-storybook`), con la telemetría desactivada. Historias: `DrawingViewer` (muestra de Flutter, vacío, juntas ocultas, emoji en el nombre, 300 figuras, descripción propia), `DrawingEditor` con `Toolbar` (muestra, lienzo vacío, solo lectura, sin cuadrícula, 300 figuras) y `VersionHistory` (por defecto, sin versiones, versión actual ausente, versiones repetidas con fecha inválida, textos propios). Las historias usan las fixtures de `fixtures/valid`.
 
 ### 5.8 Historial de versiones
 
@@ -158,13 +159,13 @@ La app es responsable de `save()`: enviar `serialize(doc)` al backend con el nú
 
 ## 7. Criterios de aceptación
 
-- [ ] E2E (Playwright): cargar un JSON hecho en Flutter → mover una figura → girarla → crear una junta en un vértice → renombrarla → agrupar dos figuras → deshacer ×4 → exportar PNG. El JSON resultante pasa `core.validate` y se abre en Flutter.
-- [ ] Prueba cruzada: un JSON guardado por React pasa las fixtures de conformidad de Dart y viceversa.
-- [ ] Cada requisito `REA-xxx` tiene test (unitario, de componente o E2E) que cita su ID.
-- [ ] Snapshot visual de exportación: fondo blanco, sin asas, texto nítido.
-- [ ] Perfil de rendimiento REA-O3 documentado en el repo.
-- [ ] Importar el paquete en una app Next.js/SSR de prueba no produce errores.
-- [ ] Test de componente de `<VersionHistory>`: orden, versión actual marcada, vista previa y `onRestore` con la entrada elegida (REA-070 a REA-075).
+- [x] E2E (Playwright): cargar un JSON hecho en Flutter → mover una figura → girarla → crear una junta en un vértice → renombrarla → agrupar dos figuras → deshacer ×4 → exportar PNG. El JSON resultante pasa `core.validate` y se abre en Flutter.
+- [x] Prueba cruzada: un JSON guardado por React pasa las fixtures de conformidad de Dart y viceversa.
+- [x] Cada requisito `REA-xxx` tiene test (unitario, de componente o E2E) que cita su ID. *(2026-11-18: REA-051 se cumple con documentación y REA-062 con las historias de Storybook, no con tests.)*
+- [ ] Snapshot visual de exportación: fondo blanco, sin asas, texto nítido. *(2026-11-18: cubierto fondo blanco y sin asas, con el snapshot de `e2e/export.spec.ts`; el snapshot usa solo figuras, así que la nitidez del texto de las juntas sigue sin comprobarse.)*
+- [x] Perfil de rendimiento REA-O3 documentado en el repo.
+- [x] Importar el paquete en una app Next.js/SSR de prueba no produce errores.
+- [x] Test de componente de `<VersionHistory>`: orden, versión actual marcada, vista previa y `onRestore` con la entrada elegida (REA-070 a REA-075).
 
 ## 8. Preguntas abiertas
 

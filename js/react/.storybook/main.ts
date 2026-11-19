@@ -1,3 +1,4 @@
+// Storybook (REA-062): one file of stories per component, edge cases included.
 import { fileURLToPath } from 'node:url';
 import type { StorybookConfig } from '@storybook/react-vite';
 
