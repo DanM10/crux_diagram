@@ -1,0 +1,21 @@
+{
+  "name": "next-ssr-check",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "next build",
+    "check": "node check.mjs"
+  },
+  "dependencies": {
+    "@diagrama-kit/core": "file:../../core",
+    "@diagrama-kit/react": "file:../../react",
+    "konva": "^10.0.0",
+    "next": "^16.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-konva": "^19.3.0"
+  },
+  "overrides": {
+    "@diagrama-kit/core": "file:../../core"
+  }
+}
