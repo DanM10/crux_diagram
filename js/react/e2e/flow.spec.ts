@@ -1,6 +1,6 @@
 // Acceptance flow of spec 05 section 7: load a document made by Flutter, move, rotate, add
 // a joint on a vertex, rename it, group two shapes, undo four times, export a PNG.
-import { readFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
 import { anchorPositionOf, parse, validate, type DrawingDocument } from '../../core/src/index.js';
@@ -77,6 +77,10 @@ test('load → move → rotate → joint on a vertex → rename → group → un
   // What the editor wrote is a valid document (and it is what Flutter will open).
   const json = await saved(page);
   expect(validate(json)).toEqual([]);
+  // Flutter reads this file in `dart/test/conformance/react_output_test.dart` (REA-O2).
+  const output = join(import.meta.dirname, 'output');
+  mkdirSync(output, { recursive: true });
+  writeFileSync(join(output, 'react-saved.json'), json);
 
   // Four history entries (move, rotate, joint with its name, group): undoing four times
   // brings back the document as it was loaded.
