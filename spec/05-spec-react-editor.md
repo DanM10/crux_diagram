@@ -102,6 +102,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-041** El fondo es blanco por defecto en ambos formatos. `transparentBackground` solo es válido con PNG (Spec 06, EX-4 y EX-5).
 - **REA-042** La imagen tiene el tamaño del lienzo multiplicado por `pixelRatio`, sin cuadrícula, asas ni puntos de anclaje (se oculta la capa 4). Con las juntas ocultas no se dibujan.
 - **REA-043** Se rechaza un `pixelRatio` no positivo, una calidad fuera de rango o una imagen que supere un máximo de píxeles configurable (por defecto 16 megapíxeles), antes de renderizar.
+  *Detalles (2026-11-18):* `format` es obligatorio; `download` es un nombre de archivo opcional: si se da, tras codificar se descarga la imagen con ese nombre (se añade `.png` o `.jpg` si falta la extensión) y la promesa sigue devolviendo el `Blob`. Todos los rechazos son `RangeError` y ocurren antes de renderizar: `format` distinto de `png`/`jpeg`, `pixelRatio` no finito o no positivo, `quality` fuera de [0, 1] (solo se valida con JPEG; con PNG se ignora, EX-3), `transparentBackground` con JPEG (EX-5) y un total de `ancho × alto × pixelRatio²` por encima de `config.exportMaxPixels` (16 000 000 por defecto). Se exporta el documento confirmado, nunca una vista previa, tras `document.fonts.ready` (un fallo de carga no lo impide, REA-032). La imagen se dibuja en un `Stage` aparte, sin el del editor, con solo las capas de fondo, figuras y juntas.
 
 ### 5.6 Rendimiento y calidad
 
