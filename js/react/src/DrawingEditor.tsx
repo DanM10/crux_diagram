@@ -50,6 +50,8 @@ export type DrawingEditorProps = EditorProviderProps & {
    * Changes from the parent's `value` and the imperative handle still apply.
    */
   readOnly?: boolean;
+  /** Alternative description for screen readers (REA-052); a summary of the drawing by default. */
+  alt?: string;
 };
 
 /**
@@ -58,17 +60,17 @@ export type DrawingEditorProps = EditorProviderProps & {
  * `Ctrl/Cmd+Shift+Z` redoes, `Ctrl/Cmd+D` duplicates and the arrow keys move the
  * selection by 1 (`Shift`: 10) (REA-010 to REA-018).
  */
-export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>(function DrawingEditor({ readOnly, children, ...props }, ref) {
+export const DrawingEditor = forwardRef<DrawingEditorHandle, DrawingEditorProps>(function DrawingEditor({ readOnly, alt, children, ...props }, ref) {
   return (
     <EditorProvider ref={ref} {...props}>
       {children === undefined ? (
-        <EditorCanvas readOnly={readOnly} />
+        <EditorCanvas readOnly={readOnly} alt={alt} />
       ) : (
         // Controls (REA-053) go above the canvas, which takes the rest of the height.
         <div style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%' }}>
           {children}
           <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
-            <EditorCanvas readOnly={readOnly} />
+            <EditorCanvas readOnly={readOnly} alt={alt} />
           </div>
         </div>
       )}
@@ -98,7 +100,7 @@ interface PointerSession {
  * the selection drawn in the `editor-ui` layer. Pointer gestures and shortcuts drive the
  * enclosing editor's store.
  */
-export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
+export function EditorCanvas({ readOnly = false, alt }: { readOnly?: boolean; alt?: string }) {
   const editor = useEditor();
   const config = useEditorConfig();
   const document = useStore(editor, (state) => state.preview ?? state.document);
@@ -288,6 +290,8 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
         onWheel={onWheel}
         onPointerDown={onPointerDown}
         onAreaChange={editor.setStageArea}
+        alt={alt}
+        selection={readOnly ? undefined : selection}
         overlay={(viewport) =>
           naming &&
           !readOnly && (
