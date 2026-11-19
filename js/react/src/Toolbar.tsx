@@ -1,3 +1,4 @@
+'use client';
 import type { CSSProperties } from 'react';
 import { useStore } from 'zustand';
 import { ControlButton, controlRowStyle } from './controls.js';

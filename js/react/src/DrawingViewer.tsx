@@ -1,3 +1,4 @@
+'use client';
 import type { DrawingDocument, JointStyle } from '@diagrama-kit/core';
 import { DrawingStage } from './render/DrawingStage.js';
 

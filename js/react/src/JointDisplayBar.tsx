@@ -1,3 +1,4 @@
+'use client';
 import { JOINT_LABEL_SIZES, type JointLabelSize } from '@diagrama-kit/core';
 import type { CSSProperties } from 'react';
 import { useStore } from 'zustand';
