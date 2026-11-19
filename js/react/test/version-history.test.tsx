@@ -19,7 +19,7 @@ function entry(id: string, version: number, extra: Partial<VersionEntry> = {}): 
 const rows = () => screen.getAllByRole('button', { name: /^v\d/ });
 const rowText = () => rows().map((row) => row.textContent ?? '');
 
-describe('REA-072 order and current marker', () => {
+describe('REA-071 entries and REA-072 order and current marker', () => {
   it('lists newest version first, whatever the input order', () => {
     render(<VersionHistory versions={[entry('a', 1), entry('c', 3), entry('b', 2)]} onRestore={() => {}} />);
     expect(rowText().map((t) => t.slice(0, 2))).toEqual(['v3', 'v2', 'v1']);
