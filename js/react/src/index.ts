@@ -14,3 +14,10 @@ export {
   type DrawingEditorConfigInput,
   type ShapeStyle,
 } from './config.js';
+export {
+  VersionHistory,
+  DEFAULT_VERSION_HISTORY_LABELS,
+  type VersionEntry,
+  type VersionHistoryLabels,
+  type VersionHistoryProps,
+} from './VersionHistory.js';
