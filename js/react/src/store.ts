@@ -1,4 +1,4 @@
-import { withGroupMates, type DrawingDocument } from '@diagrama-kit/core';
+import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type ViewportZoom } from '@diagrama-kit/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';
@@ -6,6 +6,8 @@ import { DEFAULT_EDITOR_CONFIG } from './config.js';
 /** View settings: never in history and never a document change (REA-017). */
 export interface EditorView {
   readonly showGrid: boolean;
+  /** Zoom and pan on top of the fitted view; the stage clamps it to the canvas (REA-016). */
+  readonly zoom: ViewportZoom;
 }
 
 export interface EditorState {
@@ -40,7 +42,7 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
       (): EditorState => ({
         document: initial,
         preview: null,
-        view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid },
+        view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid, zoom: FITTED_ZOOM },
         selection: [],
         selectionMode: false,
       }),
@@ -128,6 +130,14 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     /** Enters or leaves selection mode; leaving it keeps the selection (MS-8). */
     setSelectionMode(selectionMode: boolean) {
       if (store.getState().selectionMode !== selectionMode) store.setState({ selectionMode });
+    },
+    /** Sets zoom and pan: a view change, never a history entry (REA-017). */
+    setZoom(zoom: ViewportZoom) {
+      store.setState({ view: { ...store.getState().view, zoom } });
+    },
+    /** Returns to the fitted view: 1× with no pan (REA-004). */
+    fitToScreen() {
+      store.setState({ view: { ...store.getState().view, zoom: FITTED_ZOOM } });
     },
     setShowGrid(showGrid: boolean) {
       store.setState({ view: { ...store.getState().view, showGrid } });

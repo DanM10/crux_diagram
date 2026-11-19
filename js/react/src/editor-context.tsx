@@ -13,6 +13,8 @@ export interface DrawingEditorHandle {
   getDocument(): DrawingDocument;
   /** Replaces the document and clears the history, without calling `onChange` (opening another drawing). */
   reset(document: DrawingDocument): void;
+  /** Returns to the fitted view, 1× with no pan; not a document change (REA-016, REA-017). */
+  fitToScreen(): void;
 }
 
 export interface EditorProviderProps {
@@ -112,6 +114,7 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
         return editor.canRedo();
       },
       getDocument: editor.getDocument,
+      fitToScreen: editor.fitToScreen,
       reset(document: DrawingDocument) {
         quietly(() => editor.reset(document));
         unadopted.current.clear();

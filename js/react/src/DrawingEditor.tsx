@@ -1,11 +1,13 @@
 import {
   boundsOfShapes,
+  clampZoom,
   handleLocalPosition,
   handlesFor,
   visibleGridStep,
   type Point,
   type Rect as CanvasRect,
   type Shape,
+  type ViewportZoom,
 } from '@diagrama-kit/core';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
@@ -25,6 +27,7 @@ import {
   type HandleContext,
 } from './interaction/gestures.js';
 import { commandForKey, isTextEntry, runCommand } from './interaction/keyboard.js';
+import { panBy, wheelZoom } from './interaction/viewport.js';
 import { DrawingStage } from './render/DrawingStage.js';
 
 export type DrawingEditorProps = Omit<EditorProviderProps, 'children'> & {
@@ -58,6 +61,8 @@ interface PointerSession {
   readonly downScreen: Point;
   readonly downCanvas: Point;
   gesture: Gesture | null;
+  /** The view when a pan started, once this pointer is panning instead of editing (REA-016). */
+  pan: ViewportZoom | null;
   readonly dispose: () => void;
 }
 
@@ -70,10 +75,12 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
   const editor = useEditor();
   const config = useEditorConfig();
   const document = useStore(editor, (state) => state.preview ?? state.document);
+  const zoom = useStore(editor, (state) => state.view.zoom);
   const selection = useStore(editor, (state) => state.selection);
   const [marquee, setMarquee] = useState<CanvasRect | null>(null);
   const focusable = useRef<HTMLDivElement>(null);
   const session = useRef<PointerSession | null>(null);
+  const spaceDown = useRef(false);
 
   // A pointer still down when the editor unmounts, or turns read-only, ends with no change.
   const endSession = useCallback(() => {
@@ -112,6 +119,8 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       scale: stage.scaleX(),
       rotationSnap: { step: config.rotationSnapStep, tolerance: config.rotationSnapTolerance },
     };
+    const area = { width: stage.width(), height: stage.height() };
+    const shownZoom = () => clampZoom(editor.getState().view.zoom, editor.getDocument().canvas, area);
     const canvasPoint = (e: PointerEvent) => {
       stage.setPointersPositions(e);
       return stage.getRelativePointerPosition() ?? downCanvas;
@@ -119,10 +128,18 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
     const onMove = (e: PointerEvent) => {
       const current = session.current;
       if (!current || e.pointerId !== current.pointerId) return;
-      if (!current.gesture) {
+      if (!current.pan && !current.gesture) {
         if (Math.hypot(e.clientX - current.downScreen.x, e.clientY - current.downScreen.y) < TAP_SLOP) return;
         current.gesture = beginDrag(editor, current.downCanvas, grid, handles);
+        // A drag that grabs nothing pans when zoomed in (REA-016); in selection mode it is a marquee.
+        if (current.gesture.kind === 'none' && editor.getState().view.zoom.zoom > 1) current.pan = shownZoom();
       }
+      if (current.pan) {
+        const delta = { dx: e.clientX - current.downScreen.x, dy: e.clientY - current.downScreen.y };
+        editor.setZoom(panBy(current.pan, delta, editor.getDocument().canvas, area));
+        return;
+      }
+      if (!current.gesture) return;
       current.gesture = updateDrag(editor, current.gesture, canvasPoint(e));
       setMarquee(current.gesture.kind === 'marquee' ? current.gesture.rect : null);
     };
@@ -132,7 +149,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       session.current = null;
       current.dispose();
       if (current.gesture) endDrag(editor, current.gesture);
-      else tap(editor, current.downCanvas, handles);
+      else if (!current.pan) tap(editor, current.downCanvas, handles);
       setMarquee(null);
     };
     const onCancel = (e: PointerEvent) => {
@@ -146,6 +163,8 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       downScreen: { x: evt.clientX, y: evt.clientY },
       downCanvas,
       gesture: null,
+      // With the space bar down the drag pans from the start, over shapes too (REA-016).
+      pan: spaceDown.current ? shownZoom() : null,
       dispose: () => {
         window.removeEventListener('pointermove', onMove);
         window.removeEventListener('pointerup', onUp);
@@ -154,8 +173,28 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
     };
   };
 
+  const onWheel = (event: KonvaEventObject<WheelEvent>) => {
+    const stage = event.target.getStage();
+    const focal = stage?.getPointerPosition();
+    if (!stage || !focal) return;
+    event.evt.preventDefault();
+    const { deltaY, deltaMode, ctrlKey } = event.evt;
+    const area = { width: stage.width(), height: stage.height() };
+    editor.setZoom(wheelZoom(editor.getState().view.zoom, { deltaY, deltaMode, ctrlKey, focal }, editor.getDocument().canvas, area));
+  };
+
+  // The space bar pans only while the container itself has the focus, so it still activates buttons.
+  const onKeyUp = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === ' ') spaceDown.current = false;
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (readOnly || isTextEntry(event.target)) return;
+    if (event.key === ' ' && event.target === event.currentTarget) {
+      event.preventDefault();
+      spaceDown.current = true;
+      return;
+    }
     const command = commandForKey(event);
     if (!command) return;
     event.preventDefault();
@@ -170,8 +209,15 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
   }, [readOnly, selection, document]);
 
   return (
-    <div ref={focusable} tabIndex={0} onKeyDown={onKeyDown} style={{ width: '100%', height: '100%' }}>
-      <DrawingStage document={document} listening onPointerDown={onPointerDown}>
+    <div
+      ref={focusable}
+      tabIndex={0}
+      onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
+      onBlur={() => void (spaceDown.current = false)}
+      style={{ position: 'relative', width: '100%', height: '100%' }}
+    >
+      <DrawingStage document={document} listening zoom={zoom} onWheel={onWheel} onPointerDown={onPointerDown}>
         {(scale) => (
           <Layer name="editor-ui" listening={false}>
             {selected && <SelectionOverlay shapes={selected} scale={scale} />}
@@ -192,6 +238,22 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
           </Layer>
         )}
       </DrawingStage>
+      {zoom.zoom > FIT_BUTTON_MIN_ZOOM && <ZoomControls zoom={zoom.zoom} onFit={editor.fitToScreen} />}
+    </div>
+  );
+}
+
+/** The fit button and the percentage show while the zoom is above 1× (ZM-1). */
+const FIT_BUTTON_MIN_ZOOM = 1.005;
+
+/** Fit-to-screen button with the zoom percentage, bottom right of the drawing area (ZM-1, ZM-2). */
+function ZoomControls({ zoom, onFit }: { zoom: number; onFit: () => void }) {
+  return (
+    <div style={{ position: 'absolute', right: 16, bottom: 16, display: 'flex', alignItems: 'center', gap: 8, font: '12px sans-serif' }}>
+      <span>{`${Math.round(zoom * 100)}%`}</span>
+      <button type="button" onClick={onFit}>
+        Fit to screen
+      </button>
     </div>
   );
 }
