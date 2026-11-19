@@ -3,6 +3,7 @@
 
 import { addJoint, normalizeJointName, pickAnchor, renameJoint, setJointDisplay, type Point } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
+import { labelAt, type LabelRect } from './gestures.js';
 
 /** Hit radius of an anchor, in screen pixels (JT-2). */
 export const ANCHOR_HIT_RADIUS = 22;
@@ -16,6 +17,8 @@ export interface JointToolOptions {
   readonly scale: number;
   readonly namePrefix: string;
   readonly nameMaxLength: number;
+  /** The joint labels as drawn: tapping one selects its joint before any anchor is tried. */
+  readonly labels?: readonly LabelRect[];
 }
 
 /**
@@ -24,7 +27,9 @@ export interface JointToolOptions {
  * (DL-3); an anchor with a joint selects it, showing hidden joints again (REA-025); empty
  * canvas clears the joint selection.
  */
-export function jointToolTap(editor: EditorStore, point: Point, { scale, namePrefix, nameMaxLength }: JointToolOptions): void {
+export function jointToolTap(editor: EditorStore, point: Point, { scale, namePrefix, nameMaxLength, labels }: JointToolOptions): void {
+  const labeled = labels && labelAt(labels, point);
+  if (labeled) return editor.selectJoint(labeled);
   const document = editor.getDocument();
   const hit = pickAnchor(document.shapes, point, {
     radius: ANCHOR_HIT_RADIUS / scale,

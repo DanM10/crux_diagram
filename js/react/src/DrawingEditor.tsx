@@ -3,6 +3,7 @@ import {
   anchorsOf,
   boundsOfShapes,
   clampZoom,
+  DEFAULT_JOINT_STYLE,
   handleLocalPosition,
   handlesFor,
   visibleGridStep,
@@ -19,21 +20,29 @@ import { useStore } from 'zustand';
 import { EditorProvider, useEditor, useEditorConfig, type DrawingEditorHandle, type EditorProviderProps } from './editor-context.js';
 import {
   beginDrag,
+  beginLabelDrag,
   cancelDrag,
   endDrag,
   HANDLE_VISUAL_RADIUS,
+  labelAt,
   ROTATION_STEM_LENGTH,
   tap,
   TAP_SLOP,
   updateDrag,
   type Gesture,
   type HandleContext,
+  type LabelRect,
 } from './interaction/gestures.js';
 import { NameEditor } from './NameEditor.js';
-import { ANCHOR_VISUAL_RADIUS, cancelNaming, confirmNaming, jointToolTap } from './interaction/joints.js';
+import { ANCHOR_VISUAL_RADIUS, beginRename, cancelNaming, confirmNaming, jointToolTap } from './interaction/joints.js';
 import { commandForKey, isTextEntry, runCommand } from './interaction/keyboard.js';
 import { panBy, wheelZoom } from './interaction/viewport.js';
 import { DrawingStage } from './render/DrawingStage.js';
+import { useFontsReady, useLabelMeasurer } from './render/fonts.js';
+import { placeJoints } from './render/scene.js';
+
+/** Longest time between the two taps of a double tap on a label, in milliseconds (ZM-4). */
+const DOUBLE_TAP_TIMEOUT = 300;
 
 export type DrawingEditorProps = Omit<EditorProviderProps, 'children'> & {
   /**
@@ -89,6 +98,14 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
   const focusable = useRef<HTMLDivElement>(null);
   const session = useRef<PointerSession | null>(null);
   const spaceDown = useRef(false);
+  const lastLabelTap = useRef<{ jointId: string; time: number } | null>(null);
+  const fontsReady = useFontsReady();
+  const measurer = useLabelMeasurer();
+  // The labels as drawn, to hit-test them; before the fonts load none are drawn.
+  const labelRects = useCallback((): LabelRect[] => {
+    if (!fontsReady) return [];
+    return placeJoints(editor.getDocument(), DEFAULT_JOINT_STYLE, measurer()).map((p) => ({ jointId: p.joint.id, rect: p.labelRect }));
+  }, [editor, fontsReady, measurer]);
 
   // A pointer still down when the editor unmounts, or turns read-only, ends with no change.
   const endSession = useCallback(() => {
@@ -126,6 +143,7 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
     const handles: HandleContext = {
       scale: stage.scaleX(),
       rotationSnap: { step: config.rotationSnapStep, tolerance: config.rotationSnapTolerance },
+      labels: labelRects(),
     };
     const area = { width: stage.width(), height: stage.height() };
     const shownZoom = () => clampZoom(editor.getState().view.zoom, editor.getDocument().canvas, area);
@@ -139,8 +157,11 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
       if (!current.pan && !current.gesture) {
         if (Math.hypot(e.clientX - current.downScreen.x, e.clientY - current.downScreen.y) < TAP_SLOP) return;
         // The joint tool never moves, resizes or rotates shapes (JT-1).
+        // Labels can be dragged in any tool (REA-022).
         current.gesture =
-          editor.getState().tool === 'joint' ? { kind: 'none' } : beginDrag(editor, current.downCanvas, grid, handles);
+          editor.getState().tool === 'joint'
+            ? (beginLabelDrag(editor, current.downCanvas, handles.labels ?? []) ?? { kind: 'none' })
+            : beginDrag(editor, current.downCanvas, grid, handles);
         // A drag that grabs nothing pans when zoomed in (REA-016); in selection mode it is a marquee.
         if (current.gesture.kind === 'none' && editor.getState().view.zoom.zoom > 1) current.pan = shownZoom();
       }
@@ -165,8 +186,17 @@ export function EditorCanvas({ readOnly = false }: { readOnly?: boolean }) {
             scale: handles.scale,
             namePrefix: config.jointNamePrefix,
             nameMaxLength: config.jointNameMaxLength,
+            labels: handles.labels,
           });
         } else tap(editor, current.downCanvas, handles);
+        // The first tap of a double tap acts at once; the second, on the same label, renames (NM-2, ZM-4).
+        const labeled = labelAt(handles.labels ?? [], current.downCanvas);
+        const now = performance.now();
+        const last = lastLabelTap.current;
+        if (labeled && last?.jointId === labeled && now - last.time <= DOUBLE_TAP_TIMEOUT) {
+          lastLabelTap.current = null;
+          beginRename(editor, labeled);
+        } else lastLabelTap.current = labeled ? { jointId: labeled, time: now } : null;
       }
       setMarquee(null);
     };

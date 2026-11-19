@@ -7,7 +7,9 @@ import {
   handleLocalPosition,
   handlesFor,
   isQuarterTurn,
+  moveJointLabel,
   moveShape,
+  rectContains,
   resizeByHandle,
   rotationFromPointer,
   shapeBounds,
@@ -54,6 +56,31 @@ export interface HandleContext {
   readonly scale: number;
   /** `config.rotationSnapStep` and `config.rotationSnapTolerance`, in radians (step 0 disables snapping). */
   readonly rotationSnap: { readonly step: number; readonly tolerance: number };
+  /** The joint labels as drawn, back to front; they are hit before shapes (REA-022). */
+  readonly labels?: readonly LabelRect[];
+}
+
+/** The box of a joint's label on the canvas. */
+export interface LabelRect {
+  readonly jointId: string;
+  readonly rect: Rect;
+}
+
+/** The id of the topmost joint whose label contains `point`, or `null`. */
+export function labelAt(labels: readonly LabelRect[], point: Point): string | null {
+  for (let i = labels.length - 1; i >= 0; i--) {
+    if (rectContains(labels[i]!.rect, point)) return labels[i]!.jointId;
+  }
+  return null;
+}
+
+/** Starts dragging the label under `point`, or returns `null` when there is none (AW-4). */
+export function beginLabelDrag(editor: EditorStore, point: Point, labels: readonly LabelRect[]): Gesture | null {
+  const id = labelAt(labels, point);
+  const start = editor.getDocument();
+  const joint = id && start.joints.find((j) => j.id === id);
+  if (!joint) return null;
+  return { kind: 'label', start, id: joint.id, origin: point, startOffset: joint.labelOffset, last: null };
 }
 
 /** A handle under a point: one of the resize handles or the rotation handle. */
@@ -72,6 +99,14 @@ export type Gesture =
       readonly last: DrawingDocument | null;
     }
   | { readonly kind: 'marquee'; readonly origin: Point; readonly rect: Rect }
+  | {
+      readonly kind: 'label';
+      readonly start: DrawingDocument;
+      readonly id: string;
+      readonly origin: Point;
+      readonly startOffset: Vector;
+      readonly last: DrawingDocument | null;
+    }
   | {
       readonly kind: 'resize';
       readonly start: DrawingDocument;
@@ -128,6 +163,9 @@ export function tap(editor: EditorStore, point: Point, handles?: HandleContext):
     const selected = document.shapes.find((s) => s.id === selection[0]);
     if (selected && handleAt(selected, point, handles.scale)) return;
   }
+  // A label is above the shapes: tapping it selects its joint (AW-7).
+  const labeled = handles?.labels && labelAt(handles.labels, point);
+  if (labeled) return editor.selectJoint(labeled);
   const shape = topmostShapeAt(document.shapes, point);
   if (selectionMode) {
     if (shape) editor.toggleSelected(shape.id);
@@ -166,6 +204,8 @@ export function beginDrag(editor: EditorStore, point: Point, grid: DragGrid, han
           last: null,
         };
   }
+  const label = handles?.labels && beginLabelDrag(editor, point, handles.labels);
+  if (label) return label;
   const shape = topmostShapeAt(document.shapes, point);
   if (!shape) {
     return selectionMode ? { kind: 'marquee', origin: point, rect: rectBetween(point, point) } : { kind: 'none' };
@@ -189,6 +229,12 @@ export function beginDrag(editor: EditorStore, point: Point, grid: DragGrid, han
 export function updateDrag(editor: EditorStore, gesture: Gesture, point: Point): Gesture {
   if (gesture.kind === 'marquee') return { ...gesture, rect: rectBetween(gesture.origin, point) };
   if (gesture.kind === 'none' || abandoned(editor, gesture)) return gesture;
+  if (gesture.kind === 'label') {
+    const offset = { dx: gesture.startOffset.dx + point.x - gesture.origin.x, dy: gesture.startOffset.dy + point.y - gesture.origin.y };
+    const next = moveJointLabel(gesture.start, gesture.id, offset);
+    editor.preview(next);
+    return { ...gesture, last: next };
+  }
   if (gesture.kind === 'resize' || gesture.kind === 'rotate') {
     const next = transformedDocument(gesture, point);
     editor.preview(next);
@@ -220,7 +266,12 @@ export function endDrag(editor: EditorStore, gesture: Gesture): void {
   }
   if (gesture.kind === 'none' || abandoned(editor, gesture)) return;
   const { last, start } = gesture;
-  const changed = gesture.kind === 'move' ? last && movedAny(start, last, gesture.ids) : last && transformedAny(start, last, gesture.id);
+  const changed =
+    gesture.kind === 'move'
+      ? last && movedAny(start, last, gesture.ids)
+      : gesture.kind === 'label'
+        ? last && labelMoved(start, last, gesture.id)
+        : last && transformedAny(start, last, gesture.id);
   if (last && changed) editor.commit(last);
   else editor.preview(null);
 }
@@ -309,6 +360,12 @@ export function movedDocument(start: DrawingDocument, ids: readonly string[], de
 
 /** A gesture whose start is no longer the committed document (undo, redo, reset or an outside value). */
 const abandoned = (editor: EditorStore, gesture: { readonly start: DrawingDocument }) => editor.getDocument() !== gesture.start;
+
+function labelMoved(start: DrawingDocument, next: DrawingDocument, id: string): boolean {
+  const before = start.joints.find((j) => j.id === id)?.labelOffset;
+  const after = next.joints.find((j) => j.id === id)?.labelOffset;
+  return !!before && !!after && (before.dx !== after.dx || before.dy !== after.dy);
+}
 
 function movedAny(start: DrawingDocument, next: DrawingDocument, ids: readonly string[]): boolean {
   if (start === next) return false;

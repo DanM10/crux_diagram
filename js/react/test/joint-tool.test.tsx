@@ -1,16 +1,11 @@
 // @vitest-environment jsdom
 // The joint tool through the real editor: anchor dots, the name editor overlay and joint
 // selection (REA-020, REA-021, REA-031; Flutter JT-1 to JT-3, NM-1, DL-1, NS-2 to NS-5).
-import { anchorIdsFor, type DrawingDocument } from '@diagrama-kit/core';
-import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type Konva from 'konva';
-import { useState } from 'react';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
-import { EditorCanvas } from '../src/DrawingEditor.js';
-import { EditorProvider, useEditor } from '../src/editor-context.js';
-import type { DrawingEditorConfigInput } from '../src/config.js';
-import type { EditorStore } from '../src/store.js';
+import { anchorIdsFor } from '@diagrama-kit/core';
+import { act, cleanup, fireEvent, screen } from '@testing-library/react';
+import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { docOf, joint, rect } from './support/docs.js';
+import { setup } from './support/editor-host.js';
 import { installCanvas, installResizeObserver } from './support/dom.js';
 
 // The container matches the 1000 × 800 canvas, so screen and canvas units coincide.
@@ -20,47 +15,7 @@ beforeAll(() => {
 });
 afterEach(cleanup);
 
-const doc = docOf([rect('a', 200, 200), rect('b', 600, 400)]);
 const TL = [150, 170] as const; // the `tl` anchor of rectangle `a`
-
-function setup(options: { value?: DrawingDocument; config?: DrawingEditorConfigInput; tool?: 'select' | 'joint' } = {}) {
-  const onChange = vi.fn<(d: DrawingDocument) => void>();
-  const store: { current?: EditorStore } = {};
-  function Probe() {
-    store.current = useEditor();
-    return null;
-  }
-  function Host() {
-    const [value, setValue] = useState(options.value ?? doc);
-    return (
-      <EditorProvider value={value} config={options.config} onChange={(d) => (onChange(d), setValue(d))}>
-        <Probe />
-        <EditorCanvas />
-      </EditorProvider>
-    );
-  }
-  const { container } = render(<Host />);
-  const editor = store.current!;
-  if (options.tool !== 'select') act(() => editor.setTool('joint'));
-  const content = container.querySelector<HTMLElement>('.konvajs-content')!;
-  const focusable = container.querySelector<HTMLElement>('[tabindex="0"]')!;
-  const stage = (globalThis as { Konva?: typeof Konva }).Konva!.stages.find((s) => s.content === content)!;
-  const at = (x: number, y: number) => ({ clientX: x, clientY: y, pointerId: 1, button: 0, isPrimary: true });
-  const tap = (x: number, y: number) => {
-    act(() => void fireEvent.pointerDown(content, at(x, y)));
-    act(() => void fireEvent.pointerUp(window, at(x, y)));
-  };
-  const drag = (from: readonly [number, number], to: readonly [number, number]) => {
-    act(() => void fireEvent.pointerDown(content, at(...from)));
-    act(() => void fireEvent.pointerMove(window, at(...to)));
-    act(() => void fireEvent.pointerUp(window, at(...to)));
-  };
-  const input = () => screen.queryByRole('textbox') as HTMLInputElement | null;
-  const type = (text: string) => act(() => void fireEvent.change(input()!, { target: { value: text } }));
-  const press = (key: string) => act(() => void fireEvent.keyDown(input() ?? focusable, { key }));
-  const dots = () => stage.find('.anchor-dot');
-  return { editor, stage, onChange, tap, drag, input, type, press, dots, focusable };
-}
 
 describe('REA-020 anchor dots (JT-1)', () => {
   it('show on every shape with the joint tool, filled where a joint exists', () => {
