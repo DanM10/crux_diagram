@@ -88,6 +88,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-024** Barra de visualización: tamaño `small/medium/large` y mostrar/ocultar (Spec 04, JS y JV). Ocultar no borra juntas.
 - **REA-025** Con las juntas ocultas, tocar una ancla ocupada en modo juntas las vuelve a mostrar y selecciona esa junta (Spec 05, FU-1).
 - **REA-026** Ajuste entre anclas al mover figuras (`anchorSnapThreshold` de 12 px de pantalla, Spec 02 de Flutter, SN-1 a SN-4).
+  *Detalles (2026-11-18):* el umbral se convierte a unidades de lienzo con la escala de la vista al empezar el gesto; `null` lo desactiva. Al mover, gana el par de anclas más cercano entre las de las figuras movidas y las demás, y sustituye al ajuste a cuadrícula (SN-3, GA-7); con varias figuras se mueven rígidas (MS-4). Al redimensionar solo participa la ancla bajo el asa arrastrada y solo si puede quedar exacta (un círculo no tiene ancla bajo sus asas de esquina); al girar no hay ajuste (SN-2). Mientras hay ajuste se dibuja un anillo en el ancla destino y no se guarda nada (SN-3, SN-4).
 
 ### 5.4 Texto
 
