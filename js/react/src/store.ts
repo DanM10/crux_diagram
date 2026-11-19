@@ -1,4 +1,4 @@
-import type { DrawingDocument } from '@diagrama-kit/core';
+import { withGroupMates, type DrawingDocument } from '@diagrama-kit/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';
@@ -14,6 +14,13 @@ export interface EditorState {
   /** The document shown during a continuous gesture, or `null` (REA-003). */
   readonly preview: DrawingDocument | null;
   readonly view: EditorView;
+  /**
+   * Ids of the selected shapes in document z-order, always with whole groups (MS-6).
+   * Never in history: selecting adds no entry (REA-018).
+   */
+  readonly selection: readonly string[];
+  /** Whether taps toggle shapes and empty-canvas drags draw a selection rectangle (MS-1, MS-3). */
+  readonly selectionMode: boolean;
 }
 
 export interface EditorStoreOptions {
@@ -30,7 +37,13 @@ export interface EditorStoreOptions {
 export function createEditorStore(initial: DrawingDocument, options: EditorStoreOptions = {}) {
   const store = createStore<EditorState>()(
     temporal(
-      (): EditorState => ({ document: initial, preview: null, view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid } }),
+      (): EditorState => ({
+        document: initial,
+        preview: null,
+        view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid },
+        selection: [],
+        selectionMode: false,
+      }),
       {
         limit: options.historyLimit ?? DEFAULT_EDITOR_CONFIG.historyLimit,
         partialize: (state) => ({ document: state.document }),
@@ -43,6 +56,17 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
   const dropPreview = () => {
     if (store.getState().preview) store.setState({ preview: null });
   };
+  const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
+  const setSelection = (selection: readonly string[]) => {
+    if (!sameIds(selection, store.getState().selection)) store.setState({ selection });
+  };
+  // Flutter `_dropStaleSelection`: after the document changes, keep only the shapes that
+  // still exist, with their current groups.
+  const dropStaleSelection = () => {
+    const { document, selection } = store.getState();
+    const existing = new Set(document.shapes.map((s) => s.id));
+    setSelection(withGroupMates(document, selection.filter((id) => existing.has(id))));
+  };
 
   return {
     getState: store.getState,
@@ -52,9 +76,16 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     getDocument: () => store.getState().document,
     canUndo: () => history().pastStates.length > 0,
     canRedo: () => history().futureStates.length > 0,
-    /** Commits `document` as one entry and ends any gesture; the same instance adds none. */
-    commit(document: DrawingDocument) {
+    /**
+     * Commits `document` as one entry and ends any gesture; the same instance adds none.
+     * With `selection`, the selection becomes those shapes (and their groups) in the same update.
+     */
+    commit(document: DrawingDocument, selection?: readonly string[]) {
+      // Resolve the selection first: an unknown id throws before anything is recorded.
+      const next = selection ? withGroupMates(document, selection) : null;
       store.setState({ document, preview: null });
+      if (next) setSelection(next);
+      else dropStaleSelection();
     },
     /** Shows `document` during a gesture without committing it; `null` cancels the gesture. */
     preview(document: DrawingDocument | null) {
@@ -63,15 +94,40 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     undo() {
       dropPreview();
       history().undo();
+      dropStaleSelection();
     },
     redo() {
       dropPreview();
       history().redo();
+      dropStaleSelection();
     },
     /** Replaces the document and clears the history, adding no entry. */
     reset(document: DrawingDocument) {
       store.setState({ document, preview: null });
       history().clear();
+      dropStaleSelection();
+    },
+    /** Selects the shape with `id` and the rest of its group, or clears the selection with `null` (Flutter `select`). */
+    select(id: string | null) {
+      setSelection(id === null ? [] : withGroupMates(store.getState().document, [id]));
+    },
+    /** Adds the shape with `id` and its group to the selection, or removes them when it is selected (MS-1, MS-6). */
+    toggleSelected(id: string) {
+      const { document, selection } = store.getState();
+      const members = new Set(withGroupMates(document, [id]));
+      const next = selection.includes(id)
+        ? selection.filter((s) => !members.has(s))
+        : withGroupMates(document, [...selection, ...members]);
+      setSelection(next);
+    },
+    /** Adds the shapes with `ids`, and their groups, to the selection (MS-3). */
+    selectAll(ids: readonly string[]) {
+      const { document, selection } = store.getState();
+      setSelection(withGroupMates(document, [...selection, ...ids]));
+    },
+    /** Enters or leaves selection mode; leaving it keeps the selection (MS-8). */
+    setSelectionMode(selectionMode: boolean) {
+      if (store.getState().selectionMode !== selectionMode) store.setState({ selectionMode });
     },
     setShowGrid(showGrid: boolean) {
       store.setState({ view: { ...store.getState().view, showGrid } });
