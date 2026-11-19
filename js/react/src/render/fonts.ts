@@ -14,6 +14,13 @@ function fontSet(): FontSet | undefined {
   return (globalThis.document as { fonts?: FontSet } | undefined)?.fonts;
 }
 
+/** Resolves when `document.fonts` has settled, also when loading fails; at once without a font set (REA-032). */
+export async function whenFontsReady(): Promise<void> {
+  const fonts = fontSet();
+  if (!fonts || fonts.status === 'loaded') return;
+  await fonts.ready.catch(() => undefined);
+}
+
 /** Whether `document.fonts` has settled; labels are measured only after it has (REA-032). */
 export function useFontsReady(): boolean {
   const [ready, setReady] = useState(() => {

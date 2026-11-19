@@ -1,4 +1,5 @@
 import type { DrawingDocument } from '@diagrama-kit/core';
+import { exportImage, type ExportImageOptions } from './export/export-image.js';
 import { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { resolveEditorConfig, type DrawingEditorConfig, type DrawingEditorConfigInput } from './config.js';
 import { createEditorStore, type EditorStore } from './store.js';
@@ -15,6 +16,8 @@ export interface DrawingEditorHandle {
   reset(document: DrawingDocument): void;
   /** Returns to the fitted view, 1× with no pan; not a document change (REA-016, REA-017). */
   fitToScreen(): void;
+  /** Renders the committed document to a PNG or JPEG `Blob`, optionally saving it (REA-040 to REA-043). */
+  exportImage(options: ExportImageOptions): Promise<Blob>;
 }
 
 export interface EditorProviderProps {
@@ -115,12 +118,13 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
       },
       getDocument: editor.getDocument,
       fitToScreen: editor.fitToScreen,
+      exportImage: (options: ExportImageOptions) => exportImage(editor.getDocument(), options, { maxPixels: config.exportMaxPixels }),
       reset(document: DrawingDocument) {
         quietly(() => editor.reset(document));
         unadopted.current.clear();
       },
     }),
-    [editor],
+    [editor, config],
   );
 
   const context = useMemo(() => ({ editor, config }), [editor, config]);

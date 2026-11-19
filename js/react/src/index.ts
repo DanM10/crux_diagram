@@ -3,6 +3,7 @@
 export { DrawingEditor, type DrawingEditorProps } from './DrawingEditor.js';
 export { DrawingViewer, type DrawingViewerProps } from './DrawingViewer.js';
 export type { DrawingEditorHandle } from './editor-context.js';
+export type { ExportImageOptions } from './export/export-image.js';
 export {
   DEFAULT_EDITOR_CONFIG,
   resolveEditorConfig,
