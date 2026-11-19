@@ -2,6 +2,7 @@ import type { DrawingDocument } from '@diagrama-kit/core';
 import { exportImage, type ExportImageOptions } from './export/export-image.js';
 import { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { resolveEditorConfig, type DrawingEditorConfig, type DrawingEditorConfigInput } from './config.js';
+import { resolveEditorLabels, type EditorLabels, type EditorLabelsInput } from './labels.js';
 import { createEditorStore, type EditorStore } from './store.js';
 
 /** Imperative API of the editor (REA-004). Members are added as their tasks land. */
@@ -32,12 +33,15 @@ export interface EditorProviderProps {
   /** Receives the document during a continuous gesture, before the release commits it (REA-003). */
   onPreview?: (document: DrawingDocument) => void;
   config?: DrawingEditorConfigInput;
+  /** Texts of the ready-made controls (REA-053); English by default. */
+  labels?: EditorLabelsInput;
   children?: ReactNode;
 }
 
 interface EditorContextValue {
   readonly editor: EditorStore;
   readonly config: DrawingEditorConfig;
+  readonly labels: EditorLabels;
 }
 
 const EditorContext = createContext<EditorContextValue | null>(null);
@@ -47,10 +51,11 @@ const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : us
 
 /** Owns the editor store and binds it to the controlled `value`/`onChange` pair. */
 export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProps>(function EditorProvider(
-  { value, onChange, onPreview, config: configInput, children },
+  { value, onChange, onPreview, config: configInput, labels: labelsInput, children },
   ref,
 ) {
   const config = useMemo(() => resolveEditorConfig(configInput), [configInput]);
+  const labels = useMemo(() => resolveEditorLabels(labelsInput), [labelsInput]);
   // Created once: the history limit and the initial grid visibility are read at mount.
   const [editor] = useState(() => createEditorStore(value, { historyLimit: config.historyLimit, showGrid: config.showGrid }));
   const latest = useRef({ onChange, onPreview });
@@ -127,7 +132,7 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
     [editor, config],
   );
 
-  const context = useMemo(() => ({ editor, config }), [editor, config]);
+  const context = useMemo(() => ({ editor, config, labels }), [editor, config, labels]);
   return <EditorContext.Provider value={context}>{children}</EditorContext.Provider>;
 });
 
@@ -142,3 +147,6 @@ export const useEditor = (): EditorStore => useEditorContext().editor;
 
 /** The resolved config of the enclosing editor. */
 export const useEditorConfig = (): DrawingEditorConfig => useEditorContext().config;
+
+/** The texts of the enclosing editor's controls. */
+export const useEditorLabels = (): EditorLabels => useEditorContext().labels;

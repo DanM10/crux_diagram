@@ -102,6 +102,8 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     subscribe: store.subscribe,
     /** The committed document. */
     getDocument: () => store.getState().document,
+    /** Calls `listener` whenever the undo or redo stacks change (for `canUndo`/`canRedo` in the UI). */
+    subscribeHistory: (listener: () => void) => store.temporal.subscribe(listener),
     canUndo: () => history().pastStates.length > 0,
     canRedo: () => history().futureStates.length > 0,
     /**

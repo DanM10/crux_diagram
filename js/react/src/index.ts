@@ -2,6 +2,8 @@
 // import time (REA-054).
 export { DrawingEditor, type DrawingEditorProps } from './DrawingEditor.js';
 export { DrawingViewer, type DrawingViewerProps } from './DrawingViewer.js';
+export { JointDisplayBar } from './JointDisplayBar.js';
+export { DEFAULT_EDITOR_LABELS, type EditorLabels, type EditorLabelsInput } from './labels.js';
 export type { DrawingEditorHandle } from './editor-context.js';
 export type { ExportImageOptions } from './export/export-image.js';
 export {
