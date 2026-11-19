@@ -15,5 +15,5 @@
       "@diagrama-kit/react": ["./src/index.ts"]
     }
   },
-  "include": ["src", "test", "e2e", "examples", "playwright.config.ts"]
+  "include": ["src", "test", "e2e", "examples", "stories", ".storybook", "playwright.config.ts"]
 }

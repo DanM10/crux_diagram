@@ -29,7 +29,9 @@
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
     "@diagrama-kit/core": "^0.0.0",
@@ -44,6 +46,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.65.1",
+    "@storybook/react-vite": "^10.6.7",
     "@testing-library/react": "^16.3.3",
     "@types/react-dom": "^19.3.0",
     "jsdom": "^31.0.1",
@@ -51,6 +54,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-konva": "^19.3.2",
+    "storybook": "^10.6.7",
     "vite": "^8.3.8"
   }
 }
