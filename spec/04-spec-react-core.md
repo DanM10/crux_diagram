@@ -104,6 +104,7 @@ Reciben un `DrawingDocument` y devuelven uno nuevo, sin mutar.
 - **REC-074** Grupos: `groupShapes` y `ungroup`, con los invariantes de FMT-030 a FMT-032.
 - **REC-075** `setJointDisplay({ labelSize?, visible? })`.
 - **REC-077** Se portan también los módulos de edición de Flutter que React necesita, para que el editor no tenga geometría propia: selección por punto (`hit_testing`), redimensionado con asas (`resize`: la esquina u borde opuesto queda fijo en el mundo, tamaño mínimo 20, máximo el lado mayor del lienzo), ajuste a cuadrícula (`grid`), ajuste entre anclas (`anchor_snapping`, `pickAnchor`), ajuste suave de ángulo (`softSnapAngle`) y límites de vista (`viewport`). Al portar cada uno se agregan sus fixtures a `fixtures/geometry/`.
+- **REC-078** Selección y cajas, portadas de Flutter (`transforms.dart`, `_withGroupMates`, `_duplicateSelection`): `shapeBounds(shape)` y `boundsOfShapes(shapes)` devuelven la caja alineada a los ejes que contiene la figura girada (el círculo usa la elipse girada); `withGroupMates(doc, ids)` agrega todos los miembros de cada grupo tocado; `duplicateShapes(doc, ids, options?)` copia varias figuras con nuevo `id`, desplazadas 20 unidades y con el centro restringido al lienzo, encima de todas, sin copiar juntas, y un grupo copiado completo se vuelve un grupo nuevo.
 - **REC-076** Las operaciones no mueven `labelOffset` al mover, redimensionar o girar la figura (FMT-021).
 
 ### 5.8 Empaquetado

@@ -2,7 +2,8 @@
   "name": "crux-diagram-js",
   "private": true,
   "workspaces": [
-    "core"
+    "core",
+    "react"
   ],
   "engines": {
     "node": ">=22"

@@ -41,9 +41,9 @@ Funcionalidad que se reproduce de Flutter:
 
 - **Render:** `react-konva` (Canvas).
 - **Estado interno:** Zustand + `zundo` para deshacer/rehacer, con historial de instantáneas (por defecto 100 entradas; un gesto continuo = una entrada).
-- **React:** peer dependency `react >= 18`.
+- **React:** solo React 19. Peer dependencies `react` y `react-dom` `^19.3.0`, `react-konva` `^19.3.0` (que pide `react ^19.3.0`) y `konva` `^10.0.0`. React 18 no se soporta (decidido 2026-11-18).
 - **Capas del `Stage`:** (1) fondo, (2) figuras, (3) juntas, (4) UI de edición (asas, puntos de anclaje, cuadrícula, guías). Las juntas se dibujan por encima de todas las figuras (FMT-023). La capa 4 se oculta al exportar.
-- **Rotación y pivote:** cada figura usa `x,y = center`, `offsetX = width/2`, `offsetY = height/2`, `rotation` en grados (conversión desde y hacia radianes con `core`).
+- **Rotación y pivote:** cada figura usa `x,y = center` y `rotation` en grados (conversión desde y hacia radianes con `core`), así gira sobre su centro. El cuadrado y el rectángulo (`Rect`) usan además `offsetX = width/2`, `offsetY = height/2`; el círculo es una `Ellipse` con `radiusX = width/2`, `radiusY = height/2`, que Konva ya centra en `x,y`, sin offset.
 - **Asas propias en lugar de `Transformer`:** el redimensionado y la rotación se implementan con asas dibujadas en la capa 4 que llaman a las operaciones de `core` (REC-077). `Transformer` escala la figura y obliga a reconvertir a `size`, lo que no reproduce el algoritmo de Flutter (esquina opuesta fija, mínimo y máximo, cuadrícula).
 
 ## 5. Requisitos
@@ -52,8 +52,13 @@ Funcionalidad que se reproduce de Flutter:
 
 - **REA-001** `<DrawingViewer document={d} jointStyle? />`: solo lectura, ajusta el lienzo al contenedor con fondo blanco, figuras y juntas, igual que `DrawingView` de Flutter.
 - **REA-002** `<DrawingEditor value={d} onChange={fn} readOnly? config? />`: componente **controlado**; emite un `DrawingDocument` nuevo (inmutable) en cada cambio confirmado.
+- **REA-007** Un `value` distinto del documento del editor nunca borra el historial por sí solo:
+  - si es un documento que el editor ya emitió y la app todavía no adoptó (adopción con retraso), se ignora;
+  - en otro caso se aplica como un cambio que se puede deshacer, sin llamar a `onChange`.
+
+  Para abrir otro dibujo con el historial vacío, la app cambia la `key` del editor o llama a `reset(documento)` (REA-004).
 - **REA-003** Un arrastre continuo emite `onChange` solo al soltar (y opcionalmente `onPreview` durante el arrastre).
-- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`.
+- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`, `reset(documento)` (reemplaza el documento y vacía el historial, sin llamar a `onChange`).
 - **REA-005** `readOnly` desactiva selección, arrastre y atajos.
 - **REA-006** `config` replica `DrawingEditorConfig` de Flutter: `gridSize`, `showGrid`, `gridMajorEvery`, `rotationSnapStep`, `rotationSnapTolerance`, `shapeStyle`, `jointNameMaxLength` (12 por defecto), `jointNameSuggestions`, `canvasSize`.
 
@@ -65,6 +70,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-013** Rotar con una asa sobre el borde superior, con ajuste suave a múltiplos de 15° dentro de 5° (configurable), y la acción "girar 90°".
 - **REA-014** `Supr` y `Backspace` eliminan. Eliminar una figura elimina sus juntas (REC-071).
 - **REA-015** Atajos: `Ctrl/Cmd+Z`, `Ctrl/Cmd+Shift+Z`, `Ctrl/Cmd+D` (duplicar con nuevo `id`), flechas del teclado para mover 1 unidad (`Shift` = 10).
+- **REA-018** *Supuesto (2026-11-18), Flutter no tiene atajos:* los atajos y las flechas actúan solo cuando el editor tiene el foco (contenedor enfocable con `tabIndex`) y nunca mientras un campo de texto tiene el foco. Cada pulsación de flecha es una entrada de historial, mueve la selección sin ajuste a cuadrícula y con el centro restringido al lienzo (FR-10). `Ctrl/Cmd+D` duplica como FR-20 (copias desplazadas 20 unidades y seleccionadas). La selección no entra en el historial.
 - **REA-016** Zoom con la rueda del ratón y con el pellizco del trackpad (evento `wheel` con `ctrlKey`) entre 1× y 4×; pan con arrastre en fondo cuando el zoom supera el ajustado, o con barra espaciadora. Las coordenadas del puntero se convierten a coordenadas del lienzo. Botón "ajustar a pantalla" con indicador de porcentaje (Spec 03, ZM-1, ZM-2).
 - **REA-017** Un cambio de zoom, pan o cuadrícula no crea entrada de historial ni marca el documento como modificado.
 
