@@ -11,8 +11,9 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
-      "@diagrama-kit/core": ["../core/src/index.ts"]
+      "@diagrama-kit/core": ["../core/src/index.ts"],
+      "@diagrama-kit/react": ["./src/index.ts"]
     }
   },
-  "include": ["src", "test"]
+  "include": ["src", "test", "e2e", "examples", "stories", ".storybook", "playwright.config.ts"]
 }

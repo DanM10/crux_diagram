@@ -15,15 +15,19 @@ const empty: DrawingDocument = {
 };
 
 describe('REA-054 server rendering', () => {
-  // The editor wraps the stage container in its focusable element (REA-018).
-  it('renders the viewer and the editor as empty containers, with no canvas', () => {
+  // The server renders the accessible group with its (empty) shape list (REA-052) and no canvas.
+  // The editor wraps it in its focusable element (REA-018).
+  it('renders the viewer and the editor as containers with the shape list, with no canvas', () => {
     expect(typeof window).toBe('undefined');
-    for (const html of [
-      renderToString(<DrawingViewer document={empty} />),
-      renderToString(<DrawingEditor value={empty} onChange={() => {}} />),
-    ]) {
-      expect(html).toMatch(/^(<div[^>]*>){1,2}(<\/div>){1,2}$/);
+    const viewer = renderToString(<DrawingViewer document={empty} />);
+    const editor = renderToString(<DrawingEditor value={empty} onChange={() => {}} />);
+    for (const html of [viewer, editor]) {
+      expect(html).toContain('role="group"');
+      expect(html).toContain('aria-label="Drawing with 0 shapes and 0 joints"');
+      expect(html).toContain('<ul');
       expect(html).not.toContain('canvas');
     }
+    expect(viewer.match(/<div/g)).toHaveLength(1);
+    expect(editor.match(/<div/g)).toHaveLength(2);
   });
 });

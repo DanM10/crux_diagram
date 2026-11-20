@@ -1,7 +1,7 @@
 // The joint tool and the name editor, as store operations (REA-020, REA-021, REA-025;
 // Flutter JT-1 to JT-4, NM-1, NM-2, DL-3).
 
-import { addJoint, normalizeJointName, pickAnchor, renameJoint, setJointDisplay, type Point } from '@diagrama-kit/core';
+import { addJoint, normalizeJointName, pickAnchor, renameJoint, setJointDisplay, type JointLabelSize, type Point } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
 import { labelAt, type LabelRect } from './gestures.js';
 
@@ -81,4 +81,23 @@ export function cancelNaming(editor: EditorStore): void {
     editor.preview(null);
     editor.selectJoint(null);
   }
+}
+
+/** Sets the joint label size as one history entry; the size already active adds none (JS-4). */
+export function setJointLabelSize(editor: EditorStore, labelSize: JointLabelSize): void {
+  const document = editor.getDocument();
+  const next = setJointDisplay(document, { labelSize });
+  if (next !== document) editor.commit(next);
+}
+
+/**
+ * Shows or hides every joint as one history entry (JV-6). Hiding clears the joint
+ * selection and keeps the shape selection (JV-3); the joints stay in the document (JV-5).
+ */
+export function setJointsVisible(editor: EditorStore, visible: boolean): void {
+  const document = editor.getDocument();
+  const next = setJointDisplay(document, { visible });
+  if (next === document) return;
+  if (!visible) editor.selectJoint(null);
+  editor.commit(next);
 }
