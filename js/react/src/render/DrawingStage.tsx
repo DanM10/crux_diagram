@@ -2,13 +2,18 @@
 // section 4): (1) background, (2) shapes, (3) joints, (4) editing UI, given as children.
 
 import {
+  applyZoom,
   argbToCss,
+  clampZoom,
   DEFAULT_JOINT_STYLE,
+  FITTED_ZOOM,
   fitViewport,
+  type CanvasViewport,
   type DrawingDocument,
   type JointStyle,
   type Shape,
   type Size,
+  type ViewportZoom,
 } from '@diagrama-kit/core';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { memo, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -21,20 +26,26 @@ export interface DrawingStageProps {
   readonly jointStyle?: JointStyle;
   /** Whether the stage handles pointer events. */
   readonly listening: boolean;
+  /** Zoom and pan on top of the fitted view (default: fitted); clamped so the canvas stays in view. */
+  readonly zoom?: ViewportZoom;
+  /** Called on a mouse wheel or trackpad pinch over the stage (REA-016). */
+  readonly onWheel?: (event: KonvaEventObject<WheelEvent>) => void;
   /** Called when a pointer goes down anywhere on the stage (the editor's gestures). */
   readonly onPointerDown?: (event: KonvaEventObject<PointerEvent>) => void;
+  /** HTML drawn over the stage, positioned with the viewport (the joint name editor). */
+  readonly overlay?: (viewport: CanvasViewport) => ReactNode;
   /** Layer 4, drawn above the joints; a function receives the view scale (screen pixels per canvas unit). */
   readonly children?: ReactNode | ((scale: number) => ReactNode);
 }
 
 /** Fills its parent and fits the canvas into it, centered, keeping the aspect ratio. */
-export function DrawingStage({ document, jointStyle = DEFAULT_JOINT_STYLE, listening, onPointerDown, children }: DrawingStageProps) {
+export function DrawingStage({ document, jointStyle = DEFAULT_JOINT_STYLE, listening, zoom = FITTED_ZOOM, onWheel, onPointerDown, overlay, children }: DrawingStageProps) {
   const container = useRef<HTMLDivElement>(null);
   const area = useContainerSize(container);
   return (
-    <div ref={container} style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+    <div ref={container} style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       {area && area.width > 0 && area.height > 0 && (
-        <FittedStage document={document} jointStyle={jointStyle} listening={listening} onPointerDown={onPointerDown} area={area}>
+        <FittedStage document={document} jointStyle={jointStyle} listening={listening} zoom={zoom} onWheel={onWheel} onPointerDown={onPointerDown} overlay={overlay} area={area}>
           {children}
         </FittedStage>
       )}
@@ -46,13 +57,17 @@ function FittedStage({
   document,
   jointStyle,
   listening,
+  zoom,
+  onWheel,
   onPointerDown,
+  overlay,
   area,
   children,
-}: Required<Omit<DrawingStageProps, 'children' | 'onPointerDown'>> & Pick<DrawingStageProps, 'onPointerDown'> & { area: Size; children?: DrawingStageProps['children'] }) {
-  const viewport = fitViewport(document.canvas, area);
+}: Required<Omit<DrawingStageProps, 'children' | 'onPointerDown' | 'onWheel' | 'overlay'>> & Pick<DrawingStageProps, 'onPointerDown' | 'onWheel' | 'overlay'> & { area: Size; children?: DrawingStageProps['children'] }) {
+  const viewport = applyZoom(clampZoom(zoom, document.canvas, area), fitViewport(document.canvas, area));
   const clip = { x: 0, y: 0, width: document.canvas.width, height: document.canvas.height };
   return (
+    <>
     <Stage
       width={area.width}
       height={area.height}
@@ -62,6 +77,7 @@ function FittedStage({
       scaleY={viewport.scale}
       listening={listening}
       onPointerDown={onPointerDown}
+      onWheel={onWheel}
     >
       <Layer name="background" clip={clip} listening={false}>
         <Rect name="background-fill" width={clip.width} height={clip.height} fill="#ffffff" />
@@ -74,6 +90,8 @@ function FittedStage({
       <JointsLayer document={document} style={jointStyle} clip={clip} />
       {typeof children === 'function' ? children(viewport.scale) : children}
     </Stage>
+    {overlay?.(viewport)}
+    </>
   );
 }
 

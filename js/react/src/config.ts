@@ -36,6 +36,8 @@ export interface DrawingEditorConfig {
   readonly anchorSnapThreshold: number | null;
   /** Maximum number of undo entries. */
   readonly historyLimit: number;
+  /** Most pixels an exported image may have (REA-043). */
+  readonly exportMaxPixels: number;
 }
 
 /** What a caller may pass: any field, with a partial shape style. */
@@ -57,6 +59,7 @@ export const DEFAULT_EDITOR_CONFIG: DrawingEditorConfig = Object.freeze({
   jointNameSuggestions: Object.freeze([]) as readonly string[],
   anchorSnapThreshold: 12,
   historyLimit: 100,
+  exportMaxPixels: 16_000_000,
 });
 
 /** The entries of `object` whose value is not `undefined`. */
@@ -76,5 +79,6 @@ export function resolveEditorConfig(input: DrawingEditorConfigInput = {}): Drawi
   if (!Number.isInteger(config.historyLimit) || config.historyLimit < 1) {
     throw new RangeError('historyLimit must be a positive integer');
   }
+  if (!(config.exportMaxPixels > 0)) throw new RangeError('exportMaxPixels must be a positive number');
   return config;
 }

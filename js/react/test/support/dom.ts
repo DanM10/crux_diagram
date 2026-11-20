@@ -34,6 +34,9 @@ function fakeContext(canvas: HTMLCanvasElement): CanvasRenderingContext2D {
 
 let installed = false;
 
+/** Every canvas encoded by the fake `toBlob`: its size and the arguments of the call. */
+export const encoded: { width: number; height: number; type?: string; quality?: unknown }[] = [];
+
 /** Installs the canvas fake once per test file. */
 export function installCanvas(): void {
   if (installed) return;
@@ -42,6 +45,10 @@ export function installCanvas(): void {
     return fakeContext(this);
   } as unknown as typeof HTMLCanvasElement.prototype.getContext;
   HTMLCanvasElement.prototype.toDataURL = () => 'data:,';
+  HTMLCanvasElement.prototype.toBlob = function toBlob(this: HTMLCanvasElement, callback: BlobCallback, type?: string, quality?: unknown) {
+    encoded.push({ width: this.width, height: this.height, type, quality });
+    callback(new Blob(['image'], { type: type ?? 'image/png' }));
+  };
 }
 
 /** Makes every observed element report `width × height`. */

@@ -17,6 +17,7 @@ describe('REA-006 editor config', () => {
       jointNameSuggestions: [],
       anchorSnapThreshold: 12,
       historyLimit: 100,
+      exportMaxPixels: 16_000_000,
     });
     expect(Object.isFrozen(DEFAULT_EDITOR_CONFIG)).toBe(true);
   });
@@ -40,6 +41,10 @@ describe('REA-006 editor config', () => {
 
   it('null stays an explicit value where the field allows it', () => {
     expect(resolveEditorConfig({ gridSize: null, anchorSnapThreshold: null })).toMatchObject({ gridSize: null, anchorSnapThreshold: null });
+  });
+
+  it.each([0, -1, Number.NaN])('rejects exportMaxPixels %s with a RangeError', (exportMaxPixels) => {
+    expect(() => resolveEditorConfig({ exportMaxPixels })).toThrow(RangeError);
   });
 
   it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])('rejects historyLimit %s with a RangeError', (historyLimit) => {

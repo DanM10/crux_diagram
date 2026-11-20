@@ -1,4 +1,4 @@
-import { withGroupMates, type DrawingDocument } from '@diagrama-kit/core';
+import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type ViewportZoom } from '@diagrama-kit/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';
@@ -6,6 +6,17 @@ import { DEFAULT_EDITOR_CONFIG } from './config.js';
 /** View settings: never in history and never a document change (REA-017). */
 export interface EditorView {
   readonly showGrid: boolean;
+  /** Zoom and pan on top of the fitted view; the stage clamps it to the canvas (REA-016). */
+  readonly zoom: ViewportZoom;
+}
+
+/** The active tool: `select` moves and edits shapes, `joint` places and selects joints (REA-020). */
+export type EditorTool = 'select' | 'joint';
+
+/** The open joint name editor: for a joint being created (still a preview) or an existing one (REA-021). */
+export interface JointNaming {
+  readonly jointId: string;
+  readonly isNew: boolean;
 }
 
 export interface EditorState {
@@ -21,6 +32,12 @@ export interface EditorState {
   readonly selection: readonly string[];
   /** Whether taps toggle shapes and empty-canvas drags draw a selection rectangle (MS-1, MS-3). */
   readonly selectionMode: boolean;
+  readonly tool: EditorTool;
+  /** The selected joint, never together with selected shapes. Not in history. */
+  readonly selectedJoint: string | null;
+  readonly naming: JointNaming | null;
+  /** Anchors highlighted while an anchor snap is active during a gesture (SN-3). Not in history. */
+  readonly snapHighlight: readonly Point[];
 }
 
 export interface EditorStoreOptions {
@@ -40,9 +57,13 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
       (): EditorState => ({
         document: initial,
         preview: null,
-        view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid },
+        view: { showGrid: options.showGrid ?? DEFAULT_EDITOR_CONFIG.showGrid, zoom: FITTED_ZOOM },
         selection: [],
         selectionMode: false,
+        tool: 'select',
+        selectedJoint: null,
+        naming: null,
+        snapHighlight: [],
       }),
       {
         limit: options.historyLimit ?? DEFAULT_EDITOR_CONFIG.historyLimit,
@@ -54,11 +75,13 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
   );
   const history = () => store.temporal.getState();
   const dropPreview = () => {
-    if (store.getState().preview) store.setState({ preview: null });
+    if (store.getState().preview) store.setState({ preview: null, snapHighlight: [] });
   };
   const sameIds = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((id, i) => id === b[i]);
   const setSelection = (selection: readonly string[]) => {
-    if (!sameIds(selection, store.getState().selection)) store.setState({ selection });
+    if (!sameIds(selection, store.getState().selection)) {
+      store.setState({ selection, ...(selection.length > 0 ? { selectedJoint: null } : {}) });
+    }
   };
   // Flutter `_dropStaleSelection`: after the document changes, keep only the shapes that
   // still exist, with their current groups.
@@ -66,6 +89,11 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     const { document, selection } = store.getState();
     const existing = new Set(document.shapes.map((s) => s.id));
     setSelection(withGroupMates(document, selection.filter((id) => existing.has(id))));
+    // A joint, or an open name editor, whose joint is gone (a new joint lives only in the preview).
+    const { preview, selectedJoint, naming } = store.getState();
+    const joints = new Set((preview ?? document).joints.map((j) => j.id));
+    if (selectedJoint && !joints.has(selectedJoint)) store.setState({ selectedJoint: null });
+    if (naming && !joints.has(naming.jointId)) store.setState({ naming: null });
   };
 
   return {
@@ -83,13 +111,13 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     commit(document: DrawingDocument, selection?: readonly string[]) {
       // Resolve the selection first: an unknown id throws before anything is recorded.
       const next = selection ? withGroupMates(document, selection) : null;
-      store.setState({ document, preview: null });
+      store.setState({ document, preview: null, snapHighlight: [] });
       if (next) setSelection(next);
       else dropStaleSelection();
     },
     /** Shows `document` during a gesture without committing it; `null` cancels the gesture. */
-    preview(document: DrawingDocument | null) {
-      store.setState({ preview: document });
+    preview(document: DrawingDocument | null, snapHighlight: readonly Point[] = []) {
+      store.setState({ preview: document, snapHighlight: document ? snapHighlight : [] });
     },
     undo() {
       dropPreview();
@@ -125,9 +153,34 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
       const { document, selection } = store.getState();
       setSelection(withGroupMates(document, [...selection, ...ids]));
     },
+    /** Switches the tool: a view change, never a history entry. An open name editor closes. */
+    setTool(tool: EditorTool) {
+      if (store.getState().tool !== tool) store.setState({ tool, naming: null });
+    },
+    /** Selects the joint with `id` (and no shapes), or clears the joint selection with `null`. */
+    selectJoint(id: string | null) {
+      const state = store.getState();
+      if (id === null) {
+        if (state.selectedJoint !== null) store.setState({ selectedJoint: null });
+      } else {
+        store.setState({ selectedJoint: id, selection: [] });
+      }
+    },
+    /** Opens (or with `null` closes) the joint name editor. */
+    setNaming(naming: JointNaming | null) {
+      store.setState({ naming });
+    },
     /** Enters or leaves selection mode; leaving it keeps the selection (MS-8). */
     setSelectionMode(selectionMode: boolean) {
       if (store.getState().selectionMode !== selectionMode) store.setState({ selectionMode });
+    },
+    /** Sets zoom and pan: a view change, never a history entry (REA-017). */
+    setZoom(zoom: ViewportZoom) {
+      store.setState({ view: { ...store.getState().view, zoom } });
+    },
+    /** Returns to the fitted view: 1× with no pan (REA-004). */
+    fitToScreen() {
+      store.setState({ view: { ...store.getState().view, zoom: FITTED_ZOOM } });
     },
     setShowGrid(showGrid: boolean) {
       store.setState({ view: { ...store.getState().view, showGrid } });
