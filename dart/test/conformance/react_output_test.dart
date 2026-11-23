@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 /// Cross test (REA-O2, spec 05 section 7): a document saved by the React editor opens in
 /// Flutter. The file is written by the React browser flow (`js/react/e2e/flow.spec.ts`, run
