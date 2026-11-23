@@ -28,8 +28,8 @@ Verificar automáticamente cada cambio y publicar cada paquete de forma independ
 ├── ci-js.yml            ← pruebas y análisis de JS
 ├── conformance.yml      ← fixtures contra Dart y JS (job de síntesis)
 ├── release-dart.yml     ← publica en pub.dev (tag dart-v*)
-├── release-js-core.yml  ← publica @diagrama-kit/core (tag js-core-v*)
-└── release-js-react.yml ← publica @diagrama-kit/react (tag js-react-v*)
+├── release-js-core.yml  ← publica @crux-diagram/core (tag js-core-v*)
+└── release-js-react.yml ← publica @crux-diagram/react (tag js-react-v*)
 ```
 
 ### 3.1 CI
@@ -52,8 +52,8 @@ Verificar automáticamente cada cambio y publicar cada paquete de forma independ
 | Paquete | Patrón de tag | Destino |
 |---|---|---|
 | Dart | `dart-v1.2.0` | pub.dev |
-| JS core | `js-core-v1.2.0` | npm `@diagrama-kit/core` |
-| JS react | `js-react-v1.2.0` | npm `@diagrama-kit/react` |
+| JS core | `js-core-v1.2.0` | npm `@crux-diagram/core` |
+| JS react | `js-react-v1.2.0` | npm `@crux-diagram/react` |
 
 - **CI-010** Los tags antiguos del repo importado llevan prefijo `dart-legacy-` y no coinciden con ningún patrón (ver `01-migracion-monorepo.md`).
 - **CI-011** Todo workflow de release **verifica** que la versión del tag coincide con `pubspec.yaml` / `package.json` y que el commit del tag está en `main`; si no, falla.
@@ -143,9 +143,9 @@ jobs:
           registry-url: https://registry.npmjs.org
       - run: npm ci
         working-directory: js
-      - run: npm test --workspace @diagrama-kit/core
+      - run: npm test --workspace @crux-diagram/core
         working-directory: js
-      - run: npm publish --workspace @diagrama-kit/core --provenance --access public
+      - run: npm publish --workspace @crux-diagram/core --provenance --access public
         working-directory: js
 ```
 
@@ -170,7 +170,7 @@ jobs:
 - [ ] Un PR que cambia una fixture ejecuta Dart y JS; si una implementación no la cumple, el PR queda bloqueado.
 - [ ] Crear el tag `dart-v0.1.1` publica la versión `0.1.1` en pub.dev sin ningún token almacenado.
 - [ ] Crear un tag con versión que no coincide con `pubspec.yaml` falla antes de publicar.
-- [ ] Crear `js-core-v0.1.1` publica `@diagrama-kit/core@0.1.1` con provenance visible en npm.
+- [ ] Crear `js-core-v0.1.1` publica `@crux-diagram/core@0.1.1` con provenance visible en npm.
 - [ ] Un intento de publicar desde una rama distinta de `main` falla.
 
 ## 9. Preguntas abiertas

@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 // Only shapes whose data changed render again (REA-050).
-import { moveShape } from '@diagrama-kit/core';
+import { moveShape } from '@crux-diagram/core';
 import { act, cleanup, render } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 const built: string[] = [];
 vi.mock('../src/render/scene.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../src/render/scene.js')>();
-  return { ...original, shapeNodeProps: (shape: import('@diagrama-kit/core').Shape) => (built.push(shape.id), original.shapeNodeProps(shape)) };
+  return { ...original, shapeNodeProps: (shape: import('@crux-diagram/core').Shape) => (built.push(shape.id), original.shapeNodeProps(shape)) };
 });
 
 const { DrawingViewer } = await import('../src/index.js');

@@ -1,6 +1,6 @@
 // Pointer gestures, Konva-free (REA-010, REA-011; Flutter FR-6, FR-8, FR-9, FR-10, FR-22,
 // MS-1, MS-3, MS-4, MS-6, GA-1, GA-2, GA-3, GA-8, PN-4, PN-5).
-import { moveShape, type DrawingDocument } from '@diagrama-kit/core';
+import { moveShape, type DrawingDocument } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { beginDrag, endDrag, tap, updateDrag, type DragGrid } from '../src/interaction/gestures.js';
 import { createEditorStore } from '../src/store.js';

@@ -1,6 +1,6 @@
 // Editor state and history (spec 05 section 4, REA-003, REA-017; Flutter FR-22).
-import type { DrawingDocument } from '@diagrama-kit/core';
-import { moveShape, parse } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
+import { moveShape, parse } from '@crux-diagram/core';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';

@@ -1,7 +1,7 @@
 // REA-O1: an editor in a page, controlled by the app, with the ready-made toolbar.
-import { parse } from '@diagrama-kit/core';
+import { parse } from '@crux-diagram/core';
 import { useState } from 'react';
-import { DrawingEditor, Toolbar } from '@diagrama-kit/react';
+import { DrawingEditor, Toolbar } from '@crux-diagram/react';
 
 const empty = parse('{"schemaVersion":1,"canvas":{"width":1000,"height":800},"shapes":[],"joints":[],"jointDisplay":{"labelSize":"medium","visible":true},"groups":[]}');
 

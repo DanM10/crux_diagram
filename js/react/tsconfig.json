@@ -11,8 +11,8 @@
     "noEmit": true,
     "skipLibCheck": true,
     "paths": {
-      "@diagrama-kit/core": ["../core/src/index.ts"],
-      "@diagrama-kit/react": ["./src/index.ts"]
+      "@crux-diagram/core": ["../core/src/index.ts"],
+      "@crux-diagram/react": ["./src/index.ts"]
     }
   },
   "include": ["src", "test", "e2e", "examples", "stories", ".storybook", "playwright.config.ts"]

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Zoom and pan through the real DrawingEditor (REA-016, REA-017, REA-004 `fitToScreen`;
 // Flutter ZM-1, ZM-2, ZM-5).
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type Konva from 'konva';
 import { createRef, useState } from 'react';

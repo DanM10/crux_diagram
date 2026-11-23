@@ -7,8 +7,8 @@
     "check": "node check.mjs"
   },
   "dependencies": {
-    "@diagrama-kit/core": "file:../../core",
-    "@diagrama-kit/react": "file:../../react",
+    "@crux-diagram/core": "file:../../core",
+    "@crux-diagram/react": "file:../../react",
     "konva": "^10.0.0",
     "next": "^16.0.0",
     "react": "^19.3.0",
@@ -16,6 +16,6 @@
     "react-konva": "^19.3.0"
   },
   "overrides": {
-    "@diagrama-kit/core": "file:../../core"
+    "@crux-diagram/core": "file:../../core"
   }
 }

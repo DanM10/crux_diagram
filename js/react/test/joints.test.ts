@@ -1,6 +1,6 @@
 // The joint tool on the store: create, select, name and delete joints
 // (REA-020, REA-021, REA-025; Flutter JT-1 to JT-4, NM-1, NM-2, DL-1, DL-3, NS-4).
-import { setJointDisplay } from '@diagrama-kit/core';
+import { setJointDisplay } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { beginRename, cancelNaming, confirmNaming, jointToolTap } from '../src/interaction/joints.js';
 import { runCommand } from '../src/interaction/keyboard.js';

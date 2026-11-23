@@ -1,7 +1,7 @@
 // Pure zoom and pan rules for the editor view (REA-016). The geometry (pinch, clamping)
 // is core's `ViewportZoom`; this adds how a wheel event or a drag becomes a new view.
 
-import { clampZoom, pinchZoom, type Point, type Size, type Vector, type ViewportZoom } from '@diagrama-kit/core';
+import { clampZoom, pinchZoom, type Point, type Size, type Vector, type ViewportZoom } from '@crux-diagram/core';
 
 /** Zoom per wheel pixel for a mouse wheel: one 100 px notch is about 22 %. */
 const WHEEL_SENSITIVITY = 0.002;

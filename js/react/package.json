@@ -1,5 +1,5 @@
 {
-  "name": "@diagrama-kit/react",
+  "name": "@crux-diagram/react",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -34,7 +34,7 @@
     "build-storybook": "storybook build -o storybook-static"
   },
   "dependencies": {
-    "@diagrama-kit/core": "^0.0.0",
+    "@crux-diagram/core": "^0.0.0",
     "zundo": "^2.3.0",
     "zustand": "^5.1.0"
   },

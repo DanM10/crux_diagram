@@ -27,13 +27,13 @@ beforeAll(() => {
   // Third-party packages (peers and their transitive dependencies) come from the
   // workspace install, linked by name; only the workspace packages are built.
   for (const entry of readdirSync(join(JS, 'node_modules'))) {
-    if (entry.startsWith('.') || entry === '@diagrama-kit') continue;
+    if (entry.startsWith('.') || entry === '@crux-diagram') continue;
     const link = join(consumer, 'node_modules', entry);
     mkdirSync(dirname(link), { recursive: true });
     symlinkSync(join(JS, 'node_modules', entry), link, 'dir');
   }
-  install('@diagrama-kit/core', 'core');
-  install('@diagrama-kit/react', 'react');
+  install('@crux-diagram/core', 'core');
+  install('@crux-diagram/react', 'react');
 }, 120_000);
 
 afterAll(() => {
@@ -69,21 +69,21 @@ describe('REA-060 ESM and CJS outputs with types; react, react-dom, konva and re
   });
 
   it('emits declarations for both outputs', () => {
-    const installed = join(consumer!, 'node_modules', '@diagrama-kit', 'react', 'dist');
+    const installed = join(consumer!, 'node_modules', '@crux-diagram', 'react', 'dist');
     for (const folder of ['esm', 'cjs']) expect(readFileSync(join(installed, folder, 'index.d.ts'), 'utf8'), folder).toBeTypeOf('string');
   });
 });
 
-describe('REA-061 depends on @diagrama-kit/core with a compatible range', () => {
+describe('REA-061 depends on @crux-diagram/core with a compatible range', () => {
   it('declares core as a dependency whose range accepts the workspace version', () => {
-    expect(pkg.dependencies['@diagrama-kit/core']).toBe(`^${corePkg.version}`);
+    expect(pkg.dependencies['@crux-diagram/core']).toBe(`^${corePkg.version}`);
   });
 });
 
 describe('REA-054 SSR safe: importing the package without window does not fail', () => {
   it('import of the package name resolves to the ESM build in plain Node', () => {
-    const script = `import * as m from '@diagrama-kit/react';
-      ${report("import.meta.resolve('@diagrama-kit/react')")}`;
+    const script = `import * as m from '@crux-diagram/react';
+      ${report("import.meta.resolve('@crux-diagram/react')")}`;
     const result = JSON.parse(node(['--input-type=module', '-e', script]));
     expect(result.window).toBe('undefined');
     expect(result.resolved).toMatch(/\/dist\/esm\/index\.js$/);
@@ -91,8 +91,8 @@ describe('REA-054 SSR safe: importing the package without window does not fail',
   });
 
   it('require of the package name resolves to the CJS build in plain Node', () => {
-    const script = `const m = require('@diagrama-kit/react');
-      ${report("require.resolve('@diagrama-kit/react')")}`;
+    const script = `const m = require('@crux-diagram/react');
+      ${report("require.resolve('@crux-diagram/react')")}`;
     const result = JSON.parse(node(['-e', script]));
     expect(result.window).toBe('undefined');
     expect(result.resolved).toMatch(/\/dist\/cjs\/index\.js$/);

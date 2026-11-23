@@ -1,5 +1,5 @@
 // Anchor snapping while moving and resizing (REA-026; Flutter SN-1 to SN-4, MS-4, GA-7).
-import { anchorPositionOf } from '@diagrama-kit/core';
+import { anchorPositionOf } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { beginDrag, cancelDrag, endDrag, updateDrag, type DragGrid, type HandleContext } from '../src/interaction/gestures.js';
 import { createEditorStore } from '../src/store.js';

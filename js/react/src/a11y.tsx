@@ -1,7 +1,7 @@
 // Basic accessibility of the drawing (REA-052): an alternative description and a list of shapes
 // for screen readers. The phrases are English; only `alt` is configurable.
 
-import type { DrawingDocument, Shape } from '@diagrama-kit/core';
+import type { DrawingDocument, Shape } from '@crux-diagram/core';
 import type { CSSProperties } from 'react';
 
 const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? '' : 's'}`;

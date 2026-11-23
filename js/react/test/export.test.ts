@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // Image export (REA-040 to REA-043, REA-032, REA-042; Flutter EX-3 to EX-5, spec 06).
-import { setJointDisplay } from '@diagrama-kit/core';
+import { setJointDisplay } from '@crux-diagram/core';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createExportStage, DEFAULT_EXPORT_MAX_PIXELS, exportImage } from '../src/export/export-image.js';
 import { docOf, joint, rect } from './support/docs.js';

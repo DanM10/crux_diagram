@@ -1,5 +1,5 @@
 'use client';
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { DrawingViewer } from './DrawingViewer.js';
 import { controlRowStyle } from './controls.js';

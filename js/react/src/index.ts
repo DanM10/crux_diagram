@@ -1,4 +1,4 @@
-// Public API of @diagrama-kit/react (spec 05). Nothing here may touch `window` at
+// Public API of @crux-diagram/react (spec 05). Nothing here may touch `window` at
 // import time (REA-054).
 export { DrawingEditor, type DrawingEditorProps } from './DrawingEditor.js';
 export { DrawingViewer, type DrawingViewerProps } from './DrawingViewer.js';

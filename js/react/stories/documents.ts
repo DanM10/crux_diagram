@@ -1,5 +1,5 @@
 // Documents for the stories: the shared fixtures (made by Flutter) and generated edge cases.
-import { parse, type DrawingDocument } from '@diagrama-kit/core';
+import { parse, type DrawingDocument } from '@crux-diagram/core';
 import fullSample from '../../../fixtures/valid/full-sample.json?raw';
 import empty from '../../../fixtures/valid/empty.json?raw';
 import jointsHidden from '../../../fixtures/valid/joints-hidden.json?raw';

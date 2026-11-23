@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The ready-made toolbar (REA-053; Flutter TB-1 to TB-3, MS-1, JD-1, PL-1).
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';

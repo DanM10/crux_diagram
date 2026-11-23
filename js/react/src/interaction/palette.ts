@@ -1,6 +1,6 @@
 // Adding shapes from the toolbar palette (REA-053; Flutter FR-4, FR-5, FR-9, PL-1, PL-2).
 
-import { addShape, applyZoom, clampZoom, fitViewport, generateId, snapPointToGrid, visibleCenter, type DrawingDocument, type Point, type ShapeType, type Size } from '@diagrama-kit/core';
+import { addShape, applyZoom, clampZoom, fitViewport, generateId, snapPointToGrid, visibleCenter, type DrawingDocument, type Point, type ShapeType, type Size } from '@crux-diagram/core';
 import type { ShapeStyle } from '../config.js';
 import type { EditorStore } from '../store.js';
 

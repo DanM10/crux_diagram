@@ -13,7 +13,7 @@ import {
   type Rect as CanvasRect,
   type Shape,
   type ViewportZoom,
-} from '@diagrama-kit/core';
+} from '@crux-diagram/core';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { forwardRef, useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Circle, Group, Layer, Line, Rect } from 'react-konva';

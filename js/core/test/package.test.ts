@@ -16,7 +16,7 @@ let installed: string;
 
 beforeAll(() => {
   consumer = mkdtempSync(join(tmpdir(), 'core-consumer-'));
-  installed = join(consumer, 'node_modules', '@diagrama-kit', 'core');
+  installed = join(consumer, 'node_modules', '@crux-diagram', 'core');
   execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), join(installed, 'dist')], { cwd: ROOT });
   copyFileSync(join(ROOT, 'package.json'), join(installed, 'package.json'));
 }, 60_000);
@@ -53,8 +53,8 @@ describe('REC-080 ESM and CJS outputs with types', () => {
   });
 
   it('import of the package name resolves to the ESM build, which exports the source names', () => {
-    const script = `import * as m from '@diagrama-kit/core';
-      ${report("import.meta.resolve('@diagrama-kit/core')")}`;
+    const script = `import * as m from '@crux-diagram/core';
+      ${report("import.meta.resolve('@crux-diagram/core')")}`;
     const result = JSON.parse(node(['--input-type=module', '-e', script]));
     expect(result.resolved).toMatch(/\/dist\/esm\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
@@ -62,8 +62,8 @@ describe('REC-080 ESM and CJS outputs with types', () => {
   });
 
   it('require of the package name resolves to the CJS build, which exports the source names', () => {
-    const script = `const m = require('@diagrama-kit/core');
-      ${report("require.resolve('@diagrama-kit/core')")}`;
+    const script = `const m = require('@crux-diagram/core');
+      ${report("require.resolve('@crux-diagram/core')")}`;
     const result = JSON.parse(node(['-e', script]));
     expect(result.resolved).toMatch(/\/dist\/cjs\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
