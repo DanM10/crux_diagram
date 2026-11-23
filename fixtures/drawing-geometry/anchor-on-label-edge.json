@@ -1,0 +1,102 @@
+{
+  "description": "The anchor sits on the right edge of the label (half-open, FMT-043): the arrow would start on it, so no line and no arrowhead (GEO-034).",
+  "measurer": "ApproximateTextMeasurer",
+  "documentIsValid": true,
+  "document": {
+    "schemaVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "type": "rectangle",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 16777215,
+        "stroke": 4285887861,
+        "strokeWidth": 2
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "shapeId": "s_01",
+        "anchorId": "tr",
+        "name": "J1",
+        "labelOffset": {
+          "dx": -25.5,
+          "dy": 0
+        }
+      }
+    ],
+    "jointDisplay": {
+      "labelSize": "small",
+      "visible": true
+    },
+    "groups": []
+  },
+  "expected": {
+    "geometryVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "kind": "rect",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "width": 200,
+        "height": 100,
+        "rotation": 0,
+        "fill": null,
+        "stroke": {
+          "color": 4285887861,
+          "width": 2
+        }
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "anchor": {
+          "x": 500,
+          "y": 250
+        },
+        "labelRect": {
+          "left": 449,
+          "top": 226,
+          "width": 51,
+          "height": 48
+        },
+        "text": {
+          "value": "J1",
+          "x": 455,
+          "y": 232,
+          "width": 39,
+          "height": 36,
+          "fontSize": 30,
+          "fontFamily": "Arial",
+          "bold": true,
+          "color": 4278190080
+        },
+        "lineWidth": 2.5,
+        "lineColor": 4278190080,
+        "line": null,
+        "arrowhead": null
+      }
+    ]
+  }
+}

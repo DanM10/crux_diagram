@@ -1,4 +1,4 @@
-import type { DrawingDocument } from '@crux-diagram/core';
+import { CanvasTextMeasurer, computeGeometry, DEFAULT_JOINT_STYLE, LABEL_FONT_FAMILY, type DrawingDocument, type DrawingGeometry, type TextMeasurer } from '@crux-diagram/core';
 import { exportImage, type ExportImageOptions } from './export/export-image.js';
 import { createContext, forwardRef, useContext, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { resolveEditorConfig, type DrawingEditorConfig, type DrawingEditorConfigInput } from './config.js';
@@ -19,6 +19,11 @@ export interface DrawingEditorHandle {
   fitToScreen(): void;
   /** Renders the committed document to a PNG or JPEG `Blob`, optionally saving it (REA-040 to REA-043). */
   exportImage(options: ExportImageOptions): Promise<Blob>;
+  /**
+   * The paint-ready geometry of the committed document (spec 06), measured and styled
+   * exactly as the editor draws it (REA-033). Browser only; call it after the fonts load.
+   */
+  getGeometry(): DrawingGeometry;
 }
 
 export interface EditorProviderProps {
@@ -58,6 +63,8 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
   const labels = useMemo(() => resolveEditorLabels(labelsInput), [labelsInput]);
   // Created once: the history limit and the initial grid visibility are read at mount.
   const [editor] = useState(() => createEditorStore(value, { historyLimit: config.historyLimit, showGrid: config.showGrid }));
+  // The editor's label measurer, created on first use: the same font the stage measures with.
+  const measurer = useRef<TextMeasurer | null>(null);
   const latest = useRef({ onChange, onPreview });
   useIsomorphicLayoutEffect(() => {
     latest.current = { onChange, onPreview };
@@ -124,6 +131,11 @@ export const EditorProvider = forwardRef<DrawingEditorHandle, EditorProviderProp
       getDocument: editor.getDocument,
       fitToScreen: editor.fitToScreen,
       exportImage: (options: ExportImageOptions) => exportImage(editor.getDocument(), options, { maxPixels: config.exportMaxPixels }),
+      getGeometry: () =>
+        computeGeometry(editor.getDocument(), {
+          measurer: (measurer.current ??= new CanvasTextMeasurer({ fontFamily: LABEL_FONT_FAMILY })),
+          style: DEFAULT_JOINT_STYLE,
+        }),
       reset(document: DrawingDocument) {
         quietly(() => editor.reset(document));
         unadopted.current.clear();

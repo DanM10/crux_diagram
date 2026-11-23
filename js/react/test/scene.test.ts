@@ -1,9 +1,9 @@
 // Pure scene geometry shared by the viewer and the editor (spec 05 section 4,
 // REA-001, REA-023, REA-030).
 import type { DrawingDocument, Shape, TextMeasurer } from '@crux-diagram/core';
-import { DEFAULT_JOINT_STYLE } from '@crux-diagram/core';
+import { computeGeometry, LABEL_FONT_FAMILY } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
-import { jointGraphics, LABEL_FONT_FAMILY, placeJoints, shapeNodeProps } from '../src/render/scene.js';
+import { jointNodeProps, shapeNodeProps } from '../src/render/scene.js';
 
 const square: Shape = {
   id: 's1',
@@ -64,89 +64,94 @@ describe('shapeNodeProps (section 4: rotation and pivot)', () => {
     const bare = shapeNodeProps({ ...square, fill: 0x00ffffff, strokeWidth: 0 });
     expect(bare).toMatchObject({ fillEnabled: false, strokeEnabled: false });
   });
+
+  it('disables a stroke with alpha 0, as the exported geometry leaves it out (GEO-022)', () => {
+    expect(shapeNodeProps({ ...square, stroke: 0x000000ff, strokeWidth: 3 })).toMatchObject({ fillEnabled: true, strokeEnabled: false });
+  });
 });
 
-describe('placeJoints (REA-001, REA-023, REA-030)', () => {
+/** The Konva props of every joint, as the stage builds them (REA-033). */
+const nodes = (document: DrawingDocument) => computeGeometry(document, { measurer }).joints.map(jointNodeProps);
+
+describe('joint placement through computeGeometry (REA-001, REA-023, REA-030)', () => {
   it('pads the measured name and centers the label at anchor + labelOffset', () => {
-    const [placement] = placeJoints(doc(), DEFAULT_JOINT_STYLE, measurer);
-    // The top-center anchor of a square rotated 90° clockwise points to +x.
-    expect(placement?.anchor.x).toBeCloseTo(250);
-    expect(placement?.anchor.y).toBeCloseTo(150);
-    expect(placement?.labelRect.width).toBe(20 + 2 * 6);
-    expect(placement?.labelRect.height).toBe(20 + 2 * 6);
-    expect(placement!.labelRect.left + placement!.labelRect.width / 2).toBeCloseTo(250);
-    expect(placement!.labelRect.top + placement!.labelRect.height / 2).toBeCloseTo(150 - 64);
+    const [joint] = computeGeometry(doc(), { measurer }).joints;
+    // Anchor tc of the square turned a quarter: (250, 150); center 64 above it; text 20 × 20.
+    expect(joint?.anchor.x).toBeCloseTo(250);
+    expect(joint?.anchor.y).toBeCloseTo(150);
+    expect(joint?.labelRect.width).toBe(32);
+    expect(joint?.labelRect.height).toBe(32);
+    expect(joint?.labelRect.left).toBeCloseTo(234);
+    expect(joint?.labelRect.top).toBeCloseTo(70);
   });
 
   it('measures with the label font size of the document and bold', () => {
     measurer.calls.length = 0;
-    placeJoints(doc({ jointDisplay: { labelSize: 'large', visible: true } }), DEFAULT_JOINT_STYLE, measurer);
+    nodes(doc({ jointDisplay: { labelSize: 'large', visible: true } }));
     expect(measurer.calls).toEqual([['A1', 38, true]]);
   });
 
   it('skips joints whose shape or anchor does not exist', () => {
     const joints = [
-      { id: 'j2', shapeId: 'missing', anchorId: 'tc', name: 'X', labelOffset: { dx: 0, dy: -64 } },
-      { id: 'j3', shapeId: 's1', anchorId: 'nope', name: 'Y', labelOffset: { dx: 0, dy: -64 } },
+      { id: 'j1', shapeId: 'missing', anchorId: 'tc', name: 'A1', labelOffset: { dx: 0, dy: -64 } },
+      { id: 'j2', shapeId: 's1', anchorId: 'nope', name: 'A2', labelOffset: { dx: 0, dy: -64 } },
     ];
-    expect(placeJoints(doc({ joints }), DEFAULT_JOINT_STYLE, measurer)).toEqual([]);
+    expect(nodes(doc({ joints }))).toEqual([]);
   });
 
   it('places nothing when joints are hidden', () => {
     const hidden = doc({ jointDisplay: { labelSize: 'small', visible: false } });
-    expect(placeJoints(hidden, DEFAULT_JOINT_STYLE, measurer)).toEqual([]);
+    expect(nodes(hidden)).toEqual([]);
   });
 
   it('uses Arial for joint labels', () => {
     expect(LABEL_FONT_FAMILY).toBe('Arial');
+    expect(nodes(doc())[0]?.text.fontFamily).toBe('Arial');
   });
 });
 
-describe('jointGraphics (REA-023, FMT-043, FMT-044)', () => {
+describe('jointNodeProps (REA-023, FMT-043, FMT-044)', () => {
   it('draws the leader line from the label edge to the arrowhead base and the head at the anchor', () => {
-    const [placement] = placeJoints(doc(), DEFAULT_JOINT_STYLE, measurer);
-    const graphics = jointGraphics(placement!, DEFAULT_JOINT_STYLE, 'small');
+    const [graphics] = nodes(doc());
     // Label rect is 32 tall centered 64 above the anchor: its bottom edge is at 150 - 64 + 16.
-    expect(graphics.line?.[0]).toBeCloseTo(250);
-    expect(graphics.line?.[1]).toBeCloseTo(102);
+    expect(graphics?.line?.[0]).toBeCloseTo(250);
+    expect(graphics?.line?.[1]).toBeCloseTo(102);
     // The base sits arrowheadLength (16) before the tip.
-    expect(graphics.line?.[3]).toBeCloseTo(134);
-    expect(graphics.head?.[0]).toBeCloseTo(250);
-    expect(graphics.head?.[1]).toBeCloseTo(150);
-    expect(graphics.head).toHaveLength(6);
+    expect(graphics?.line?.[3]).toBeCloseTo(134);
+    expect(graphics?.head?.[0]).toBeCloseTo(250);
+    expect(graphics?.head?.[1]).toBeCloseTo(150);
+    expect(graphics?.head).toHaveLength(6);
+    expect(graphics).toMatchObject({ id: 'j1', lineColor: 'rgba(0, 0, 0, 1)', lineWidth: 2.5 });
   });
 
   it('scales the arrowhead with the label size', () => {
-    const [placement] = placeJoints(doc(), DEFAULT_JOINT_STYLE, measurer);
-    const large = jointGraphics(placement!, DEFAULT_JOINT_STYLE, 'large');
+    const [large] = nodes(doc({ jointDisplay: { labelSize: 'large', visible: true } }));
     // 16 × 38/30 before the tip.
-    expect(large.line?.[3]).toBeCloseTo(150 - (16 * 38) / 30);
+    expect(large?.line?.[3]).toBeCloseTo(150 - (16 * 38) / 30);
   });
 
   it('omits the line when it is not longer than the arrowhead, keeping the head', () => {
     const near = doc({
       joints: [{ id: 'j1', shapeId: 's1', anchorId: 'tc', name: 'A1', labelOffset: { dx: 0, dy: -30 } }],
     });
-    const [placement] = placeJoints(near, DEFAULT_JOINT_STYLE, measurer);
-    const graphics = jointGraphics(placement!, DEFAULT_JOINT_STYLE, 'small');
-    expect(graphics.line).toBeNull();
-    expect(graphics.head).not.toBeNull();
+    const [graphics] = nodes(near);
+    expect(graphics?.line).toBeNull();
+    expect(graphics?.head).not.toBeNull();
   });
 
   it('draws neither line nor head when the anchor is inside the label', () => {
     const inside = doc({
       joints: [{ id: 'j1', shapeId: 's1', anchorId: 'tc', name: 'A1', labelOffset: { dx: 0, dy: 0 } }],
     });
-    const [placement] = placeJoints(inside, DEFAULT_JOINT_STYLE, measurer);
-    expect(jointGraphics(placement!, DEFAULT_JOINT_STYLE, 'small')).toMatchObject({ line: null, head: null });
+    expect(nodes(inside)[0]).toMatchObject({ line: null, head: null });
   });
 
   it('centers the text box inside the padded label rectangle', () => {
-    const [placement] = placeJoints(doc(), DEFAULT_JOINT_STYLE, measurer);
-    const { text } = jointGraphics(placement!, DEFAULT_JOINT_STYLE, 'small');
+    const [joint] = computeGeometry(doc(), { measurer }).joints;
+    const { text } = jointNodeProps(joint!);
     expect(text).toMatchObject({
-      x: placement!.labelRect.left + 6,
-      y: placement!.labelRect.top + 6,
+      x: joint!.labelRect.left + 6,
+      y: joint!.labelRect.top + 6,
       width: 20,
       height: 20,
       fontSize: 30,

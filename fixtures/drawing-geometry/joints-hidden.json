@@ -1,0 +1,73 @@
+{
+  "description": "jointDisplay.visible is false: no joints, shapes still drawn (GEO-030).",
+  "measurer": "ApproximateTextMeasurer",
+  "documentIsValid": true,
+  "document": {
+    "schemaVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "type": "rectangle",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 16777215,
+        "stroke": 4285887861,
+        "strokeWidth": 2
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "shapeId": "s_01",
+        "anchorId": "tr",
+        "name": "J1",
+        "labelOffset": {
+          "dx": 100,
+          "dy": -60
+        }
+      }
+    ],
+    "jointDisplay": {
+      "labelSize": "medium",
+      "visible": false
+    },
+    "groups": []
+  },
+  "expected": {
+    "geometryVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "kind": "rect",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "width": 200,
+        "height": 100,
+        "rotation": 0,
+        "fill": null,
+        "stroke": {
+          "color": 4285887861,
+          "width": 2
+        }
+      }
+    ],
+    "joints": []
+  }
+}

@@ -2,6 +2,9 @@
 
 import { JOINT_LABEL_SIZES, type JointLabelSize } from './types.js';
 
+/** Font family of joint labels, fixed in every implementation (spec 02 section 12, REA-030). */
+export const LABEL_FONT_FAMILY = 'Arial';
+
 export interface JointStyle {
   /** ARGB color of the line, arrowhead and label. */
   readonly color: number;

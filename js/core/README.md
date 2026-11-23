@@ -37,6 +37,19 @@ const json = serialize(moved);
 
 Placing joint labels needs a text measurer. In browsers use `CanvasTextMeasurer`; in Node, where there is no canvas, use `ApproximateTextMeasurer`.
 
+## Drawing geometry
+
+`computeGeometry` resolves a document into primitives ready to paint (shapes, leader lines, arrowheads and labels, in canvas units), so a painter that is not a browser, such as a Java2D backend, only paints. Send it next to the document, never inside it.
+
+```ts
+import { CanvasTextMeasurer, computeGeometry, LABEL_FONT_FAMILY, validateGeometry } from '@crux-diagram/core';
+
+const geometry = computeGeometry(doc, { measurer: new CanvasTextMeasurer({ fontFamily: LABEL_FONT_FAMILY }) });
+validateGeometry(doc, geometry); // [] when its shape is right
+```
+
+The text is measured with the browser font (`Arial`). A painter on another platform should center each label's text inside `labelRect` with an equivalent font, because widths can differ by a few pixels. The structure is specified in [`spec/06-spec-geometria.md`](https://github.com/DanM10/crux_diagram/blob/main/spec/06-spec-geometria.md).
+
 ## Format
 
 The format is specified in [`spec/02-spec-formato-json.md`](https://github.com/DanM10/crux_diagram/blob/main/spec/02-spec-formato-json.md). Only `schemaVersion: 1` is read and written.

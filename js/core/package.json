@@ -1,6 +1,6 @@
 {
   "name": "@crux-diagram/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Read, validate, edit and write crux_diagram drawings (JSON format v1). Zero dependencies; runs in Node and browsers.",
   "keywords": [
     "diagram",

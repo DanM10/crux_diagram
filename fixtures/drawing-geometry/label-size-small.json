@@ -1,0 +1,124 @@
+{
+  "description": "Label size small: font 30 / 34 / 38 and a scaled arrowhead.",
+  "measurer": "ApproximateTextMeasurer",
+  "documentIsValid": true,
+  "document": {
+    "schemaVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "type": "rectangle",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 16777215,
+        "stroke": 4285887861,
+        "strokeWidth": 2
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "shapeId": "s_01",
+        "anchorId": "bc",
+        "name": "Joint",
+        "labelOffset": {
+          "dx": 0,
+          "dy": 120
+        }
+      }
+    ],
+    "jointDisplay": {
+      "labelSize": "small",
+      "visible": true
+    },
+    "groups": []
+  },
+  "expected": {
+    "geometryVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "kind": "rect",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "width": 200,
+        "height": 100,
+        "rotation": 0,
+        "fill": null,
+        "stroke": {
+          "color": 4285887861,
+          "width": 2
+        }
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "anchor": {
+          "x": 400,
+          "y": 350
+        },
+        "labelRect": {
+          "left": 345.25,
+          "top": 446,
+          "width": 109.5,
+          "height": 48
+        },
+        "text": {
+          "value": "Joint",
+          "x": 351.25,
+          "y": 452,
+          "width": 97.5,
+          "height": 36,
+          "fontSize": 30,
+          "fontFamily": "Arial",
+          "bold": true,
+          "color": 4278190080
+        },
+        "lineWidth": 2.5,
+        "lineColor": 4278190080,
+        "line": {
+          "from": {
+            "x": 400,
+            "y": 446
+          },
+          "to": {
+            "x": 400,
+            "y": 366
+          }
+        },
+        "arrowhead": [
+          {
+            "x": 400,
+            "y": 350
+          },
+          {
+            "x": 394.5,
+            "y": 366
+          },
+          {
+            "x": 405.5,
+            "y": 366
+          }
+        ]
+      }
+    ]
+  }
+}

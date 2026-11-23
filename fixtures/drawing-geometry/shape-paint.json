@@ -1,0 +1,120 @@
+{
+  "description": "Paint with alpha 0, or a stroke with width 0, is not painted: fill or stroke is null (GEO-022).",
+  "measurer": "ApproximateTextMeasurer",
+  "documentIsValid": true,
+  "document": {
+    "schemaVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "type": "rectangle",
+        "center": {
+          "x": 150,
+          "y": 150
+        },
+        "size": {
+          "width": 160,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 4294901760,
+        "stroke": 4278190080,
+        "strokeWidth": 3
+      },
+      {
+        "id": "s_02",
+        "type": "square",
+        "center": {
+          "x": 400,
+          "y": 150
+        },
+        "size": {
+          "width": 100,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 16711680,
+        "stroke": 4278190080,
+        "strokeWidth": 0
+      },
+      {
+        "id": "s_03",
+        "type": "circle",
+        "center": {
+          "x": 650,
+          "y": 150
+        },
+        "size": {
+          "width": 100,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 2150852249,
+        "stroke": 0,
+        "strokeWidth": 4
+      }
+    ],
+    "joints": [],
+    "jointDisplay": {
+      "labelSize": "medium",
+      "visible": true
+    },
+    "groups": []
+  },
+  "expected": {
+    "geometryVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "kind": "rect",
+        "center": {
+          "x": 150,
+          "y": 150
+        },
+        "width": 160,
+        "height": 100,
+        "rotation": 0,
+        "fill": 4294901760,
+        "stroke": {
+          "color": 4278190080,
+          "width": 3
+        }
+      },
+      {
+        "id": "s_02",
+        "kind": "rect",
+        "center": {
+          "x": 400,
+          "y": 150
+        },
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "fill": null,
+        "stroke": null
+      },
+      {
+        "id": "s_03",
+        "kind": "ellipse",
+        "center": {
+          "x": 650,
+          "y": 150
+        },
+        "width": 100,
+        "height": 100,
+        "rotation": 0,
+        "fill": 2150852249,
+        "stroke": null
+      }
+    ],
+    "joints": []
+  }
+}

@@ -8,6 +8,7 @@ Specifications, written in Spanish. Requirement IDs are the unit of work.
 | `03-spec-flutter.md` | `FLT-` | What the Dart package must meet |
 | `04-spec-react-core.md` | `REC-` | `@crux-diagram/core` (TypeScript, no React) |
 | `05-spec-react-editor.md` | `REA-` | React viewer and editor |
+| `06-spec-geometria.md` | `GEO-` | Exportable drawing geometry (`computeGeometry`) |
 
 ## Rules
 
