@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/src/model/id_generator.dart';
+import 'package:crux_diagram/src/model/id_generator.dart';
 
 void main() {
   test('default generator produces distinct prefixed ids', () {

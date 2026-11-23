@@ -2,7 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/src/geometry/grid.dart';
+import 'package:crux_diagram/src/geometry/grid.dart';
 
 void main() {
   test('snapToMultiple rounds to the nearest multiple', () {

@@ -1,6 +1,6 @@
 # Spec 04 — Joint display
 
-Package: `soft_drawer_service` · Status: Accepted (2026-11-15) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 02](02-spec-joints-and-arrows.md), [Spec 03](03-spec-quality-of-life.md)
+Package: `crux_diagram` · Status: Accepted (2026-11-15) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 02](02-spec-joints-and-arrows.md), [Spec 03](03-spec-quality-of-life.md)
 
 ## 1. Goal
 

@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/src/geometry/rotation.dart';
+import 'package:crux_diagram/src/geometry/rotation.dart';
 
 double _deg(double degrees) => degrees * math.pi / 180;
 

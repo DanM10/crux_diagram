@@ -1,6 +1,6 @@
 # Spec 03 — Quality of life
 
-Package: `soft_drawer_service` · Status: Accepted (2026-11-12) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 01](01-spec-shapes.md), [Spec 02](02-spec-joints-and-arrows.md)
+Package: `crux_diagram` · Status: Accepted (2026-11-12) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 01](01-spec-shapes.md), [Spec 02](02-spec-joints-and-arrows.md)
 
 ## 1. Goal
 

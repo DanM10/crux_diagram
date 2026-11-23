@@ -2,7 +2,7 @@
 
 Editor y visor de dibujos de figuras con juntas, basado en un **formato JSON abierto**, con dos implementaciones que hablan el mismo formato:
 
-- **Dart / Flutter** → paquete `soft_drawer_service`, publicado en pub.dev. **Ya existe y es funcional**; es la implementación de referencia.
+- **Dart / Flutter** → paquete `crux_diagram`, publicado en pub.dev. **Ya existe y es funcional**; es la implementación de referencia.
 - **TypeScript / React** → paquetes en npm (`core` sin dependencias de React + componente `react`). **Todavía no existe**; se adapta al formato y al comportamiento de Flutter.
 
 Un dibujo creado en un lado se abre y se edita en el otro. El formato es el producto; los paquetes son implementaciones de él.
@@ -81,7 +81,7 @@ Outcome → Requisito con ID → Fixture / test que lo prueba → Implementació
 
 | # | Pregunta | Supuesto actual |
 |---|---|---|
-| Q1 | Nombres de los paquetes y licencia | El monorepo se llama `crux_diagram`. Falta decidir el nombre del paquete Dart (hoy `soft_drawer_service`) y el scope de npm (en las specs, `@diagrama-kit/*` es provisional). Licencia: MIT |
+| Q1 | Nombres de los paquetes y licencia | El monorepo se llama `crux_diagram`. El paquete Dart se llama `crux_diagram` (decidido el 2026-11-23). Falta decidir el scope de npm (en las specs, `@diagrama-kit/*` es provisional). Licencia: MIT |
 | Q2 | ¿El repo Flutter actual contiene código privado o secretos? | Debe auditarse antes de hacerlo público (ver `docs/01`) |
 | Q3 | ¿Se agrega `computed` por junta para backends que dibujan sin medir texto? | No en v1 |
 | Q4 | ¿Se conservan campos desconocidos al guardar? | No en v1 |

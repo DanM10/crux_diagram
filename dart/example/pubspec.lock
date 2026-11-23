@@ -49,6 +49,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  crux_diagram:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.1.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -176,13 +183,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  soft_drawer_service:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.1.0"
   source_span:
     dependency: transitive
     description:

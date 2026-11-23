@@ -1,8 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/geometry/joint_geometry.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/geometry/joint_geometry.dart';
 
 void _expectNear(Offset actual, Offset expected) {
   expect(actual.dx, closeTo(expected.dx, 1e-9));

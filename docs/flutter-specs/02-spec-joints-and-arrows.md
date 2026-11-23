@@ -1,6 +1,6 @@
 # Spec 02 — Joints and arrows
 
-Package: `soft_drawer_service` · Status: Accepted (2026-11-11) · Depends on: [Spec 01](01-spec-shapes.md)
+Package: `crux_diagram` · Status: Accepted (2026-11-11) · Depends on: [Spec 01](01-spec-shapes.md)
 
 ## 1. Goal
 

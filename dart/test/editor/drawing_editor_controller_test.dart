@@ -2,10 +2,10 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
-import 'package:soft_drawer_service/src/geometry/resize.dart';
-import 'package:soft_drawer_service/src/model/id_generator.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/editor/drawing_editor_controller.dart';
+import 'package:crux_diagram/src/geometry/resize.dart';
+import 'package:crux_diagram/src/model/id_generator.dart';
 
 DrawingEditorController _controller({
   DrawingDocument? initial,

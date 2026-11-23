@@ -1,19 +1,19 @@
 import 'dart:ui';
 
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 // Geometry helpers are internal; the conformance suite reaches into src/ on
 // purpose so they need no public export (FLT-021).
-import 'package:soft_drawer_service/src/geometry/anchor_snapping.dart';
-import 'package:soft_drawer_service/src/geometry/anchors.dart';
-import 'package:soft_drawer_service/src/geometry/angles.dart';
-import 'package:soft_drawer_service/src/geometry/grid.dart';
-import 'package:soft_drawer_service/src/geometry/hit_testing.dart';
-import 'package:soft_drawer_service/src/geometry/joint_geometry.dart';
-import 'package:soft_drawer_service/src/geometry/resize.dart';
-import 'package:soft_drawer_service/src/geometry/rotation.dart';
-import 'package:soft_drawer_service/src/geometry/transforms.dart';
-import 'package:soft_drawer_service/src/geometry/viewport.dart';
-import 'package:soft_drawer_service/src/model/joint_names.dart';
+import 'package:crux_diagram/src/geometry/anchor_snapping.dart';
+import 'package:crux_diagram/src/geometry/anchors.dart';
+import 'package:crux_diagram/src/geometry/angles.dart';
+import 'package:crux_diagram/src/geometry/grid.dart';
+import 'package:crux_diagram/src/geometry/hit_testing.dart';
+import 'package:crux_diagram/src/geometry/joint_geometry.dart';
+import 'package:crux_diagram/src/geometry/resize.dart';
+import 'package:crux_diagram/src/geometry/rotation.dart';
+import 'package:crux_diagram/src/geometry/transforms.dart';
+import 'package:crux_diagram/src/geometry/viewport.dart';
+import 'package:crux_diagram/src/model/joint_names.dart';
 
 typedef Json = Map<String, Object?>;
 

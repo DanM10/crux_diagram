@@ -67,7 +67,7 @@ pub.dev solo automatiza paquetes que ya existen: "To create a new package, you m
 
 **Primera publicación manual:**
 
-1. **Fijar el nombre del paquete.** El nombre de pub.dev es permanente: una versión publicada no se borra y el nombre no se puede cambiar ni reutilizar. Hoy `soft_drawer_service` es provisional (decisión abierta del README).
+1. **Fijar el nombre del paquete.** El nombre de pub.dev es permanente: una versión publicada no se borra y el nombre no se puede cambiar ni reutilizar. Decidido: `crux_diagram` (antes `soft_drawer_service`).
 2. Revisar `pubspec.yaml` (`name`, `description`, `version`, `repository`, `issue_tracker`), `README.md`, `CHANGELOG.md` y `LICENSE`.
 3. Desde `dart/`, en `main` y con el árbol limpio:
    ```bash
