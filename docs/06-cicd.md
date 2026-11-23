@@ -123,6 +123,33 @@ Antes de este job se recomienda otro que verifique tag ↔ versión (CI-011) y c
 - **CI-021** Publicación con `--provenance` y `--access public` para paquetes con scope.
 - **CI-022** `core` se publica **antes** que `react` cuando ambos cambian (el `react` depende de él). Dos tags distintos, publicados en orden.
 
+### 5.1 Configuración (una sola vez)
+
+La configuración de *trusted publisher* se hace en los ajustes de un paquete en npmjs.com, así que la primera versión se publica a mano.
+
+**Primera publicación manual:**
+
+1. Crear la organización `crux-diagram` en npmjs.com (plan gratuito, paquetes públicos). Si el nombre está tomado, decidir otro scope **antes** de seguir.
+2. Activar 2FA en la cuenta de npm.
+3. Desde `js/`, en `main` y con el árbol limpio:
+   ```bash
+   npm ci && npm run typecheck && npm test
+   npm login
+   npm publish --dry-run --workspace @crux-diagram/core   # "public access", 98 archivos
+   npm publish --workspace @crux-diagram/core
+   npm publish --workspace @crux-diagram/react            # después de core: depende de ^0.1.0
+   ```
+   `prepack` construye `dist` y `publishConfig.access: "public"` evita pasar `--access public`. Sin provenance: solo se genera desde CI.
+4. Etiquetar el commit: `git tag js-core-v0.1.0 js-react-v0.1.0` y `git push origin js-core-v0.1.0 js-react-v0.1.0`, **antes** de que existan los workflows de release.
+
+**Publicación automática:**
+
+5. En npmjs.com → cada paquete → *Settings* → **Trusted publisher** → GitHub Actions: usuario `DanM10`, repositorio `crux_diagram`, archivo del workflow (`release-js-core.yml` / `release-js-react.yml`, solo el nombre) y, opcional, el environment. La configuración caduca si no hay una publicación exitosa en 2 días, así que se crea cuando el workflow ya existe.
+6. *Settings* → *Publishing access* → **Require two-factor authentication and disallow tokens** (no afecta a OIDC).
+7. El workflow necesita `id-token: write`, npm CLI ≥ 11.5.1 y Node ≥ 22.14.0. La provenance se genera sola con trusted publishing; `--provenance` deja de ser necesario. `repository.url` del `package.json` debe coincidir con el repositorio de GitHub.
+
+Fuente: [docs.npmjs.com/trusted-publishers](https://docs.npmjs.com/trusted-publishers).
+
 ```yaml
 name: release-js-core
 on:

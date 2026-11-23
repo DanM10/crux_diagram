@@ -1,4 +1,4 @@
-// Packaging (REA-054, REA-060, REA-061). Builds into a temporary node_modules, laid out
+// Packaging (REA-054, REA-060, REA-061, REA-063). Builds into a temporary node_modules, laid out
 // as an installed package next to its peers, and loads it by name from plain Node,
 // where `window` does not exist: through the `exports` map, both as ESM and as CJS.
 import { execFileSync } from 'node:child_process';
@@ -54,7 +54,7 @@ describe('REA-060 ESM and CJS outputs with types; react, react-dom, konva and re
       require: { types: './dist/cjs/index.d.ts', default: './dist/cjs/index.js' },
     });
     expect(pkg.types).toBe('./dist/esm/index.d.ts');
-    expect(pkg.files).toEqual(['dist']);
+    expect(pkg.files).toEqual(['dist', 'CHANGELOG.md']);
   });
 
   it('lists react, react-dom, konva and react-konva only as peer dependencies, React 19 only', () => {
@@ -97,5 +97,28 @@ describe('REA-054 SSR safe: importing the package without window does not fail',
     expect(result.window).toBe('undefined');
     expect(result.resolved).toMatch(/\/dist\/cjs\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
+  });
+});
+
+describe('REA-063 publishable on npm', () => {
+  it('is public, MIT and points at its folder in the repository', () => {
+    expect(pkg.private).toBeUndefined();
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(pkg.license).toBe('MIT');
+    expect(pkg.repository).toEqual({ type: 'git', url: 'git+https://github.com/DanM10/crux_diagram.git', directory: 'js/react' });
+    expect(pkg.publishConfig).toEqual({ access: 'public' });
+  });
+
+  it('builds dist before packing', () => {
+    expect(pkg.scripts.prepack).toBe('npm run build');
+  });
+
+  it('packs only dist, the manifest, README.md, LICENSE and CHANGELOG.md', () => {
+    const [packed] = JSON.parse(
+      execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: ROOT, encoding: 'utf8' }),
+    );
+    const files: string[] = packed.files.map((f: { path: string }) => f.path);
+    for (const required of ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md']) expect(files, required).toContain(required);
+    for (const file of files) expect(file).toMatch(/^(dist\/|package\.json$|README\.md$|LICENSE$|CHANGELOG\.md$)/);
   });
 });

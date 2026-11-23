@@ -125,6 +125,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-061** Depende de `@crux-diagram/core` con rango de versiones compatible (`schemaVersion` manda).
 - **REA-062** Storybook (o equivalente) con historias de cada componente y de los casos límite.
   *Detalles (2026-11-18):* Storybook 10 con `@storybook/react-vite`, en `js/react/stories` (`npm run storybook`, `npm run build-storybook`), con la telemetría desactivada. Historias: `DrawingViewer` (muestra de Flutter, vacío, juntas ocultas, emoji en el nombre, 300 figuras, descripción propia), `DrawingEditor` con `Toolbar` (muestra, lienzo vacío, solo lectura, sin cuadrícula, 300 figuras) y `VersionHistory` (por defecto, sin versiones, versión actual ausente, versiones repetidas con fecha inválida, textos propios). Las historias usan las fixtures de `fixtures/valid`.
+- **REA-063** Publicable en npm con los mismos metadatos que REC-084 (`directory: "js/react"`); la dependencia de `core` acepta la versión publicada de `core`.
 
 ### 5.8 Historial de versiones
 

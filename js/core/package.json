@@ -1,7 +1,24 @@
 {
   "name": "@crux-diagram/core",
-  "version": "0.0.0",
-  "private": true,
+  "version": "0.1.0",
+  "description": "Read, validate, edit and write crux_diagram drawings (JSON format v1). Zero dependencies; runs in Node and browsers.",
+  "keywords": [
+    "diagram",
+    "drawing",
+    "shapes",
+    "json",
+    "geometry"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DanM10/crux_diagram.git",
+    "directory": "js/core"
+  },
+  "homepage": "https://github.com/DanM10/crux_diagram/tree/main/js/core#readme",
+  "bugs": {
+    "url": "https://github.com/DanM10/crux_diagram/issues"
+  },
   "type": "module",
   "sideEffects": false,
   "main": "./dist/cjs/index.js",
@@ -20,7 +37,8 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": ">=22"
@@ -28,11 +46,15 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepack": "npm run build"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",
     "typescript": "^7.0.2",
     "vitest": "^4.1.12"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

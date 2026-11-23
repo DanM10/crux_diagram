@@ -113,6 +113,7 @@ Reciben un `DrawingDocument` y devuelven uno nuevo, sin mutar.
 - **REC-081** `sideEffects: false` para permitir tree-shaking.
 - **REC-082** Compatible con Node LTS vigentes y navegadores modernos.
 - **REC-083** Provenance de npm habilitada al publicar desde GitHub Actions.
+- **REC-084** Publicable en npm: no es `private`, `license: "MIT"`, `repository` apunta a `DanM10/crux_diagram` con `directory: "js/core"`, `publishConfig.access: "public"`, un script `prepack` construye `dist` antes de empaquetar, y el paquete incluye `README.md`, `LICENSE` y `CHANGELOG.md`.
 
 ## 6. API pública esperada (boceto)
 
