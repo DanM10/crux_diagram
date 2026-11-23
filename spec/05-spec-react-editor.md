@@ -58,7 +58,7 @@ Funcionalidad que se reproduce de Flutter:
 
   Para abrir otro dibujo con el historial vacío, la app cambia la `key` del editor o llama a `reset(documento)` (REA-004).
 - **REA-003** Un arrastre continuo emite `onChange` solo al soltar (y opcionalmente `onPreview` durante el arrastre).
-- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`, `reset(documento)` (reemplaza el documento y vacía el historial, sin llamar a `onChange`).
+- **REA-004** Referencia imperativa (`ref`): `undo()`, `redo()`, `canUndo`, `canRedo`, `exportImage(options)`, `fitToScreen()`, `getDocument()`, `reset(documento)` (reemplaza el documento y vacía el historial, sin llamar a `onChange`). `getGeometry()` devuelve la geometría de dibujo del documento confirmado (spec 06), calculada con el mismo medidor y estilo con que pinta el editor (REA-033).
 - **REA-005** `readOnly` desactiva selección, arrastre y atajos.
 - **REA-006** `config` replica `DrawingEditorConfig` de Flutter: `gridSize`, `showGrid`, `gridMajorEvery`, `rotationSnapStep`, `rotationSnapTolerance`, `shapeStyle`, `jointNameMaxLength` (12 por defecto), `jointNameSuggestions`, `canvasSize`.
 
@@ -96,6 +96,7 @@ Funcionalidad que se reproduce de Flutter:
 - **REA-030** Las etiquetas de las juntas se dibujan en `Arial` negrita, igual que en Flutter (spec 02, sección 12). La fuente es fija, no se configura por prop. El medidor del editor es `CanvasTextMeasurer` con esa **misma fuente**. El resto de la UI del editor no usa esta regla.
 - **REA-031** La edición de nombre usa un `<input>` HTML superpuesto, alineado y con la misma fuente (`Arial` negrita) y el mismo tamaño.
 - **REA-032** Se espera a que las fuentes estén cargadas (`document.fonts.ready`) antes de medir y antes de exportar.
+- **REA-033** El visor, el editor y la exportación de imagen pintan figuras y juntas desde `computeGeometry` de `core` (spec 06, GEO-003): la geometría exportada es exactamente la que se ve.
 
 ### 5.5 Exportación
 

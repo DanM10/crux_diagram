@@ -9,6 +9,8 @@ export { anchorIdsFor, anchorsOf, anchorPositionOf, type Anchor, type AnchorKind
 export { rotateVector, worldFromLocal, localFromWorld, clampToCanvas } from './geometry/transforms.js';
 export * from './geometry/joints.js';
 export * from './geometry/placement.js';
+// Exportable drawing geometry (spec 06, REC-055).
+export * from './drawing-geometry.js';
 export * from './names.js';
 export * from './ops.js';
 export { generateId, uniqueId } from './ids.js';

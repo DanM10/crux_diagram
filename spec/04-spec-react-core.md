@@ -43,6 +43,7 @@ js/core/
 │   ├── names.ts            ← nextJointName, normalizeJointName
 │   ├── style.ts            ← JointStyle y valores por defecto (spec 02, sección 12)
 │   ├── measure.ts          ← TextMeasurer
+│   ├── drawing-geometry.ts ← computeGeometry, validateGeometry (spec 06)
 │   ├── ops.ts              ← funciones puras de edición
 │   └── index.ts
 ├── test/conformance/
@@ -87,6 +88,7 @@ js/core/
   Se incluye `CanvasTextMeasurer` (solo navegador, usa `measureText`). En Node sin medidor propio se documenta que las cajas serán aproximadas (FMT-050).
 - **REC-053** `placeJoints(document, style, measurer)` devuelve, por junta, la posición del ancla y el rectángulo de etiqueta (texto medido más `labelPadding` por cada lado). Devuelve una lista vacía si `jointDisplay.visible` es `false`.
 - **REC-054** Una junta cuya figura o ancla no existe se omite sin romper (igual que Flutter).
+- **REC-055** `computeGeometry(document, { measurer, style? })` y `validateGeometry(document, geometry)` implementan la spec 06 (geometría de dibujo exportable). `LABEL_FONT_FAMILY` (`"Arial"`, spec 02 sección 12) se exporta desde `core`.
 
 ### 5.6 Nombres
 

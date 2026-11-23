@@ -1,0 +1,124 @@
+{
+  "description": "A joint with a leader line and an arrowhead.",
+  "measurer": "ApproximateTextMeasurer",
+  "documentIsValid": true,
+  "document": {
+    "schemaVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "type": "rectangle",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "size": {
+          "width": 200,
+          "height": 100
+        },
+        "rotation": 0,
+        "fill": 16777215,
+        "stroke": 4285887861,
+        "strokeWidth": 2
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "shapeId": "s_01",
+        "anchorId": "tr",
+        "name": "J1",
+        "labelOffset": {
+          "dx": 100,
+          "dy": -60
+        }
+      }
+    ],
+    "jointDisplay": {
+      "labelSize": "medium",
+      "visible": true
+    },
+    "groups": []
+  },
+  "expected": {
+    "geometryVersion": 1,
+    "canvas": {
+      "width": 800,
+      "height": 600
+    },
+    "shapes": [
+      {
+        "id": "s_01",
+        "kind": "rect",
+        "center": {
+          "x": 400,
+          "y": 300
+        },
+        "width": 200,
+        "height": 100,
+        "rotation": 0,
+        "fill": null,
+        "stroke": {
+          "color": 4285887861,
+          "width": 2
+        }
+      }
+    ],
+    "joints": [
+      {
+        "id": "j_01",
+        "anchor": {
+          "x": 500,
+          "y": 250
+        },
+        "labelRect": {
+          "left": 571.9,
+          "top": 163.6,
+          "width": 56.2,
+          "height": 52.8
+        },
+        "text": {
+          "value": "J1",
+          "x": 577.9,
+          "y": 169.6,
+          "width": 44.2,
+          "height": 40.8,
+          "fontSize": 34,
+          "fontFamily": "Arial",
+          "bold": true,
+          "color": 4278190080
+        },
+        "lineWidth": 2.5,
+        "lineColor": 4278190080,
+        "line": {
+          "from": {
+            "x": 571.9,
+            "y": 206.86
+          },
+          "to": {
+            "x": 515.5492050529208,
+            "y": 240.67047696824753
+          }
+        },
+        "arrowhead": [
+          {
+            "x": 500,
+            "y": 250
+          },
+          {
+            "x": 518.7562285950858,
+            "y": 246.01551620518904
+          },
+          {
+            "x": 512.3421815107558,
+            "y": 235.325437731306
+          }
+        ]
+      }
+    ]
+  }
+}

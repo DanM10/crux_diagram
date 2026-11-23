@@ -9,6 +9,8 @@ import type { Rect } from './joints.js';
 export interface JointPlacement {
   readonly joint: Joint;
   readonly anchor: Point;
+  /** Size of the name as measured. */
+  readonly textSize: { readonly width: number; readonly height: number };
   /** Centered on `anchor + labelOffset`; measured text plus `labelPadding` per side (FMT-042). */
   readonly labelRect: Rect;
 }
@@ -32,6 +34,7 @@ export function placeJoints(document: DrawingDocument, style: JointStyle, measur
     placements.push({
       joint,
       anchor,
+      textSize: text,
       labelRect: {
         left: anchor.x + joint.labelOffset.dx - width / 2,
         top: anchor.y + joint.labelOffset.dy - height / 2,
