@@ -1,6 +1,6 @@
 {
   "name": "@crux-diagram/react",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "React viewer and editor for crux_diagram drawings, with joints, version history and image export.",
   "keywords": [
     "diagram",
@@ -53,7 +53,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@crux-diagram/core": "^0.1.0",
+    "@crux-diagram/core": "^0.2.0",
     "zundo": "^2.3.0",
     "zustand": "^5.1.0"
   },

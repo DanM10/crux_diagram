@@ -41,6 +41,8 @@ export function App() {
 
 The editor is controlled: it never stores the drawing by itself. Save `serialize(doc)` from `@crux-diagram/core` wherever your app keeps it.
 
+To let a backend paint the drawing without a browser, save `ref.current.getGeometry()` next to the document: the same geometry the editor draws, measured with its font ([spec 06](https://github.com/DanM10/crux_diagram/blob/main/spec/06-spec-geometria.md)).
+
 ## Documentation
 
 - Behavior: [`spec/05-spec-react-editor.md`](https://github.com/DanM10/crux_diagram/blob/main/spec/05-spec-react-editor.md)
