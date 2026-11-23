@@ -1,7 +1,7 @@
 import 'package:flutter/painting.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/painting/joint_painting.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/painting/joint_painting.dart';
 
 DrawingDocument _document({
   JointLabelSize size = JointLabelSize.small,

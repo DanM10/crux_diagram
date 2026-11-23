@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/geometry/anchors.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/geometry/anchors.dart';
 
 ShapeElement _shape(ShapeType type, Size size, {double rotation = 0}) =>
     ShapeElement(

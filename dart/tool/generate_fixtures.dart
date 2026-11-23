@@ -14,7 +14,7 @@ import 'dart:math' as math;
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:soft_drawer_service/src/geometry/resize.dart';
+import 'package:crux_diagram/src/geometry/resize.dart';
 
 import '../test/conformance/geometry_cases.dart';
 

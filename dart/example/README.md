@@ -1,4 +1,4 @@
-# soft_drawer_service_example
+# crux_diagram_example
 
 A new Flutter project.
 

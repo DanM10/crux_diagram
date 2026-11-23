@@ -1,6 +1,6 @@
 # Spec 01 — Shapes: create, select, move, resize and rotate
 
-Package: `soft_drawer_service` · Status: Accepted (2026-11-11) · Depends on: nothing · Next: [Spec 02](02-spec-joints-and-arrows.md)
+Package: `crux_diagram` · Status: Accepted (2026-11-11) · Depends on: nothing · Next: [Spec 02](02-spec-joints-and-arrows.md)
 
 ## 1. Goal
 

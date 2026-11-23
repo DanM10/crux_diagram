@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 /// Settings shared by the editor and the `DrawingView`, so joints look the
 /// same everywhere.
@@ -24,7 +24,7 @@ class ExampleApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'soft_drawer_service',
+      title: 'crux_diagram',
       theme: ThemeData(colorSchemeSeed: Colors.indigo),
       home: const ExampleHome(),
     );
@@ -69,7 +69,7 @@ class _ExampleHomeState extends State<ExampleHome> {
     final image = _image;
     final json = _json;
     return Scaffold(
-      appBar: AppBar(title: const Text('soft_drawer_service')),
+      appBar: AppBar(title: const Text('crux_diagram')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

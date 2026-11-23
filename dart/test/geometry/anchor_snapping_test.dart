@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/geometry/anchor_snapping.dart';
-import 'package:soft_drawer_service/src/geometry/resize.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/geometry/anchor_snapping.dart';
+import 'package:crux_diagram/src/geometry/resize.dart';
 
 Anchor _a(String id, Offset p) =>
     Anchor(id: id, kind: AnchorKind.vertex, position: p);

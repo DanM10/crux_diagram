@@ -1,4 +1,4 @@
-# dart/ — `soft_drawer_service`
+# dart/ — `crux_diagram`
 
 Flutter package: shape editor with joints, groups, viewer and PNG/JPEG export.
 It is the reference implementation of the shared format (`../spec/02-spec-formato-json.md`).
@@ -6,7 +6,7 @@ It is the reference implementation of the shared format (`../spec/02-spec-format
 ## Layout
 
 ```
-lib/soft_drawer_service.dart   public API: only what is exported here is public
+lib/crux_diagram.dart          public API: only what is exported here is public
 lib/src/model/                 DrawingDocument, ShapeElement, Joint, ShapeGroup, JSON codec
 lib/src/geometry/              anchors, transforms, hit testing, resize, grid, snapping
 lib/src/painting/              shapes and joints painters (shared by screen and export)

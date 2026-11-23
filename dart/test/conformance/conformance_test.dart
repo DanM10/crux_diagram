@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 import 'geometry_cases.dart';
 

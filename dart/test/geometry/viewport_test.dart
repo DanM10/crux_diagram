@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/src/geometry/viewport.dart';
+import 'package:crux_diagram/src/geometry/viewport.dart';
 
 void main() {
   test('fit centers a 4:3 canvas in a wide area, preserving aspect ratio', () {

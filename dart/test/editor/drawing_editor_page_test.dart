@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 /// Opens the page from a launcher and records what it pops.
 class _Launcher extends StatefulWidget {

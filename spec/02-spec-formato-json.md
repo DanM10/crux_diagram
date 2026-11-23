@@ -2,7 +2,7 @@
 
 Estado: **borrador revisado**. Este documento es la **fuente de verdad** del formato. Las specs de Flutter y React dependen de él.
 
-Base: el formato describe lo que la implementación Flutter (`soft_drawer_service`) ya lee y escribe. Flutter es la implementación de referencia; React se adapta a este documento. La versión anterior de esta spec se conserva en `02-spec-formato-json.original.md`.
+Base: el formato describe lo que la implementación Flutter (`crux_diagram`) ya lee y escribe. Flutter es la implementación de referencia; React se adapta a este documento. La versión anterior de esta spec se conserva en `02-spec-formato-json.original.md`.
 
 ---
 

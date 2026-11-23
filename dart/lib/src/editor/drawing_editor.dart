@@ -51,7 +51,7 @@ class DrawingEditor extends StatefulWidget {
 
   /// Key of the canvas area, for tests that convert canvas coordinates.
   @visibleForTesting
-  static const Key canvasKey = ValueKey('soft_drawer_service.canvas');
+  static const Key canvasKey = ValueKey('crux_diagram.canvas');
 
   /// Controller holding the document and history.
   final DrawingEditorController controller;

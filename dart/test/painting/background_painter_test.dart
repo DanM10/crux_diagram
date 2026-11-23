@@ -1,8 +1,8 @@
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/src/geometry/viewport.dart';
-import 'package:soft_drawer_service/src/painting/editor_painters.dart';
+import 'package:crux_diagram/src/geometry/viewport.dart';
+import 'package:crux_diagram/src/painting/editor_painters.dart';
 
 BackgroundPainter _painter({
   CanvasViewport viewport = const CanvasViewport(scale: 1, origin: Offset.zero),

@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 Map<String, Object?> _validJson() => {
   'schemaVersion': 1,
