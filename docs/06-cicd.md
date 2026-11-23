@@ -36,7 +36,9 @@ Verificar automáticamente cada cambio y publicar cada paquete de forma independ
 
 | Workflow | Se ejecuta si cambia | Pasos |
 |---|---|---|
-| `ci-dart` | `dart/**`, `spec/**`, `fixtures/**` | `dart pub get`, `dart format --set-exit-if-changed`, `dart analyze`, `dart test` (incluye conformidad), `dart pub publish --dry-run` |
+| `ci-dart` | `dart/**`, `spec/**`, `fixtures/**` | `flutter pub get`, `dart format --set-exit-if-changed lib test tool`, `flutter analyze`, `flutter test` (incluye conformidad), `flutter test` en `dart/example`, `flutter pub publish --dry-run` |
+
+> El paquete depende del SDK de Flutter, así que el CI instala Flutter (no solo Dart) y usa `flutter analyze` / `flutter test`; `dart test` no puede cargar `flutter_test`.
 | `ci-js` | `js/**`, `spec/**`, `fixtures/**` | instalar, `tsc --noEmit`, lint, tests (Node y navegador), build, `npm pack --dry-run`, verificar schema generado |
 | `conformance` | `spec/**`, `fixtures/**` | Orquesta ambos y falla si alguno no pasa las fixtures |
 
@@ -61,9 +63,25 @@ Verificar automáticamente cada cambio y publicar cada paquete de forma independ
 
 ### 4.1 Configuración (una sola vez)
 
-1. La **primera versión se publica manualmente** (`dart pub publish`) para que el paquete exista en pub.dev.
-2. En pub.dev → *Admin* del paquete → **Automated publishing** → habilitar GitHub Actions, indicar el repositorio y el patrón de tag `dart-v{{version}}`.
-3. Opcional pero recomendado: exigir un *environment* de GitHub (por ejemplo `pub-dev`) con aprobación manual.
+pub.dev solo automatiza paquetes que ya existen: "To create a new package, you must publish the first version using `dart pub publish`" ([dart.dev](https://dart.dev/tools/pub/automated-publishing)).
+
+**Primera publicación manual:**
+
+1. **Fijar el nombre del paquete.** El nombre de pub.dev es permanente: una versión publicada no se borra y el nombre no se puede cambiar ni reutilizar. Hoy `soft_drawer_service` es provisional (decisión abierta del README).
+2. Revisar `pubspec.yaml` (`name`, `description`, `version`, `repository`, `issue_tracker`), `README.md`, `CHANGELOG.md` y `LICENSE`.
+3. Desde `dart/`, en `main` y con el árbol limpio:
+   ```bash
+   flutter analyze && flutter test
+   flutter pub publish --dry-run    # debe terminar con 0 warnings
+   flutter pub publish              # pide login con Google en el navegador la primera vez
+   ```
+   La cuenta de Google que publica queda como *uploader*. Opcional: crear antes un *verified publisher* (requiere un dominio verificado) y transferir el paquete.
+4. Etiquetar el commit publicado: `git tag dart-v0.1.0 && git push origin dart-v0.1.0`. Hacerlo **antes** de que exista `release-dart.yml`, o el push del tag intentará publicar otra vez `0.1.0` (pub.dev la rechazaría por estar ya publicada).
+
+**Publicación automática:**
+
+5. En pub.dev → *Admin* del paquete → **Automated publishing** → habilitar GitHub Actions, repositorio `DanM10/crux_diagram` y patrón de tag `dart-v{{version}}`.
+6. Opcional pero recomendado: **Require GitHub Actions environment** con nombre `pub.dev`, y crear un environment con el mismo nombre en GitHub (con *required reviewers* si se quiere aprobación manual). El workflow debe declarar `environment: pub.dev`.
 
 No hay tokens que guardar: la autenticación es por OIDC entre GitHub y pub.dev.
 
@@ -77,13 +95,25 @@ on:
 
 jobs:
   publish:
+    runs-on: ubuntu-latest
+    environment: pub.dev       # si se configuró un environment
     permissions:
+      contents: read
       id-token: write          # necesario para OIDC
-    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
-    with:
-      working-directory: dart
-      environment: pub-dev     # si se configuró un environment
+    defaults:
+      run:
+        working-directory: dart
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1     # configura el token OIDC de pub.dev
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter pub publish --force
 ```
+
+> **Pendiente de verificar en la sesión de release.** El workflow reutilizable `dart-lang/setup-dart/.github/workflows/publish.yml` que recomienda pub.dev ejecuta `dart pub publish` y su documentación no menciona Flutter; por eso este paquete usa un workflow propio que instala Flutter. Que `flutter pub publish` use el token OIDC que deja `setup-dart` es una suposición que se debe comprobar en el primer release automático.
 
 Antes de este job se recomienda otro que verifique tag ↔ versión (CI-011) y corra `ci-dart`.
 
