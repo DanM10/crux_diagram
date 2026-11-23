@@ -1,0 +1,4 @@
+e2e/output/
+test-results/
+playwright-report/
+storybook-static/

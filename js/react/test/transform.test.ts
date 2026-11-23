@@ -39,7 +39,7 @@ function drag(editor: ReturnType<typeof createEditorStore>, from: Point, path: P
 
 const shapeOf = (editor: ReturnType<typeof createEditorStore>, id = 'a') => editor.getDocument().shapes.find((s) => s.id === id)!;
 
-describe('handle hit testing (FR-7, spec 01 section 6)', () => {
+describe('REA-019 handle hit testing (FR-7, spec 01 section 6)', () => {
   const shape = rect('a', 500, 400, 200, 100);
 
   it('puts the rotation handle one stem length above the top edge, in canvas units (FR-7)', () => {

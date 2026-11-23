@@ -72,7 +72,7 @@ describe('REA-042 what is drawn', () => {
     expect(stage.find('#a, #b')).toHaveLength(2);
   });
 
-  it('the background is white, or absent when transparent (EX-4, EX-5)', () => {
+  it('REA-041 the background is white, or absent when transparent (EX-4, EX-5)', () => {
     expect(createExportStage(doc, { transparentBackground: false }).findOne<import('konva/lib/shapes/Rect').Rect>('.background-fill')?.fill()).toBe('#ffffff');
     expect(createExportStage(doc, { transparentBackground: true }).findOne('.background-fill')).toBeUndefined();
   });

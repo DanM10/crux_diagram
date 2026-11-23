@@ -2,7 +2,7 @@
 // the REA-018 assumption: they act only while the editor has the focus and never while
 // a text field has it.
 
-import { duplicateShapes, moveShape, removeJoint, removeShape, rotateShape } from '@diagrama-kit/core';
+import { bringToFront, duplicateShapes, groupShapes, moveShape, removeJoint, removeShape, rotateShape, sendToBack, ungroup, type DrawingDocument, type Group } from '@diagrama-kit/core';
 import type { EditorStore } from '../store.js';
 
 /** Arrow-key move, in canvas units; `Shift` uses the large step (REA-015). */
@@ -15,6 +15,10 @@ export type EditorCommand =
   | { readonly type: 'redo' }
   | { readonly type: 'duplicate' }
   | { readonly type: 'rotate90' }
+  | { readonly type: 'front' }
+  | { readonly type: 'back' }
+  | { readonly type: 'group' }
+  | { readonly type: 'ungroup' }
   | { readonly type: 'nudge'; readonly dx: number; readonly dy: number };
 
 /** The modifier and key fields of a `KeyboardEvent`. */
@@ -58,6 +62,11 @@ export function isTextEntry(target: EventTarget | null): boolean {
   return tag === 'input' || tag === 'textarea' || tag === 'select' || element.isContentEditable === true || element.getAttribute('contenteditable') === 'true';
 }
 
+/** The group whose shapes are exactly `selection`, if any (a selected group, MS-6). */
+export function wholeGroup(document: DrawingDocument, selection: readonly string[]): Group | undefined {
+  return document.groups.find((g) => g.shapeIds.length === selection.length && g.shapeIds.every((id) => selection.includes(id)));
+}
+
 /**
  * Runs `command` on the committed document. Each change is one history entry: delete
  * removes the selected shapes with their joints (REC-071) and clears the selection;
@@ -86,6 +95,25 @@ export function runCommand(editor: EditorStore, command: EditorCommand): void {
       // Only a single shape rotates; a multi-selection or a group does nothing (MS-5).
       if (selection.length === 1) editor.commit(rotateShape(document, selection[0]!, { by: Math.PI / 2 }));
       return;
+    case 'front':
+    case 'back': {
+      // The order is a toolbar command (TB-3); it has no key. An unchanged order adds no entry.
+      const next = command.type === 'front' ? bringToFront(document, selection) : sendToBack(document, selection);
+      if (next !== document) editor.commit(next);
+      return;
+    }
+    case 'group': {
+      // A toolbar command (MS-6); a selection that is already one whole group adds no entry.
+      if (selection.length < 2) return;
+      const next = groupShapes(document, selection);
+      if (next !== document) editor.commit(next);
+      return;
+    }
+    case 'ungroup': {
+      const group = wholeGroup(document, selection);
+      if (group) editor.commit(ungroup(document, group.id));
+      return;
+    }
     case 'nudge': {
       const next = moveShape(document, selection, { dx: command.dx, dy: command.dy });
       if (next !== document) editor.commit(next);

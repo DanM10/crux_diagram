@@ -1,4 +1,4 @@
-import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type ViewportZoom } from '@diagrama-kit/core';
+import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type Size, type ViewportZoom } from '@diagrama-kit/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';
@@ -38,6 +38,8 @@ export interface EditorState {
   readonly naming: JointNaming | null;
   /** Anchors highlighted while an anchor snap is active during a gesture (SN-3). Not in history. */
   readonly snapHighlight: readonly Point[];
+  /** The measured size of the drawing area in screen pixels, or `null` before the first render; not in history. */
+  readonly stageArea: Size | null;
 }
 
 export interface EditorStoreOptions {
@@ -64,6 +66,7 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
         selectedJoint: null,
         naming: null,
         snapHighlight: [],
+        stageArea: null,
       }),
       {
         limit: options.historyLimit ?? DEFAULT_EDITOR_CONFIG.historyLimit,
@@ -102,6 +105,8 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     subscribe: store.subscribe,
     /** The committed document. */
     getDocument: () => store.getState().document,
+    /** Calls `listener` whenever the undo or redo stacks change (for `canUndo`/`canRedo` in the UI). */
+    subscribeHistory: (listener: () => void) => store.temporal.subscribe(listener),
     canUndo: () => history().pastStates.length > 0,
     canRedo: () => history().futureStates.length > 0,
     /**
@@ -181,6 +186,11 @@ export function createEditorStore(initial: DrawingDocument, options: EditorStore
     /** Returns to the fitted view: 1× with no pan (REA-004). */
     fitToScreen() {
       store.setState({ view: { ...store.getState().view, zoom: FITTED_ZOOM } });
+    },
+    /** Records the size of the drawing area, to place new shapes at the visible center (PL-1). */
+    setStageArea(stageArea: Size) {
+      const current = store.getState().stageArea;
+      if (!current || current.width !== stageArea.width || current.height !== stageArea.height) store.setState({ stageArea });
     },
     setShowGrid(showGrid: boolean) {
       store.setState({ view: { ...store.getState().view, showGrid } });
