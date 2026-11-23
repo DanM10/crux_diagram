@@ -1,5 +1,5 @@
 // Small documents for interaction tests. Canvas 1000 × 800, white rectangles.
-import type { DrawingDocument, Group, Joint, Shape } from '@diagrama-kit/core';
+import type { DrawingDocument, Group, Joint, Shape } from '@crux-diagram/core';
 
 /** A rectangle centered at (x, y), `width × height`, rotated by `rotation` radians. */
 export function rect(id: string, x: number, y: number, width = 100, height = 60, rotation = 0): Shape {

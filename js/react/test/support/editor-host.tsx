@@ -1,6 +1,6 @@
 // A real editor (provider + canvas) in jsdom with pointer helpers, for interaction tests.
 // The container matches the 1000 × 800 canvas, so screen and canvas units coincide.
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import type Konva from 'konva';
 import { useState } from 'react';

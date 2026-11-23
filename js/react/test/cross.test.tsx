@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // Cross test (REA-O2): documents written by Flutter open in the editor without loss, and
 // what the editor emits is accepted by the shared fixtures' rules (spec 05 section 7).
-import { moveShape, parse, serialize, validate, type DrawingDocument } from '@diagrama-kit/core';
+import { moveShape, parse, serialize, validate, type DrawingDocument } from '@crux-diagram/core';
 import { act, cleanup, render } from '@testing-library/react';
 import { createRef } from 'react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';

@@ -1,7 +1,7 @@
 // Pure scene geometry shared by the viewer and the editor (spec 05 section 4,
 // REA-001, REA-023, REA-030).
-import type { DrawingDocument, Shape, TextMeasurer } from '@diagrama-kit/core';
-import { DEFAULT_JOINT_STYLE } from '@diagrama-kit/core';
+import type { DrawingDocument, Shape, TextMeasurer } from '@crux-diagram/core';
+import { DEFAULT_JOINT_STYLE } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { jointGraphics, LABEL_FONT_FAMILY, placeJoints, shapeNodeProps } from '../src/render/scene.js';
 

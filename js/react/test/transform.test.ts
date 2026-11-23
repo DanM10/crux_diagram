@@ -1,6 +1,6 @@
 // Resize and rotate handles, Konva-free (REA-012, REA-013, REA-018; Flutter FR-7, FR-11 to
 // FR-18, FR-22, MS-5). Canvas 1000 × 800, viewport scale 1 unless a test says otherwise.
-import { worldFromLocal, type Point } from '@diagrama-kit/core';
+import { worldFromLocal, type Point } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import {
   beginDrag,

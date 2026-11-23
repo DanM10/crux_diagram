@@ -1,6 +1,6 @@
 // Test page for the browser tests (spec 05 section 7): an editor with the ready-made
 // controls and a small `window.harness` the tests drive. Not shipped with the package.
-import { parse, serialize, type DrawingDocument } from '@diagrama-kit/core';
+import { parse, serialize, type DrawingDocument } from '@crux-diagram/core';
 import { createRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { DrawingEditor, JointDisplayBar, Toolbar, type DrawingEditorHandle } from '../../src/index.js';

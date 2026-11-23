@@ -1,5 +1,5 @@
 // Wheel zoom and pan on top of the fitted view (REA-016, REA-017; Flutter FR-2, ZM-1).
-import { FITTED_ZOOM, type ViewportZoom } from '@diagrama-kit/core';
+import { FITTED_ZOOM, type ViewportZoom } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { createEditorStore } from '../src/store.js';
 import { panBy, wheelZoom } from '../src/interaction/viewport.js';

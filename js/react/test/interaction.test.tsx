@@ -2,7 +2,7 @@
 // Shape interaction through the real DrawingEditor: DOM pointer events on the Konva
 // content and keyboard events on the focusable container (REA-005, REA-010, REA-011,
 // REA-014, REA-015, REA-018; Flutter FR-8, FR-20, PN-4, REC-071).
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { act, cleanup, fireEvent, render } from '@testing-library/react';
 import type Konva from 'konva';
 import { createRef, useState } from 'react';

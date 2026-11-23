@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 // The joint display bar (REA-024, REA-053; Flutter JD-1 to JD-4, JS-4, JV-3, JV-6, DL-1).
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';

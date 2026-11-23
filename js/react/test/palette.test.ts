@@ -1,6 +1,6 @@
 // Adding shapes from the palette (REA-053 toolbar; Flutter FR-4, FR-5, FR-9, PL-1, PL-2) and the
 // front/back commands (TB-3).
-import { snapPointToGrid } from '@diagrama-kit/core';
+import { snapPointToGrid } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_EDITOR_CONFIG } from '../src/config.js';
 import { runCommand } from '../src/interaction/keyboard.js';

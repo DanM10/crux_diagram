@@ -1,7 +1,7 @@
 // Font readiness and the label measurer (REA-030, REA-032). Client only: nothing here
 // runs at import time.
 
-import { CanvasTextMeasurer, type TextMeasurer } from '@diagrama-kit/core';
+import { CanvasTextMeasurer, type TextMeasurer } from '@crux-diagram/core';
 import { useEffect, useState } from 'react';
 import { LABEL_FONT_FAMILY } from './scene.js';
 

@@ -1,6 +1,6 @@
 // @vitest-environment node
 // REA-054: server rendering works without `window`; the canvas mounts only on the client.
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import { renderToString } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { DrawingEditor, DrawingViewer } from '../src/index.js';

@@ -10,7 +10,7 @@ const config: StorybookConfig = {
     ...viteConfig,
     resolve: {
       ...viteConfig.resolve,
-      alias: { ...viteConfig.resolve?.alias, '@diagrama-kit/core': fileURLToPath(new URL('../../core/src/index.ts', import.meta.url)) },
+      alias: { ...viteConfig.resolve?.alias, '@crux-diagram/core': fileURLToPath(new URL('../../core/src/index.ts', import.meta.url)) },
     },
     server: { ...viteConfig.server, fs: { allow: ['../..'] } },
   }),

@@ -1,5 +1,5 @@
 'use client';
-import { JOINT_LABEL_SIZES, type JointLabelSize } from '@diagrama-kit/core';
+import { JOINT_LABEL_SIZES, type JointLabelSize } from '@crux-diagram/core';
 import type { CSSProperties } from 'react';
 import { useStore } from 'zustand';
 import { useEditor, useEditorLabels } from './editor-context.js';

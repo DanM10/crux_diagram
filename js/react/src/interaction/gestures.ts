@@ -31,7 +31,7 @@ import {
   type ResizeHandle,
   type Shape,
   type Vector,
-} from '@diagrama-kit/core';
+} from '@crux-diagram/core';
 import type { EditorStore } from '../store.js';
 
 /**

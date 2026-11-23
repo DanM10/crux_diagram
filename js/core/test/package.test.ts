@@ -1,4 +1,4 @@
-// Packaging (REC-080 to REC-082). Builds into a temporary node_modules, laid out as an
+// Packaging (REC-080 to REC-082, REC-084). Builds into a temporary node_modules, laid out as an
 // installed package, and loads it by name from plain Node: through the `exports` map,
 // both as ESM and as CJS.
 import { execFileSync } from 'node:child_process';
@@ -16,7 +16,7 @@ let installed: string;
 
 beforeAll(() => {
   consumer = mkdtempSync(join(tmpdir(), 'core-consumer-'));
-  installed = join(consumer, 'node_modules', '@diagrama-kit', 'core');
+  installed = join(consumer, 'node_modules', '@crux-diagram', 'core');
   execFileSync(process.execPath, [join(ROOT, 'scripts', 'build.mjs'), join(installed, 'dist')], { cwd: ROOT });
   copyFileSync(join(ROOT, 'package.json'), join(installed, 'package.json'));
 }, 60_000);
@@ -49,12 +49,12 @@ describe('REC-080 ESM and CJS outputs with types', () => {
       require: { types: './dist/cjs/index.d.ts', default: './dist/cjs/index.js' },
     });
     expect(pkg.types).toBe('./dist/esm/index.d.ts');
-    expect(pkg.files).toEqual(['dist']);
+    expect(pkg.files).toEqual(['dist', 'CHANGELOG.md']);
   });
 
   it('import of the package name resolves to the ESM build, which exports the source names', () => {
-    const script = `import * as m from '@diagrama-kit/core';
-      ${report("import.meta.resolve('@diagrama-kit/core')")}`;
+    const script = `import * as m from '@crux-diagram/core';
+      ${report("import.meta.resolve('@crux-diagram/core')")}`;
     const result = JSON.parse(node(['--input-type=module', '-e', script]));
     expect(result.resolved).toMatch(/\/dist\/esm\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
@@ -62,8 +62,8 @@ describe('REC-080 ESM and CJS outputs with types', () => {
   });
 
   it('require of the package name resolves to the CJS build, which exports the source names', () => {
-    const script = `const m = require('@diagrama-kit/core');
-      ${report("require.resolve('@diagrama-kit/core')")}`;
+    const script = `const m = require('@crux-diagram/core');
+      ${report("require.resolve('@crux-diagram/core')")}`;
     const result = JSON.parse(node(['-e', script]));
     expect(result.resolved).toMatch(/\/dist\/cjs\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
@@ -111,5 +111,28 @@ describe('REC-082 Node LTS and modern browsers', () => {
       expect(line).toMatch(NODE_BUILTIN_LOAD);
     }
     expect("import { a } from './geometry/fs.js';").not.toMatch(NODE_BUILTIN_LOAD);
+  });
+});
+
+describe('REC-084 publishable on npm', () => {
+  it('is public, MIT and points at its folder in the repository', () => {
+    expect(pkg.private).toBeUndefined();
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(pkg.license).toBe('MIT');
+    expect(pkg.repository).toEqual({ type: 'git', url: 'git+https://github.com/DanM10/crux_diagram.git', directory: 'js/core' });
+    expect(pkg.publishConfig).toEqual({ access: 'public' });
+  });
+
+  it('builds dist before packing', () => {
+    expect(pkg.scripts.prepack).toBe('npm run build');
+  });
+
+  it('packs only dist, the manifest, README.md, LICENSE and CHANGELOG.md', () => {
+    const [packed] = JSON.parse(
+      execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: ROOT, encoding: 'utf8' }),
+    );
+    const files: string[] = packed.files.map((f: { path: string }) => f.path);
+    for (const required of ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md']) expect(files, required).toContain(required);
+    for (const file of files) expect(file).toMatch(/^(dist\/|package\.json$|README\.md$|LICENSE$|CHANGELOG\.md$)/);
   });
 });

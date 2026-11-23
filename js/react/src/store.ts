@@ -1,4 +1,4 @@
-import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type Size, type ViewportZoom } from '@diagrama-kit/core';
+import { FITTED_ZOOM, withGroupMates, type DrawingDocument, type Point, type Size, type ViewportZoom } from '@crux-diagram/core';
 import { temporal } from 'zundo';
 import { createStore } from 'zustand/vanilla';
 import { DEFAULT_EDITOR_CONFIG } from './config.js';

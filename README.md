@@ -31,8 +31,8 @@ crux_diagram/
 │   └── geometry/
 ├── dart/                      ← paquete Flutter (historial del repo actual vive aquí)
 └── js/
-    ├── core/                  ← @diagrama-kit/core
-    └── react/                 ← @diagrama-kit/react
+    ├── core/                  ← @crux-diagram/core
+    └── react/                 ← @crux-diagram/react
 ```
 
 ## 2. Cómo está pensada esta documentación (enfoque ODD)
@@ -81,7 +81,7 @@ Outcome → Requisito con ID → Fixture / test que lo prueba → Implementació
 
 | # | Pregunta | Supuesto actual |
 |---|---|---|
-| Q1 | Nombres de los paquetes y licencia | El monorepo se llama `crux_diagram`. El paquete Dart se llama `crux_diagram` (decidido el 2026-11-23). Falta decidir el scope de npm (en las specs, `@diagrama-kit/*` es provisional). Licencia: MIT |
+| Q1 | Nombres de los paquetes y licencia | El monorepo se llama `crux_diagram`. Paquetes: `crux_diagram` en pub.dev y `@crux-diagram/core` y `@crux-diagram/react` en npm (decidido el 2026-11-23). Licencia: MIT |
 | Q2 | ¿El repo Flutter actual contiene código privado o secretos? | Debe auditarse antes de hacerlo público (ver `docs/01`) |
 | Q3 | ¿Se agrega `computed` por junta para backends que dibujan sin medir texto? | No en v1 |
 | Q4 | ¿Se conservan campos desconocidos al guardar? | No en v1 |

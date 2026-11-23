@@ -1,4 +1,4 @@
-# 05 · Spec de `@diagrama-kit/react` (editor y visor)
+# 05 · Spec de `@crux-diagram/react` (editor y visor)
 
 Depende de: `02-spec-formato-json.md` y `04-spec-react-core.md`. Publicación: npm.
 
@@ -6,7 +6,7 @@ Depende de: `02-spec-formato-json.md` y `04-spec-react-core.md`. Publicación: n
 
 ## 1. Objetivo
 
-Componentes React para **visualizar y editar** dibujos del formato JSON v1 y exportarlos como imagen, con el **mismo comportamiento que el editor Flutter**. Usa `@diagrama-kit/core` para todo lo relacionado con el formato y la geometría.
+Componentes React para **visualizar y editar** dibujos del formato JSON v1 y exportarlos como imagen, con el **mismo comportamiento que el editor Flutter**. Usa `@crux-diagram/core` para todo lo relacionado con el formato y la geometría.
 
 Mientras este paquete no exista, el comportamiento de referencia es el de Flutter: sus specs (`docs/flutter-specs/01` a `06`) definen cada interacción. Esta spec no las repite: indica qué se reproduce, qué cambia por ser web y cómo se resuelve con Konva.
 
@@ -122,9 +122,10 @@ Funcionalidad que se reproduce de Flutter:
 ### 5.7 Empaquetado
 
 - **REA-060** ESM + CJS con tipos; `react`, `react-dom`, `konva` y `react-konva` como peer dependencies.
-- **REA-061** Depende de `@diagrama-kit/core` con rango de versiones compatible (`schemaVersion` manda).
+- **REA-061** Depende de `@crux-diagram/core` con rango de versiones compatible (`schemaVersion` manda).
 - **REA-062** Storybook (o equivalente) con historias de cada componente y de los casos límite.
   *Detalles (2026-11-18):* Storybook 10 con `@storybook/react-vite`, en `js/react/stories` (`npm run storybook`, `npm run build-storybook`), con la telemetría desactivada. Historias: `DrawingViewer` (muestra de Flutter, vacío, juntas ocultas, emoji en el nombre, 300 figuras, descripción propia), `DrawingEditor` con `Toolbar` (muestra, lienzo vacío, solo lectura, sin cuadrícula, 300 figuras) y `VersionHistory` (por defecto, sin versiones, versión actual ausente, versiones repetidas con fecha inválida, textos propios). Las historias usan las fixtures de `fixtures/valid`.
+- **REA-063** Publicable en npm con los mismos metadatos que REC-084 (`directory: "js/react"`); la dependencia de `core` acepta la versión publicada de `core`.
 
 ### 5.8 Historial de versiones
 
@@ -139,7 +140,7 @@ Funcionalidad que se reproduce de Flutter:
 ## 6. API pública esperada (boceto)
 
 ```tsx
-import { DrawingEditor, type DrawingEditorHandle } from '@diagrama-kit/react';
+import { DrawingEditor, type DrawingEditorHandle } from '@crux-diagram/react';
 
 function Page() {
   const [doc, setDoc] = useState(initial);   // viene del backend

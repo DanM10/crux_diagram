@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 // Read-only viewer and the Stage layers shared with the editor (REA-001, REA-030,
 // REA-032, spec 05 section 4).
-import type { DrawingDocument } from '@diagrama-kit/core';
-import { DEFAULT_JOINT_STYLE } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
+import { DEFAULT_JOINT_STYLE } from '@crux-diagram/core';
 import { act, cleanup, render } from '@testing-library/react';
 import type Konva from 'konva';
-import { moveShape } from '@diagrama-kit/core';
+import { moveShape } from '@crux-diagram/core';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { EditorCanvas } from '../src/DrawingEditor.js';
 import { EditorProvider, useEditor } from '../src/editor-context.js';

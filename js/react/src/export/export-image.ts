@@ -1,7 +1,7 @@
 // Image export (REA-040 to REA-043). The image is drawn on a Konva stage of its own, with
 // the background, shapes and joints layers only, so nothing of the editing UI can leak in.
 
-import { argbToCss, CanvasTextMeasurer, DEFAULT_JOINT_STYLE, type DrawingDocument } from '@diagrama-kit/core';
+import { argbToCss, CanvasTextMeasurer, DEFAULT_JOINT_STYLE, type DrawingDocument } from '@crux-diagram/core';
 import Konva from 'konva';
 import { whenFontsReady } from '../render/fonts.js';
 import { jointGraphics, LABEL_FONT_FAMILY, placeJoints, shapeNodeProps } from '../render/scene.js';

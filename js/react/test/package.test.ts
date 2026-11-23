@@ -1,4 +1,4 @@
-// Packaging (REA-054, REA-060, REA-061). Builds into a temporary node_modules, laid out
+// Packaging (REA-054, REA-060, REA-061, REA-063). Builds into a temporary node_modules, laid out
 // as an installed package next to its peers, and loads it by name from plain Node,
 // where `window` does not exist: through the `exports` map, both as ESM and as CJS.
 import { execFileSync } from 'node:child_process';
@@ -27,13 +27,13 @@ beforeAll(() => {
   // Third-party packages (peers and their transitive dependencies) come from the
   // workspace install, linked by name; only the workspace packages are built.
   for (const entry of readdirSync(join(JS, 'node_modules'))) {
-    if (entry.startsWith('.') || entry === '@diagrama-kit') continue;
+    if (entry.startsWith('.') || entry === '@crux-diagram') continue;
     const link = join(consumer, 'node_modules', entry);
     mkdirSync(dirname(link), { recursive: true });
     symlinkSync(join(JS, 'node_modules', entry), link, 'dir');
   }
-  install('@diagrama-kit/core', 'core');
-  install('@diagrama-kit/react', 'react');
+  install('@crux-diagram/core', 'core');
+  install('@crux-diagram/react', 'react');
 }, 120_000);
 
 afterAll(() => {
@@ -54,7 +54,7 @@ describe('REA-060 ESM and CJS outputs with types; react, react-dom, konva and re
       require: { types: './dist/cjs/index.d.ts', default: './dist/cjs/index.js' },
     });
     expect(pkg.types).toBe('./dist/esm/index.d.ts');
-    expect(pkg.files).toEqual(['dist']);
+    expect(pkg.files).toEqual(['dist', 'CHANGELOG.md']);
   });
 
   it('lists react, react-dom, konva and react-konva only as peer dependencies, React 19 only', () => {
@@ -69,21 +69,21 @@ describe('REA-060 ESM and CJS outputs with types; react, react-dom, konva and re
   });
 
   it('emits declarations for both outputs', () => {
-    const installed = join(consumer!, 'node_modules', '@diagrama-kit', 'react', 'dist');
+    const installed = join(consumer!, 'node_modules', '@crux-diagram', 'react', 'dist');
     for (const folder of ['esm', 'cjs']) expect(readFileSync(join(installed, folder, 'index.d.ts'), 'utf8'), folder).toBeTypeOf('string');
   });
 });
 
-describe('REA-061 depends on @diagrama-kit/core with a compatible range', () => {
+describe('REA-061 depends on @crux-diagram/core with a compatible range', () => {
   it('declares core as a dependency whose range accepts the workspace version', () => {
-    expect(pkg.dependencies['@diagrama-kit/core']).toBe(`^${corePkg.version}`);
+    expect(pkg.dependencies['@crux-diagram/core']).toBe(`^${corePkg.version}`);
   });
 });
 
 describe('REA-054 SSR safe: importing the package without window does not fail', () => {
   it('import of the package name resolves to the ESM build in plain Node', () => {
-    const script = `import * as m from '@diagrama-kit/react';
-      ${report("import.meta.resolve('@diagrama-kit/react')")}`;
+    const script = `import * as m from '@crux-diagram/react';
+      ${report("import.meta.resolve('@crux-diagram/react')")}`;
     const result = JSON.parse(node(['--input-type=module', '-e', script]));
     expect(result.window).toBe('undefined');
     expect(result.resolved).toMatch(/\/dist\/esm\/index\.js$/);
@@ -91,11 +91,34 @@ describe('REA-054 SSR safe: importing the package without window does not fail',
   });
 
   it('require of the package name resolves to the CJS build in plain Node', () => {
-    const script = `const m = require('@diagrama-kit/react');
-      ${report("require.resolve('@diagrama-kit/react')")}`;
+    const script = `const m = require('@crux-diagram/react');
+      ${report("require.resolve('@crux-diagram/react')")}`;
     const result = JSON.parse(node(['-e', script]));
     expect(result.window).toBe('undefined');
     expect(result.resolved).toMatch(/\/dist\/cjs\/index\.js$/);
     expect(result.names).toEqual(sourceExports);
+  });
+});
+
+describe('REA-063 publishable on npm', () => {
+  it('is public, MIT and points at its folder in the repository', () => {
+    expect(pkg.private).toBeUndefined();
+    expect(pkg.version).toMatch(/^\d+\.\d+\.\d+/);
+    expect(pkg.license).toBe('MIT');
+    expect(pkg.repository).toEqual({ type: 'git', url: 'git+https://github.com/DanM10/crux_diagram.git', directory: 'js/react' });
+    expect(pkg.publishConfig).toEqual({ access: 'public' });
+  });
+
+  it('builds dist before packing', () => {
+    expect(pkg.scripts.prepack).toBe('npm run build');
+  });
+
+  it('packs only dist, the manifest, README.md, LICENSE and CHANGELOG.md', () => {
+    const [packed] = JSON.parse(
+      execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], { cwd: ROOT, encoding: 'utf8' }),
+    );
+    const files: string[] = packed.files.map((f: { path: string }) => f.path);
+    for (const required of ['package.json', 'README.md', 'LICENSE', 'CHANGELOG.md']) expect(files, required).toContain(required);
+    for (const file of files) expect(file).toMatch(/^(dist\/|package\.json$|README\.md$|LICENSE$|CHANGELOG\.md$)/);
   });
 });

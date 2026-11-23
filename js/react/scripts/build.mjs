@@ -14,7 +14,7 @@ const tsc = join(dirname(tsPackage), 'bin', 'tsc');
 
 const run = (args) => execFileSync(process.execPath, [tsc, '-p', join(root, 'tsconfig.build.json'), ...args], { stdio: 'inherit' });
 
-// The declarations import @diagrama-kit/core, which resolves to its build, so build it first.
+// The declarations import @crux-diagram/core, which resolves to its build, so build it first.
 execFileSync(process.execPath, [join(root, '..', 'core', 'scripts', 'build.mjs')], { stdio: 'inherit' });
 
 rmSync(join(out, 'esm'), { recursive: true, force: true });

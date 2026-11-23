@@ -17,7 +17,7 @@ import {
   type Rect,
   type Shape,
   type TextMeasurer,
-} from '@diagrama-kit/core';
+} from '@crux-diagram/core';
 
 /** Font family of joint labels, fixed in both implementations (REA-030, spec 02 section 12). */
 export const LABEL_FONT_FAMILY = 'Arial';

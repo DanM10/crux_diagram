@@ -1,4 +1,4 @@
-import type { Size } from '@diagrama-kit/core';
+import type { Size } from '@crux-diagram/core';
 
 /** Style given to new shapes; colors are ARGB integers (FMT-004). */
 export interface ShapeStyle {

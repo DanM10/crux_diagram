@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 // The joint tool through the real editor: anchor dots, the name editor overlay and joint
 // selection (REA-020, REA-021, REA-031; Flutter JT-1 to JT-3, NM-1, DL-1, NS-2 to NS-5).
-import { anchorIdsFor } from '@diagrama-kit/core';
+import { anchorIdsFor } from '@crux-diagram/core';
 import { act, cleanup, fireEvent, screen } from '@testing-library/react';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { docOf, joint, rect } from './support/docs.js';

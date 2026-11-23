@@ -1,5 +1,5 @@
 'use client';
-import type { DrawingDocument, JointStyle } from '@diagrama-kit/core';
+import type { DrawingDocument, JointStyle } from '@crux-diagram/core';
 import { DrawingStage } from './render/DrawingStage.js';
 
 export interface DrawingViewerProps {

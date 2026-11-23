@@ -14,7 +14,7 @@ import {
   type Shape,
   type Size,
   type ViewportZoom,
-} from '@diagrama-kit/core';
+} from '@crux-diagram/core';
 import type { KonvaEventObject } from 'konva/lib/Node';
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Ellipse, Layer, Line, Rect, Stage, Text } from 'react-konva';

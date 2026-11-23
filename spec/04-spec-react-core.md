@@ -1,4 +1,4 @@
-# 04 · Spec de `@diagrama-kit/core` (TypeScript)
+# 04 · Spec de `@crux-diagram/core` (TypeScript)
 
 Depende de: `02-spec-formato-json.md`. Publicación: npm. Corre en **Node y navegador**.
 
@@ -113,11 +113,12 @@ Reciben un `DrawingDocument` y devuelven uno nuevo, sin mutar.
 - **REC-081** `sideEffects: false` para permitir tree-shaking.
 - **REC-082** Compatible con Node LTS vigentes y navegadores modernos.
 - **REC-083** Provenance de npm habilitada al publicar desde GitHub Actions.
+- **REC-084** Publicable en npm: no es `private`, `license: "MIT"`, `repository` apunta a `DanM10/crux_diagram` con `directory: "js/core"`, `publishConfig.access: "public"`, un script `prepack` construye `dist` antes de empaquetar, y el paquete incluye `README.md`, `LICENSE` y `CHANGELOG.md`.
 
 ## 6. API pública esperada (boceto)
 
 ```ts
-import { parse, serialize, moveShape, addJoint, placeJoints, CanvasTextMeasurer } from '@diagrama-kit/core';
+import { parse, serialize, moveShape, addJoint, placeJoints, CanvasTextMeasurer } from '@crux-diagram/core';
 
 const doc   = parse(jsonFromBackend);
 const moved = moveShape(doc, 's_01', { dx: 20, dy: 0 });
@@ -137,4 +138,4 @@ const json  = serialize(moved);              // listo para PUT al backend
 
 - ¿Validación escrita a mano o apoyada en Ajv/Zod usada solo en desarrollo para contrastar con el JSON Schema?
 - ¿Se publica un medidor de texto de Node con `canvas` como paquete opcional aparte?
-- ¿Alcance del scope npm: `@diagrama-kit/*` disponible?
+- Scope npm: `@crux-diagram` (decidido el 2026-11-23; antes `@diagrama-kit`, nombre de trabajo).

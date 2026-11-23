@@ -1,7 +1,7 @@
 // The joint tool and the name editor, as store operations (REA-020, REA-021, REA-025;
 // Flutter JT-1 to JT-4, NM-1, NM-2, DL-3).
 
-import { addJoint, normalizeJointName, pickAnchor, renameJoint, setJointDisplay, type JointLabelSize, type Point } from '@diagrama-kit/core';
+import { addJoint, normalizeJointName, pickAnchor, renameJoint, setJointDisplay, type JointLabelSize, type Point } from '@crux-diagram/core';
 import type { EditorStore } from '../store.js';
 import { labelAt, type LabelRect } from './gestures.js';
 

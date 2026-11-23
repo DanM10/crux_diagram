@@ -2,7 +2,7 @@
 // the REA-018 assumption: they act only while the editor has the focus and never while
 // a text field has it.
 
-import { bringToFront, duplicateShapes, groupShapes, moveShape, removeJoint, removeShape, rotateShape, sendToBack, ungroup, type DrawingDocument, type Group } from '@diagrama-kit/core';
+import { bringToFront, duplicateShapes, groupShapes, moveShape, removeJoint, removeShape, rotateShape, sendToBack, ungroup, type DrawingDocument, type Group } from '@crux-diagram/core';
 import type { EditorStore } from '../store.js';
 
 /** Arrow-key move, in canvas units; `Shift` uses the large step (REA-015). */

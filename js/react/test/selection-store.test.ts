@@ -1,6 +1,6 @@
 // Selection in the editor store (REA-010, REA-018; Flutter MS-1, MS-3, MS-6, MS-8,
 // `_dropStaleSelection`). Selection is not history.
-import { moveShape, removeShape } from '@diagrama-kit/core';
+import { moveShape, removeShape } from '@crux-diagram/core';
 import { describe, expect, it } from 'vitest';
 import { createEditorStore } from '../src/store.js';
 import { docOf, rect } from './support/docs.js';

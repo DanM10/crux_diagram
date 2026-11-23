@@ -1,4 +1,4 @@
-import type { DrawingDocument } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { useState } from 'react';
 import { DrawingEditor, Toolbar, type DrawingEditorProps } from '../src/index.js';

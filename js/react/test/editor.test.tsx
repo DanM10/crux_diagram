@@ -1,8 +1,8 @@
 // @vitest-environment jsdom
 // Controlled editor (REA-002, REA-003, REA-004, REA-017). Interactions arrive in later
 // tasks, so a probe inside the provider drives the same store they will use.
-import type { DrawingDocument } from '@diagrama-kit/core';
-import { moveShape, parse } from '@diagrama-kit/core';
+import type { DrawingDocument } from '@crux-diagram/core';
+import { moveShape, parse } from '@crux-diagram/core';
 import { act, cleanup, render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
