@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="soft_drawer_service_example"
+        android:label="crux_diagram_example"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

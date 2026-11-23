@@ -2,8 +2,8 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/model/shape_type_defaults.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/model/shape_type_defaults.dart';
 
 void main() {
   group('ShapeElement defaults', () {

@@ -8,7 +8,7 @@ Depende de: `02-spec-formato-json.md`. Publicación: pub.dev.
 
 Paquete de Flutter que **lee, valida, muestra, edita, guarda y exporta como imagen** dibujos en el formato JSON v1.
 
-El paquete **ya existe y es funcional** (`soft_drawer_service`, versión `0.1.0`). Esta spec no lo rediseña: fija qué debe cumplir para ser la **implementación de referencia** del formato y qué falta para publicarlo. El comportamiento del editor se define en las specs propias del paquete (`docs/flutter-specs/00` a `06`), que siguen vigentes.
+El paquete **ya existe y es funcional** (`crux_diagram`, versión `0.1.0`). Esta spec no lo rediseña: fija qué debe cumplir para ser la **implementación de referencia** del formato y qué falta para publicarlo. El comportamiento del editor se define en las specs propias del paquete (`docs/flutter-specs/00` a `06`), que siguen vigentes.
 
 ## 2. Estado actual
 
@@ -78,7 +78,7 @@ El paquete **ya existe y es funcional** (`soft_drawer_service`, versión `0.1.0`
 
 ## 6. API pública actual (referencia)
 
-Exportada desde `package:soft_drawer_service/soft_drawer_service.dart`:
+Exportada desde `package:crux_diagram/crux_diagram.dart`:
 
 ```dart
 // Modelo
@@ -113,7 +113,7 @@ final image = await renderDrawingImage(document, format: ImageFormat.png);
 
 ## 8. Preguntas abiertas
 
-- ¿Nombre final del paquete en pub.dev? Hoy `soft_drawer_service` y el monorepo usa `diagrama-kit` como nombre de trabajo.
+- Nombre del paquete en pub.dev: `crux_diagram` (decidido el 2026-11-23; antes `soft_drawer_service`).
 - ¿Publisher verificado en pub.dev (requiere dominio propio)?
 - ¿Plataformas declaradas en la primera versión (móvil, web, escritorio)?
 - ¿Se separa algún día un núcleo en Dart puro? Hoy el modelo usa `dart:ui` y `package:flutter`. No es requisito de esta spec.

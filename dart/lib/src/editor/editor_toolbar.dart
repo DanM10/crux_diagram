@@ -53,12 +53,10 @@ class EditorToolbar extends StatefulWidget {
   });
 
   /// Key of the selection bar, for tests.
-  static const Key selectionBarKey = ValueKey(
-    'soft_drawer_service.selectionBar',
-  );
+  static const Key selectionBarKey = ValueKey('crux_diagram.selectionBar');
 
   /// Key of the create bar, for tests.
-  static const Key createBarKey = ValueKey('soft_drawer_service.createBar');
+  static const Key createBarKey = ValueKey('crux_diagram.createBar');
 
   /// Controller holding the document, selection and view state.
   final DrawingEditorController controller;

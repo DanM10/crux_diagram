@@ -1,4 +1,4 @@
-# soft_drawer_service
+# crux_diagram
 
 A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows. Build drawings from squares, rectangles and circles, mark where parts connect with named joints, and export the result as a JPEG plus a JSON document you can reopen later.
 
@@ -23,13 +23,13 @@ Add the dependency:
 
 ```yaml
 dependencies:
-  soft_drawer_service: ^0.1.0
+  crux_diagram: ^0.1.0
 ```
 
 Open the full-screen editor and wait for the result:
 
 ```dart
-import 'package:soft_drawer_service/soft_drawer_service.dart';
+import 'package:crux_diagram/crux_diagram.dart';
 
 Future<void> editDrawing(BuildContext context, {String? savedJson}) async {
   final result = await Navigator.of(context).push<DrawingResult>(

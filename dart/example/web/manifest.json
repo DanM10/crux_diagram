@@ -1,6 +1,6 @@
 {
-    "name": "soft_drawer_service_example",
-    "short_name": "soft_drawer_service_example",
+    "name": "crux_diagram_example",
+    "short_name": "crux_diagram_example",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

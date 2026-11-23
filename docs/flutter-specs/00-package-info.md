@@ -1,21 +1,21 @@
-# soft_drawer_service — Package Information
+# crux_diagram — Package Information
 
 ## 1. Summary
 
 | Field | Value |
 |---|---|
-| Package name | `soft_drawer_service` |
+| Package name | `crux_diagram` |
 | Type | Flutter package (library), to be published on pub.dev |
 | Description (pub.dev) | A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows. Build drawings from basic shapes and export them as JPEG. |
 | Status | Pre-0.1.0, specifications accepted (2026-11-11), implementation not started |
-| Repository | Local: `~/Projects/soft_drawer_service` (git, default branch `main`). Remote not created yet. |
+| Repository | Local: `~/Projects/crux_diagram` (git, default branch `main`). Remote not created yet. |
 | License | MIT (proposed) |
 | Primary language | English (code, docs, comments, commits, issues) |
 | Platforms | Android and iOS (tested). Others declared only after they are verified. |
 
 ## 2. Purpose
 
-`soft_drawer_service` lets a Flutter app embed a small, touch-friendly 2D drawing editor. Users build a drawing by combining preconfigured basic shapes ("LEGO-like"), name the connection points between parts (joints), point arrows at them, and get the result back as a **JPEG** plus a **JSON document** that can be reopened and edited later.
+`crux_diagram` lets a Flutter app embed a small, touch-friendly 2D drawing editor. Users build a drawing by combining preconfigured basic shapes ("LEGO-like"), name the connection points between parts (joints), point arrows at them, and get the result back as a **JPEG** plus a **JSON document** that can be reopened and edited later.
 
 Typical use: an app that asks the user to upload a sketch or reference drawing as a JPEG can open this editor instead of the camera or file picker, and receive the JPEG through the same flow.
 
@@ -47,7 +47,7 @@ Out of scope for the package overall (for now): real units and dimensions, DXF/D
 The public surface is intentionally small. Everything else lives under `lib/src/` and is not exported.
 
 ```dart
-// lib/soft_drawer_service.dart
+// lib/crux_diagram.dart
 class DrawingEditorPage extends StatefulWidget { ... }   // full-screen editor; pops DrawingResult?
 class DrawingEditor extends StatefulWidget { ... }       // embeddable editor widget
 class DrawingEditorController extends ChangeNotifier { ... }
@@ -78,9 +78,9 @@ if (result != null) {
 The package lives in its own repository from day one.
 
 ```
-soft_drawer_service/
+crux_diagram/
 ├── lib/
-│   ├── soft_drawer_service.dart      # public exports only
+│   ├── crux_diagram.dart      # public exports only
 │   └── src/
 │       ├── model/                    # DrawingDocument, ShapeElement, Joint, JSON codec
 │       ├── geometry/                 # transforms, hit-testing, anchors, snapping (pure functions)
@@ -121,11 +121,11 @@ soft_drawer_service/
 Fill in the placeholders when the repository is created.
 
 ```yaml
-name: soft_drawer_service
+name: crux_diagram
 description: A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows. Build drawings from basic shapes and export them as JPEG.
 version: 0.0.1
-repository: https://github.com/<user>/soft_drawer_service
-issue_tracker: https://github.com/<user>/soft_drawer_service/issues
+repository: https://github.com/<user>/crux_diagram
+issue_tracker: https://github.com/<user>/crux_diagram/issues
 topics:
   - drawing
   - canvas
@@ -173,7 +173,7 @@ Notes: pub.dev descriptions should be 60 to 180 characters (the one above fits),
 
 ## 11. Development workflow
 
-1. Create the package skeleton inside the existing repository (`flutter create --template=package .` from `~/Projects/soft_drawer_service`, then `flutter create example`), and add `.pubignore` excluding `odd/`.
+1. Create the package skeleton inside the existing repository (`flutter create --template=package .` from `~/Projects/crux_diagram`, then `flutter create example`), and add `.pubignore` excluding `odd/`.
 2. Implement Spec 01 and tag it as an internal milestone.
 3. Implement Spec 02.
 4. Stabilize the public API, finish README and GIF, run the section 9 checklist.

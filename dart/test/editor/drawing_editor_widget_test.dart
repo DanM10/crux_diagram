@@ -5,14 +5,14 @@ import 'package:flutter/gestures.dart'
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:soft_drawer_service/soft_drawer_service.dart';
-import 'package:soft_drawer_service/src/editor/drawing_editor_controller.dart';
-import 'package:soft_drawer_service/src/editor/editor_toolbar.dart';
-import 'package:soft_drawer_service/src/geometry/grid.dart';
-import 'package:soft_drawer_service/src/geometry/resize.dart';
-import 'package:soft_drawer_service/src/geometry/viewport.dart';
-import 'package:soft_drawer_service/src/model/id_generator.dart';
-import 'package:soft_drawer_service/src/painting/editor_painters.dart';
+import 'package:crux_diagram/crux_diagram.dart';
+import 'package:crux_diagram/src/editor/drawing_editor_controller.dart';
+import 'package:crux_diagram/src/editor/editor_toolbar.dart';
+import 'package:crux_diagram/src/geometry/grid.dart';
+import 'package:crux_diagram/src/geometry/resize.dart';
+import 'package:crux_diagram/src/geometry/viewport.dart';
+import 'package:crux_diagram/src/model/id_generator.dart';
+import 'package:crux_diagram/src/painting/editor_painters.dart';
 
 class _Harness {
   _Harness(this.tester, this.controller);

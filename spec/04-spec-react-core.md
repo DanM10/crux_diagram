@@ -8,7 +8,7 @@ Depende de: `02-spec-formato-json.md`. Publicación: npm. Corre en **Node y nave
 
 Librería TypeScript **sin dependencias de React** que lee, valida, calcula y serializa dibujos del formato JSON v1. Es la base del editor React y puede usarse sola en un servidor Node, en Vue, Angular, etc.
 
-Es un **port** de la lógica del modelo y la geometría de Flutter (`soft_drawer_service`). Donde haya duda, manda el comportamiento de Flutter y las fixtures generadas con él.
+Es un **port** de la lógica del modelo y la geometría de Flutter (`crux_diagram`). Donde haya duda, manda el comportamiento de Flutter y las fixtures generadas con él.
 
 ## 2. Resultados esperados
 

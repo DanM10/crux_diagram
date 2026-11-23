@@ -3,7 +3,7 @@
 Monorepo for a drawing editor built around one shared JSON format, with two
 implementations that must read and write it identically:
 
-- `dart/` — Flutter package (`soft_drawer_service`). Exists and works; it is the **reference implementation**.
+- `dart/` — Flutter package (`crux_diagram`). Exists and works; it is the **reference implementation**.
 - `js/` — TypeScript packages (`core` and `react`). Not started yet.
 
 ## Where things are
@@ -37,5 +37,5 @@ gitleaks detect --source . --log-opts="--all"     # secret scan of the history
 
 ## Open decisions (see README, section 4)
 
-Package names (Dart package and npm scope are provisional), `computed` per
+npm scope name (the Dart package is `crux_diagram`; `@diagrama-kit` is provisional), `computed` per
 joint, and keeping unknown fields on save.

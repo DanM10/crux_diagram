@@ -1,6 +1,6 @@
 # Spec 06 — Public API for consumers
 
-Package: `soft_drawer_service` · Status: Accepted (2026-11-16) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 01](01-spec-shapes.md), [Spec 02](02-spec-joints-and-arrows.md), [Spec 04](04-spec-joint-display.md)
+Package: `crux_diagram` · Status: Accepted (2026-11-16) · Target: 0.1.0 (before the first publish) · Depends on: [Spec 01](01-spec-shapes.md), [Spec 02](02-spec-joints-and-arrows.md), [Spec 04](04-spec-joint-display.md)
 
 ## 1. Goal
 
