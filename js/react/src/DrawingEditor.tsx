@@ -7,6 +7,7 @@ import {
   DEFAULT_JOINT_STYLE,
   handleLocalPosition,
   handlesFor,
+  placeJoints,
   visibleGridStep,
   type DrawingDocument,
   type Point,
@@ -40,7 +41,6 @@ import { commandForKey, isTextEntry, runCommand } from './interaction/keyboard.j
 import { panBy, wheelZoom } from './interaction/viewport.js';
 import { DrawingStage } from './render/DrawingStage.js';
 import { useFontsReady, useLabelMeasurer } from './render/fonts.js';
-import { placeJoints } from './render/scene.js';
 
 /** Longest time between the two taps of a double tap on a label, in milliseconds (ZM-4). */
 const DOUBLE_TAP_TIMEOUT = 300;

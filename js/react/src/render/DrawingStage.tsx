@@ -3,8 +3,8 @@
 
 import {
   applyZoom,
-  argbToCss,
   clampZoom,
+  computeGeometry,
   DEFAULT_JOINT_STYLE,
   FITTED_ZOOM,
   fitViewport,
@@ -20,7 +20,7 @@ import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type React
 import { Ellipse, Layer, Line, Rect, Stage, Text } from 'react-konva';
 import { useFontsReady, useLabelMeasurer } from './fonts.js';
 import { describeDrawing, DrawingList } from '../a11y.js';
-import { jointGraphics, placeJoints, shapeNodeProps } from './scene.js';
+import { jointNodeProps, shapeNodeProps } from './scene.js';
 
 export interface DrawingStageProps {
   readonly document: DrawingDocument;
@@ -119,29 +119,25 @@ const ShapeNode = memo(function ShapeNode({ shape }: { shape: Shape }) {
 function JointsLayer({ document, style, clip }: { document: DrawingDocument; style: JointStyle; clip: object }) {
   const fontsReady = useFontsReady();
   const measurer = useLabelMeasurer();
+  // The joints of the exportable geometry, so the screen shows exactly what getGeometry returns (REA-033).
   const graphics = useMemo(() => {
     if (!fontsReady) return [];
-    const labelSize = document.jointDisplay.labelSize;
-    return placeJoints(document, style, measurer()).map((p) => ({
-      id: p.joint.id,
-      ...jointGraphics(p, style, labelSize),
-    }));
+    return computeGeometry(document, { measurer: measurer(), style }).joints.map(jointNodeProps);
   }, [document, style, fontsReady, measurer]);
-  const color = argbToCss(style.color);
   return (
     <Layer name="joints" clip={clip}>
-      {graphics.map(({ id, line, head, text }) => [
+      {graphics.map(({ id, line, head, text, lineColor, lineWidth }) => [
         line && (
           <Line
             key={`${id}-line`}
             name="joint-line"
             points={line}
-            stroke={color}
-            strokeWidth={style.lineWidth}
+            stroke={lineColor}
+            strokeWidth={lineWidth}
             lineCap="butt"
           />
         ),
-        head && <Line key={`${id}-head`} name="joint-head" points={head} closed fill={color} />,
+        head && <Line key={`${id}-head`} name="joint-head" points={head} closed fill={lineColor} />,
         <Text
           key={`${id}-label`}
           id={id}

@@ -1,8 +1,7 @@
 // The joint name editor: an HTML input over the label, in the label font (REA-021, REA-031).
 
-import { anchorPositionOf, DEFAULT_JOINT_STYLE, labelFontSize, toScreen, type CanvasViewport, type DrawingDocument } from '@crux-diagram/core';
+import { anchorPositionOf, DEFAULT_JOINT_STYLE, LABEL_FONT_FAMILY, labelFontSize, toScreen, type CanvasViewport, type DrawingDocument } from '@crux-diagram/core';
 import { useState, type KeyboardEvent } from 'react';
-import { LABEL_FONT_FAMILY } from './render/scene.js';
 import type { JointNaming } from './store.js';
 
 export interface NameEditorProps {

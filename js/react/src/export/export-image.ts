@@ -1,10 +1,10 @@
 // Image export (REA-040 to REA-043). The image is drawn on a Konva stage of its own, with
 // the background, shapes and joints layers only, so nothing of the editing UI can leak in.
 
-import { argbToCss, CanvasTextMeasurer, DEFAULT_JOINT_STYLE, type DrawingDocument } from '@crux-diagram/core';
+import { CanvasTextMeasurer, computeGeometry, LABEL_FONT_FAMILY, type DrawingDocument } from '@crux-diagram/core';
 import Konva from 'konva';
 import { whenFontsReady } from '../render/fonts.js';
-import { jointGraphics, LABEL_FONT_FAMILY, placeJoints, shapeNodeProps } from '../render/scene.js';
+import { jointNodeProps, shapeNodeProps } from '../render/scene.js';
 
 /** Most pixels an exported image may have unless `config.exportMaxPixels` says otherwise (REA-043). */
 export const DEFAULT_EXPORT_MAX_PIXELS = 16_000_000;
@@ -50,14 +50,12 @@ export function createExportStage(document: DrawingDocument, { transparentBackgr
     shapes.add(kind === 'ellipse' ? new Konva.Ellipse({ id: shape.id, ...props }) : new Konva.Rect({ id: shape.id, ...props }));
   }
   const joints = new Konva.Layer({ name: 'joints' });
-  const style = DEFAULT_JOINT_STYLE;
-  const color = argbToCss(style.color);
   const measurer = new CanvasTextMeasurer({ fontFamily: LABEL_FONT_FAMILY });
-  for (const placement of placeJoints(document, style, measurer)) {
-    const { line, head, text } = jointGraphics(placement, style, document.jointDisplay.labelSize);
-    if (line) joints.add(new Konva.Line({ name: 'joint-line', points: line, stroke: color, strokeWidth: style.lineWidth, lineCap: 'butt' }));
-    if (head) joints.add(new Konva.Line({ name: 'joint-head', points: head, closed: true, fill: color }));
-    joints.add(new Konva.Text({ id: placement.joint.id, name: 'joint-label', ...text, align: 'center', verticalAlign: 'middle', wrap: 'none' }));
+  for (const joint of computeGeometry(document, { measurer }).joints) {
+    const { id, line, head, text, lineColor, lineWidth } = jointNodeProps(joint);
+    if (line) joints.add(new Konva.Line({ name: 'joint-line', points: line, stroke: lineColor, strokeWidth: lineWidth, lineCap: 'butt' }));
+    if (head) joints.add(new Konva.Line({ name: 'joint-head', points: head, closed: true, fill: lineColor }));
+    joints.add(new Konva.Text({ id, name: 'joint-label', ...text, align: 'center', verticalAlign: 'middle', wrap: 'none' }));
   }
   stage.add(background, shapes, joints);
   return stage;
