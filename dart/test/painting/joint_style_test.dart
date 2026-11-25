@@ -90,22 +90,23 @@ void main() {
         'fontSize', () {
       const style = JointStyle(labelStyle: TextStyle(fontSize: 99));
       for (final size in JointLabelSize.values) {
-        final placements = placeJoints(_document(size: size), style);
-        expect(placements, hasLength(1));
-        final text = placements.single.text;
-        expect(
-          (text.text! as TextSpan).style!.fontSize,
-          style.labelFontSize(size),
+        final measurer = _RecordingMeasurer();
+        final placements = placeJoints(
+          _document(size: size),
+          style,
+          measurer: measurer,
         );
+        expect(placements, hasLength(1));
+        expect(measurer.fontSizes, [style.labelFontSize(size)]);
         // The padded rectangle follows the text, so the leader line starts
         // at the label's edge at every size.
         expect(
           placements.single.labelRect.height,
-          text.height + 2 * style.labelPadding,
+          closeTo(
+            placements.single.textSize.height + 2 * style.labelPadding,
+            1e-9,
+          ),
         );
-        for (final p in placements) {
-          p.dispose();
-        }
       }
     });
 
@@ -119,8 +120,6 @@ void main() {
       expect(large.labelRect.width, greaterThan(small.labelRect.width));
       expect(large.labelRect.height, greaterThan(small.labelRect.height));
       expect(large.labelRect.center, small.labelRect.center);
-      small.dispose();
-      large.dispose();
     });
 
     test('hidden joints are not placed, so they are neither drawn nor '
@@ -131,4 +130,14 @@ void main() {
       );
     });
   });
+}
+
+class _RecordingMeasurer implements TextMeasurer {
+  final fontSizes = <double>[];
+
+  @override
+  Size measure(String text, double fontSize, bool bold) {
+    fontSizes.add(fontSize);
+    return const ApproximateTextMeasurer().measure(text, fontSize, bold);
+  }
 }

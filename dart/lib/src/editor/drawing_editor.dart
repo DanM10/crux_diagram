@@ -355,9 +355,6 @@ class _DrawingEditorState extends State<DrawingEditor>
         break;
       }
     }
-    for (final placement in placements) {
-      placement.dispose();
-    }
     return hit;
   }
 

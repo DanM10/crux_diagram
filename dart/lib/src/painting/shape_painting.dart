@@ -1,37 +1,40 @@
 import 'dart:ui';
 
-import '../model/shape_element.dart';
-import '../model/shape_type.dart';
+import 'drawing_geometry.dart';
 
-/// Paints [shapes] back to front in canvas units onto [canvas].
+/// Paints [shapes] back to front in canvas units onto [canvas] (spec 06,
+/// GEO-021).
 ///
-/// Shared by the on-screen layer and the JPEG export so both render
-/// identically.
-void paintShapes(Canvas canvas, List<ShapeElement> shapes) {
+/// Shared by the on-screen layer and the image export so both render the
+/// exported geometry.
+void paintShapes(Canvas canvas, Iterable<ShapeGeometry> shapes) {
   final fill = Paint()..style = PaintingStyle.fill;
   final stroke = Paint()..style = PaintingStyle.stroke;
   for (final shape in shapes) {
     final rect = Rect.fromCenter(
       center: Offset.zero,
-      width: shape.size.width,
-      height: shape.size.height,
+      width: shape.width,
+      height: shape.height,
     );
-    fill.color = shape.fill;
-    stroke
-      ..color = shape.stroke
-      ..strokeWidth = shape.strokeWidth;
     canvas
       ..save()
       ..translate(shape.center.dx, shape.center.dy)
       ..rotate(shape.rotation);
-    switch (shape.type) {
-      case ShapeType.square:
-      case ShapeType.rectangle:
-        if (shape.fill.a > 0) canvas.drawRect(rect, fill);
-        if (shape.strokeWidth > 0) canvas.drawRect(rect, stroke);
-      case ShapeType.circle:
-        if (shape.fill.a > 0) canvas.drawOval(rect, fill);
-        if (shape.strokeWidth > 0) canvas.drawOval(rect, stroke);
+    final fillColor = shape.fill;
+    final outline = shape.stroke;
+    if (fillColor != null) fill.color = Color(fillColor);
+    if (outline != null) {
+      stroke
+        ..color = Color(outline.color)
+        ..strokeWidth = outline.width;
+    }
+    switch (shape.kind) {
+      case ShapeGeometryKind.rect:
+        if (fillColor != null) canvas.drawRect(rect, fill);
+        if (outline != null) canvas.drawRect(rect, stroke);
+      case ShapeGeometryKind.ellipse:
+        if (fillColor != null) canvas.drawOval(rect, fill);
+        if (outline != null) canvas.drawOval(rect, stroke);
     }
     canvas.restore();
   }

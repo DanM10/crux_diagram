@@ -24,6 +24,7 @@ import '../model/shape_element.dart';
 import '../model/shape_group.dart';
 import '../model/shape_type.dart';
 import '../model/shape_type_defaults.dart';
+import '../painting/drawing_geometry.dart';
 import 'document_history.dart';
 import 'drawing_editor_config.dart';
 import 'drawing_tool.dart';
@@ -551,6 +552,13 @@ class DrawingEditorController extends ChangeNotifier {
 
   /// Encodes the current document as JSON.
   String toJson() => _document.toJson();
+
+  /// Paint-ready geometry of the current document (spec 06), measured and
+  /// styled as the editor paints it: the config's joint style and its label
+  /// font. Store it next to [toJson] for painters that do not implement the
+  /// format.
+  DrawingGeometry getGeometry() =>
+      computeGeometry(_document, style: config.jointStyle);
 
   /// Renders the current document as an image at `canvasSize × pixelRatio`
   /// (spec 06, RD-3).

@@ -1,3 +1,11 @@
+## 0.2.0
+
+* `computeGeometry` returns paint-ready shapes and joints in canvas units (`DrawingGeometry`, spec 06), with the same JSON as `@crux-diagram/core`. The editor, `DrawingView` and `renderDrawingImage` now paint from it; the output is unchanged.
+* `DrawingEditorController.getGeometry()` and `DrawingResult.geometry`. `DrawingResult` now requires `geometry` when constructed directly.
+* `TextMeasurer`, `FlutterTextMeasurer` and `ApproximateTextMeasurer` measure label text.
+* `validateGeometry` checks a geometry JSON against its document, with the stable codes of spec 06 (`GeometryError`, `GeometryErrorCode`).
+* README: the format is `schemaVersion: 1`, not "schema 4".
+
 ## 0.1.0
 
 * First release.

@@ -122,6 +122,21 @@ void main() {
     expect(document.shapes.single.type, ShapeType.square);
   });
 
+  testWidgets('Done also returns the geometry of the saved JSON (spec 06)', (
+    tester,
+  ) async {
+    final launcher = await _open(tester);
+    await tester.tap(find.byTooltip('Add square'));
+    await tester.pump();
+    await tester.tap(find.text('Done'));
+    await _settleAsync(tester);
+
+    final result = launcher.result!;
+    final document = DrawingDocument.fromJson(result.json);
+    expect(result.geometry.toJson(), computeGeometry(document).toJson());
+    expect(result.geometry.shapes.single.id, document.shapes.single.id);
+  });
+
   testWidgets('Cancel with no changes pops null without asking', (
     tester,
   ) async {
