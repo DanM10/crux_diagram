@@ -23,7 +23,7 @@ Add the dependency:
 
 ```yaml
 dependencies:
-  crux_diagram: ^0.1.0
+  crux_diagram: ^0.2.0
 ```
 
 Open the full-screen editor and wait for the result:
