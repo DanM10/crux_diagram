@@ -1,6 +1,6 @@
 # 06 · Spec de la geometría de dibujo exportable
 
-Depende de: `02-spec-formato-json.md` y `04-spec-react-core.md`. Implementación: `@crux-diagram/core` (`computeGeometry`). Consumidores: el editor React y cualquier pintor externo (por ejemplo, un backend con Java2D).
+Depende de: `02-spec-formato-json.md` y `04-spec-react-core.md`. Implementaciones: `@crux-diagram/core` (`computeGeometry`) y el paquete Flutter `crux_diagram` (`computeGeometry`, misma salida JSON). Consumidores: el editor React y cualquier pintor externo (por ejemplo, un backend con Java2D).
 
 ---
 
@@ -14,7 +14,7 @@ La geometría **no** va dentro del documento: `parse` descarta los campos descon
 
 | ID | Resultado | Verificación |
 |---|---|---|
-| GEO-O1 | Lo que dibuja el editor es exactamente la geometría exportada | Test en `react` que compara la escena con `computeGeometry` |
+| GEO-O1 | Lo que dibuja el editor es exactamente la geometría exportada | Tests en `react` y en `dart/` que comparan la escena con `computeGeometry` |
 | GEO-O2 | Un pintor externo reproduce el dibujo leyendo solo esta estructura | Fixtures `fixtures/drawing-geometry/` |
 | GEO-O3 | La estructura se verifica igual en cualquier lenguaje | `validateGeometry` con códigos estables (sección 7) |
 
@@ -22,7 +22,7 @@ La geometría **no** va dentro del documento: `parse` descarta los campos descon
 
 **Dentro:** figuras y juntas (línea guía, punta y etiqueta) del documento, en el orden de pintado.
 
-**Fuera:** cambios al formato v1 o a `schemaVersion`; el paquete Flutter; el render en el servidor; la interfaz del editor (selección, asas, cuadrícula).
+**Fuera:** cambios al formato v1 o a `schemaVersion`; el render en el servidor; la interfaz del editor (selección, asas, cuadrícula).
 
 ## 4. Función
 
@@ -35,7 +35,19 @@ export function computeGeometry(
 
 - **GEO-001** `style` por defecto: `DEFAULT_JOINT_STYLE`.
 - **GEO-002** Es pura y determinista: el mismo documento con el mismo `measurer` y estilo da la misma salida. No modifica el documento.
-- **GEO-003** El editor y el visor de `react` pintan desde esta función. No hay una segunda implementación.
+- **GEO-003** El editor y el visor de `react` pintan desde esta función. No hay una segunda implementación. En Flutter, el editor, `DrawingView` y `renderDrawingImage` también pintan desde ella.
+
+En Flutter la firma es:
+
+```dart
+DrawingGeometry computeGeometry(
+  DrawingDocument document, {
+  JointStyle style = const JointStyle(),
+  TextMeasurer? measurer, // por defecto FlutterTextMeasurer(style.labelStyle)
+});
+```
+
+`DrawingGeometry.toJson()` escribe las mismas claves que `core`. `DrawingEditorController.getGeometry()` y `DrawingResult.geometry` dan la geometría del documento con el estilo y la fuente con los que pinta el editor.
 
 ## 5. Estructura
 
@@ -97,7 +109,7 @@ interface JointGeometry {
 - **GEO-033** `text.x = labelRect.left + labelPadding` y `text.y = labelRect.top + labelPadding`; `text.width` y `text.height` son los del `measurer`.
 - **GEO-034** Si el ancla está dentro de la etiqueta (FMT-043), o el inicio de la flecha coincide con el ancla (FMT-045), `line` y `arrowhead` son `null`.
 - **GEO-035** `arrowhead` sigue FMT-044 con el tamaño escalado de `arrowheadSize`. `line` va del inicio de la flecha al punto medio de la base de la punta, y es `null` si la distancia del inicio al ancla no supera el largo de la punta; en ese caso `arrowhead` sí se da.
-- **GEO-036** `text.color` y `lineColor` son `style.color`; `lineWidth` es `style.lineWidth`; `text.bold` es `style.labelBold`; `text.fontFamily` es `LABEL_FONT_FAMILY`.
+- **GEO-036** `text.color` y `lineColor` son `style.color`; `lineWidth` es `style.lineWidth`; `text.bold` es `style.labelBold`; `text.fontFamily` es `LABEL_FONT_FAMILY`. En Flutter, `text.color` es `labelStyle.color` si está fijado (si no, `style.color`), `text.bold` es si `labelStyle` pinta con peso 600 o más, y `text.fontFamily` es `labelStyle.fontFamily`, o `Arial` si no la fija (FLT-032 aún no la fija, así que hoy Flutter mide con su fuente por defecto: GEO-050).
 
 ## 6. Orden de pintado
 
@@ -128,15 +140,15 @@ Fondo (no incluido: lo decide el consumidor), figuras en orden, y luego, por cad
 
 ## 9. Fixtures
 
-`fixtures/drawing-geometry/`: pares `documento → geometría esperada` calculados con `ApproximateTextMeasurer`, para que sean deterministas. Los genera `js/core/scripts/generate-drawing-geometry.mjs` (Flutter no implementa esta función). Casos: junta normal, ancla dentro de la etiqueta, línea más corta que la punta, junta con figura inexistente, `visible: false`, los tres `labelSize` y figuras giradas. Se comparan con tolerancia `1e-6`.
+`fixtures/drawing-geometry/`: pares `documento → geometría esperada` calculados con `ApproximateTextMeasurer`, para que sean deterministas. Los genera `js/core/scripts/generate-drawing-geometry.mjs` y los ejecutan `core` y `dart/test/conformance/` (FLT-024). Casos: junta normal, ancla dentro de la etiqueta, línea más corta que la punta, junta con figura inexistente, `visible: false`, los tres `labelSize` y figuras giradas. Se comparan con tolerancia `1e-6`.
 
 ## 10. Criterios de aceptación
 
 - [ ] Cada requisito `GEO-xxx` tiene un test que cita su ID.
-- [ ] `test/conformance/` de `core` pasa todas las fixtures de `fixtures/drawing-geometry/`.
+- [ ] `test/conformance/` de `core` y de `dart/` pasan todas las fixtures de `fixtures/drawing-geometry/`.
 - [ ] Un test de `react` confirma que la escena del editor sale de `computeGeometry` (misma salida para el mismo documento y `measurer`).
 - [ ] `DrawingEditorHandle.getGeometry()` devuelve la geometría del documento confirmado.
 
 ## 11. Preguntas abiertas
 
-- Si Flutter llega a guardar documentos, necesitará la misma función; hoy queda fuera de alcance.
+- Resuelta (2026-11-25): Flutter implementa `computeGeometry` y `validateGeometry` con la misma salida.

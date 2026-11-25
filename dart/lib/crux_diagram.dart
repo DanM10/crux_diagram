@@ -25,3 +25,18 @@ export 'src/editor/drawing_view.dart' show DrawingView;
 export 'src/editor/drawing_tool.dart' show DrawingTool;
 export 'src/painting/joint_style.dart' show JointStyle, LeaderStyle;
 export 'src/editor/drawing_result.dart' show DrawingResult;
+export 'src/geometry/text_measurer.dart'
+    show TextMeasurer, ApproximateTextMeasurer;
+export 'src/painting/flutter_text_measurer.dart' show FlutterTextMeasurer;
+export 'src/painting/drawing_geometry.dart'
+    show
+        geometryVersion,
+        labelFontFamily,
+        DrawingGeometry,
+        ShapeGeometry,
+        ShapeGeometryKind,
+        JointGeometry,
+        JointTextGeometry,
+        computeGeometry;
+export 'src/painting/geometry_validation.dart'
+    show GeometryError, GeometryErrorCode, validateGeometry;

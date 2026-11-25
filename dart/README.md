@@ -14,7 +14,7 @@ A Flutter 2D shape editor with snapping, rotation and anchor-based joint arrows.
 - Undo and redo, with one history entry per gesture.
 - JPEG export at any pixel ratio, encoded off the UI thread.
 - Multi-selection and groups: select several shapes, move, duplicate, reorder or delete them together, and keep them grouped in the saved document.
-- Versioned JSON format (schema 4) with strict decoding. Version 1 to 3 documents still open, and `DrawingDocument.validate` checks a JSON string without throwing.
+- Versioned JSON format (`schemaVersion: 1`) with strict decoding, and `DrawingDocument.validate` checks a JSON string without throwing.
 - Every user-visible string can be replaced through `DrawingEditorLabels`.
 
 ## Quick start
@@ -132,9 +132,9 @@ DrawingEditorPage(
 
 | Type | Purpose |
 |---|---|
-| `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`image`, `format`, `json`). |
+| `DrawingEditorPage` | Full-screen editor that returns a `DrawingResult` (`image`, `format`, `json`, `geometry`). |
 | `DrawingEditor` | Embeddable editor widget: canvas plus toolbar. |
-| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds` (with several shapes selected, `selectedId` is null), `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson`, `exportImage` and `availableJointNameSuggestions`. |
+| `DrawingEditorController` | Document, selection, tool and undo history. `gridVisible` holds the grid visibility (view state, not saved). Its methods include `addShape` (with an optional `center`), `deleteSelected`, `duplicateSelected`, `rotateSelectedBy`, `bringToFront`, `sendToBack`, `addJoint`, `renameJoint`, `moveJointLabel`, `removeJoint`, `setJointLabelSize`, `setJointsVisible`, `selectedIds` (with several shapes selected, `selectedId` is null), `selectionMode`, `toggleSelected`, `selectAll`, `groupSelected`, `ungroupSelected`, `anchorsOf`, `undo`, `redo`, `isDirty`, `markClean`, `toJson`, `getGeometry`, `exportImage` and `availableJointNameSuggestions`. |
 | `DrawingEditorConfig` | Canvas size, grid (`gridSize`, `showGrid`, `gridMajorEvery`), rotation snapping, anchor snapping, joint naming (`jointNameMaxLength`, default 12, and `jointNameSuggestions`), shape and joint style, toolbar labels (`showToolbarLabels`), haptics (`hapticFeedback`), image format and transparency, JPEG quality, export size limit, and history limit. |
 | `DrawingView` | Read-only widget that draws a `DrawingDocument` like the export does. |
 | `renderDrawingImage` | Renders a document to JPEG or PNG bytes without a controller. |
@@ -148,6 +148,9 @@ DrawingEditorPage(
 | `JointLabelSize` | `small`, `medium` or `large`. |
 | `DrawingTool` | `select` or `joint`. |
 | `DrawingFormatException` | Thrown for malformed or unsupported JSON. |
+| `computeGeometry`, `DrawingGeometry` | Paint-ready shapes and joints in canvas units (see [Drawing geometry](#drawing-geometry)). |
+| `TextMeasurer`, `FlutterTextMeasurer`, `ApproximateTextMeasurer` | How label text is measured for `computeGeometry`. |
+| `validateGeometry`, `GeometryError`, `GeometryErrorCode` | Checks the shape of a geometry JSON against its document. |
 
 Lengths in the document are canvas units (default canvas 1600 × 1200). Touch targets, the anchor snap threshold and handle sizes are in dp, so they stay the same size at any zoom.
 
@@ -184,6 +187,18 @@ Version 1 and 2 documents open with small, visible joints, and version 1 to 3 do
 `DrawingEditorPage` checks `initialJson` first: if it is invalid, the page shows a message (`DrawingEditorLabels.invalidDrawing`) and a **Close** button that returns no result, instead of throwing.
 
 Decoding is strict. Unknown fields are ignored, but malformed input, unknown shape types, newer schema versions, and joints that point to a missing shape or an invalid anchor, a missing or malformed `jointDisplay` (version 3 and later), and an invalid group (version 4), throw `DrawingFormatException`. Nothing is silently dropped.
+
+## Drawing geometry
+
+`computeGeometry(document)` returns the primitives the editor paints: each shape's kind, center, size, rotation, fill and stroke, and each joint's anchor, label rectangle, text, leader line and arrowhead, in canvas units. Store `geometry.toJson()` next to the document so a painter that does not implement the format (a backend rendering reports, for example) only paints. The editor, `DrawingView` and `renderDrawingImage` paint from this same function, so the geometry is what they draw.
+
+```dart
+final geometry = controller.getGeometry();          // or result.geometry
+final json = jsonEncode(geometry.toJson());          // same keys as @crux-diagram/core
+final errors = validateGeometry(document, jsonDecode(json));  // empty when valid
+```
+
+The JSON is identical to what `@crux-diagram/core` writes for the same document and measurer. With real fonts the label boxes can differ by a few pixels between platforms; `ApproximateTextMeasurer` gives the same numbers in both languages.
 
 ## Limitations
 

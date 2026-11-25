@@ -70,6 +70,7 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
     try {
       final image = await controller.exportImage();
       final json = controller.toJson();
+      final geometry = controller.getGeometry();
       controller.markClean();
       if (!mounted) return;
       _leaving = true;
@@ -78,6 +79,7 @@ class _DrawingEditorPageState extends State<DrawingEditorPage> {
           image: image,
           format: controller.config.imageFormat,
           json: json,
+          geometry: geometry,
         ),
       );
     } catch (_) {

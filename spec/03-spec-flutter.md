@@ -58,6 +58,7 @@ El paquete **ya existe y es funcional** (`crux_diagram`, versión `0.1.0`). Esta
   - `geometry/` coincide con el resultado esperado.
 - **FLT-021** Las funciones de geometría que cubren las fixtures (`anchorsOf`, `defaultLabelOffset`, `clampLabelOffset`, `leaderLineStart`, `arrowheadPoints`, `nextJointName`, `normalizeJointName`, `normalizeAngle`) se prueban importándolas desde `src/` en los tests. No hace falta exportarlas en la API pública.
 - **FLT-022** Los resultados esperados de `geometry/` y los documentos de `valid/` se generan con este paquete y se revisan a mano una vez. Desde entonces son la referencia que React debe igualar.
+- **FLT-024** `test/conformance/` ejecuta `fixtures/drawing-geometry/`: `computeGeometry` con `ApproximateTextMeasurer` da el `expected` de cada archivo con tolerancia `1e-6`, y `validateGeometry` no reporta errores sobre él (spec 06). Estas fixtures las genera `core`, no este paquete.
 - **FLT-023** Cada requisito `FMT-xxx` y `FLT-xxx` tiene al menos un test que cita su ID.
 
 ### 5.3 Estilo de juntas
@@ -91,6 +92,11 @@ DrawingEditorLabels, DrawingTool, DrawingResult, DrawingView, JointStyle, Leader
 
 // Exportación
 renderDrawingImage, ImageFormat
+
+// Geometría de dibujo (spec 06)
+computeGeometry, DrawingGeometry, ShapeGeometry, ShapeGeometryKind, JointGeometry,
+JointTextGeometry, TextMeasurer, ApproximateTextMeasurer, FlutterTextMeasurer,
+validateGeometry, GeometryError, GeometryErrorCode, geometryVersion, labelFontFamily
 ```
 
 ```dart

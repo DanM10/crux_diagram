@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_diagram/crux_diagram.dart';
 
 import 'geometry_cases.dart';
+import 'drawing_geometry_cases.dart';
 
 /// Shared-format conformance (spec 02, section 15): every fixture under
 /// `fixtures/` (at the monorepo root) must behave as its folder says. The same fixtures are run by
@@ -126,4 +127,27 @@ void main() {
       }
     }
   });
+
+  group(
+    'drawing geometry matches the expected results (spec 06, GEO-O2, FLT-024)',
+    () {
+      for (final file in _files('drawing-geometry')) {
+        test(_name(file), () {
+          final fixture =
+              jsonDecode(file.readAsStringSync()) as Map<String, Object?>;
+          expect(fixture['measurer'], 'ApproximateTextMeasurer');
+          final document = fixtureDocument(
+            fixture['document']! as Map<String, Object?>,
+            valid: fixture['documentIsValid']! as bool,
+          );
+          final geometry = computeGeometry(
+            document,
+            measurer: const ApproximateTextMeasurer(),
+          );
+          _expectClose(geometry.toJson(), fixture['expected'], 'geometry');
+          expect(validateGeometry(document, fixture['expected']), isEmpty);
+        });
+      }
+    },
+  );
 }

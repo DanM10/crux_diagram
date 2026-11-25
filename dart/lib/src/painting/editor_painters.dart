@@ -11,6 +11,7 @@ import '../geometry/viewport.dart';
 import '../model/drawing_document.dart';
 import '../model/joint.dart';
 import '../model/shape_element.dart';
+import 'drawing_geometry.dart';
 import 'joint_painting.dart';
 import 'joint_style.dart';
 import 'shape_painting.dart';
@@ -130,7 +131,7 @@ class ShapesPainter extends CustomPainter {
       ..translate(viewport.origin.dx, viewport.origin.dy)
       ..scale(viewport.scale)
       ..clipRect(Offset.zero & document.canvasSize);
-    paintShapes(canvas, document.shapes);
+    paintShapes(canvas, document.shapes.map(shapeGeometry));
     canvas.restore();
   }
 
@@ -167,7 +168,7 @@ class JointsPainter extends CustomPainter {
       ..save()
       ..translate(viewport.origin.dx, viewport.origin.dy)
       ..scale(viewport.scale);
-    paintJoints(canvas, document, style);
+    paintJoints(canvas, computeGeometry(document, style: style).joints, style);
     canvas.restore();
   }
 
@@ -266,7 +267,6 @@ class JointOverlayPainter extends CustomPainter {
             outline,
           );
       }
-      placement.dispose();
     }
   }
 
